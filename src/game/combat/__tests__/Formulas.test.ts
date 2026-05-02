@@ -6,7 +6,14 @@ import {
   calcCritRate,
   calcCritAvoid,
   calcDamage,
+  rollTrueHit,
+  rollCrit,
 } from '../Formulas';
+
+function makeRng(sequence: number[]): () => number {
+  let i = 0;
+  return () => sequence[i++] ?? 0;
+}
 
 describe('Combat Formulas', () => {
   // Rowan: skl=7, luk=6, spd=8
@@ -94,6 +101,59 @@ describe('Combat Formulas', () => {
     it('0 attack vs very high defense still deals 1', () => {
       const dmg = calcDamage(0, 1, 999, false);
       expect(dmg).toBe(1);
+    });
+  });
+
+  describe('2RN True Hit', () => {
+    it('hits when average of two RNs < display hit', () => {
+      // display hit = 70, RNs: 60, 70 → avg 65 < 70 → hit
+      const rng = makeRng([60, 70]);
+      expect(rollTrueHit(70, rng)).toBe(true);
+    });
+
+    it('misses when average >= display hit', () => {
+      // display hit = 70, RNs: 80, 60 → avg 70 >= 70 → miss
+      const rng = makeRng([80, 60]);
+      expect(rollTrueHit(70, rng)).toBe(false);
+    });
+
+    it('guaranteed hit at display 100', () => {
+      // avg of any two 0-99 numbers is < 100 always
+      const rng = makeRng([99, 99]);
+      expect(rollTrueHit(100, rng)).toBe(true);
+    });
+
+    it('guaranteed miss at display 0', () => {
+      const rng = makeRng([0, 0]);
+      expect(rollTrueHit(0, rng)).toBe(false);
+    });
+
+    it('99 display hit is very reliable (only misses on avg=99)', () => {
+      // RNs: 99, 99 → avg 99 >= 99 → miss
+      const rng = makeRng([99, 99]);
+      expect(rollTrueHit(99, rng)).toBe(false);
+      // RNs: 98, 99 → avg 98.5 < 99 → hit
+      const rng2 = makeRng([98, 99]);
+      expect(rollTrueHit(99, rng2)).toBe(true);
+    });
+
+    it('1 display hit is very unlikely (only hits on avg=0)', () => {
+      const rng = makeRng([0, 0]);
+      expect(rollTrueHit(1, rng)).toBe(true);
+      const rng2 = makeRng([0, 2]);
+      expect(rollTrueHit(1, rng2)).toBe(false);
+    });
+  });
+
+  describe('Crit Roll', () => {
+    it('single RN crit: RN < displayCrit → crit', () => {
+      const rng = makeRng([2]);
+      expect(rollCrit(5, rng)).toBe(true);
+    });
+
+    it('no crit when RN >= displayCrit', () => {
+      const rng = makeRng([5]);
+      expect(rollCrit(5, rng)).toBe(false);
     });
   });
 });

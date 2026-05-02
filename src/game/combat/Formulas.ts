@@ -27,3 +27,14 @@ export function calcDamage(
   const rawDamage = attackStat + weaponMt - defenseStat;
   return Math.max(1, rawDamage);
 }
+
+export function rollTrueHit(displayHit: number, rng: () => number): boolean {
+  const rn1 = rng();
+  const rn2 = rng();
+  const avg = (rn1 + rn2) / 2;
+  return avg < displayHit;
+}
+
+export function rollCrit(displayCrit: number, rng: () => number): boolean {
+  return rng() < displayCrit;
+}
