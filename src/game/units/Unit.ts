@@ -78,6 +78,13 @@ export class Unit {
     this._gridY = y;
   }
 
+  takeDamage(amount: number): void {
+    this._stats = {
+      ...this._stats,
+      hp: Math.max(0, this._stats.hp - amount),
+    };
+  }
+
   resetState(): void {
     this.state.reset();
   }

@@ -85,6 +85,25 @@ describe('Unit', () => {
     expect(unit.state.current).toBe(UNIT_STATE.IDLE);
   });
 
+  it('takeDamage reduces hp', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    unit.takeDamage(10);
+    expect(unit.stats.hp).toBe(12); // 22 - 10
+  });
+
+  it('takeDamage does not go below 0', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    unit.takeDamage(999);
+    expect(unit.stats.hp).toBe(0);
+  });
+
+  it('isAlive returns false after lethal damage', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    expect(unit.isAlive).toBe(true);
+    unit.takeDamage(22);
+    expect(unit.isAlive).toBe(false);
+  });
+
   it('hasActed returns true when unit state is EXHAUSTED', () => {
     const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
     unit.state.transition(UNIT_STATE.MOVING);
