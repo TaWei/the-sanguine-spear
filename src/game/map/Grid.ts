@@ -1,9 +1,11 @@
 import { TERRAIN_DEFS, TerrainData, TerrainType } from './Terrain';
+import { Unit } from '../units/Unit';
 
 export class Grid {
   readonly cols: number;
   readonly rows: number;
   private tiles: TerrainType[][];
+  private units: Map<string, Unit> = new Map();
 
   constructor(cols: number, rows: number) {
     this.cols = cols;
@@ -11,6 +13,10 @@ export class Grid {
     this.tiles = Array.from({ length: rows }, () =>
       Array.from({ length: cols }, () => TerrainType.PLAINS)
     );
+  }
+
+  private key(x: number, y: number): string {
+    return `${x},${y}`;
   }
 
   setTerrain(x: number, y: number, type: TerrainType): void {
@@ -30,5 +36,23 @@ export class Grid {
 
   isInBounds(x: number, y: number): boolean {
     return x >= 0 && x < this.cols && y >= 0 && y < this.rows;
+  }
+
+  placeUnit(unit: Unit, x: number, y: number): void {
+    if (!this.isInBounds(x, y)) return;
+    this.units.set(this.key(x, y), unit);
+  }
+
+  removeUnit(x: number, y: number): void {
+    this.units.delete(this.key(x, y));
+  }
+
+  getUnit(x: number, y: number): Unit | null {
+    if (!this.isInBounds(x, y)) return null;
+    return this.units.get(this.key(x, y)) ?? null;
+  }
+
+  isOccupied(x: number, y: number): boolean {
+    return this.getUnit(x, y) !== null;
   }
 }
