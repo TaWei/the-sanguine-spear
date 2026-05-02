@@ -1,4 +1,5 @@
 import { UnitStats } from './Stats';
+import { UnitState, UNIT_STATE } from '../state/UnitState';
 
 export const Faction = {
   PLAYER: 'player',
@@ -26,7 +27,7 @@ export class Unit {
   readonly faction: Faction;
   readonly unitClass: UnitClass;
   private _stats: UnitStats;
-  private _hasActed: boolean = false;
+  readonly state: UnitState = new UnitState();
   private _gridX: number;
   private _gridY: number;
 
@@ -49,8 +50,23 @@ export class Unit {
   }
 
   get stats(): Readonly<UnitStats> { return this._stats; }
-  get hasActed(): boolean { return this._hasActed; }
-  set hasActed(v: boolean) { this._hasActed = v; }
+  get hasActed(): boolean { return this.state.isExhausted(); }
+  set hasActed(v: boolean) {
+    if (v) {
+      if (this.state.current === UNIT_STATE.IDLE) {
+        this.state.transition(UNIT_STATE.MOVING);
+        this.state.transition(UNIT_STATE.MENU);
+        this.state.transition(UNIT_STATE.EXHAUSTED);
+      } else if (this.state.current === UNIT_STATE.MOVING) {
+        this.state.transition(UNIT_STATE.MENU);
+        this.state.transition(UNIT_STATE.EXHAUSTED);
+      } else if (this.state.current === UNIT_STATE.MENU) {
+        this.state.transition(UNIT_STATE.EXHAUSTED);
+      }
+    } else {
+      this.state.reset();
+    }
+  }
   get gridX(): number { return this._gridX; }
   get gridY(): number { return this._gridY; }
   get isAlive(): boolean { return this._stats.hp > 0; }
@@ -63,6 +79,6 @@ export class Unit {
   }
 
   resetState(): void {
-    this._hasActed = false;
+    this.state.reset();
   }
 }

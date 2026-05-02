@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Unit, Faction, UnitClass } from '../Unit';
 import { createStats } from '../Stats';
+import { UNIT_STATE } from '../../state/UnitState';
 
 describe('Unit', () => {
   const stats = createStats({
@@ -77,5 +78,28 @@ describe('Unit', () => {
     unit.hasActed = true;
     unit.resetState();
     expect(unit.hasActed).toBe(false);
+  });
+
+  it('starts with IDLE unit state', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    expect(unit.state.current).toBe(UNIT_STATE.IDLE);
+  });
+
+  it('hasActed returns true when unit state is EXHAUSTED', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    unit.state.transition(UNIT_STATE.MOVING);
+    unit.state.transition(UNIT_STATE.MENU);
+    unit.state.transition(UNIT_STATE.EXHAUSTED);
+    expect(unit.hasActed).toBe(true);
+  });
+
+  it('resetState clears acted status and state', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    unit.state.transition(UNIT_STATE.MOVING);
+    unit.state.transition(UNIT_STATE.MENU);
+    unit.state.transition(UNIT_STATE.EXHAUSTED);
+    unit.resetState();
+    expect(unit.hasActed).toBe(false);
+    expect(unit.state.current).toBe(UNIT_STATE.IDLE);
   });
 });
