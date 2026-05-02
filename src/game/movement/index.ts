@@ -1,0 +1,1 @@
+export { computeMoveRange } from './MoveRange';
