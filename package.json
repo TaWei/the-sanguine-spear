@@ -1,0 +1,18 @@
+{
+  "name": "the-sanguine-spear",
+  "version": "0.1.0",
+  "description": "A Fire Emblem-inspired tactical RPG built with Phaser 3 and TypeScript",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "phaser": "^3.80.0"
+  }
+}
