@@ -60,7 +60,7 @@ export class Commander {
   }
 
   private findReachableTargets(
-    enemy: Unit,
+    _enemy: Unit,
     players: Unit[],
     moveRange: Map<string, number>,
     weapon: WeaponData,
@@ -79,7 +79,7 @@ export class Commander {
   }
 
   private findBestApproach(
-    enemy: Unit,
+    _enemy: Unit,
     target: Unit,
     moveRange: Map<string, number>,
     weapon: WeaponData,

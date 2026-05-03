@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CombatEngine, CombatResult } from '../Engine';
+import { CombatEngine } from '../Engine';
 import { Unit, Faction, UnitClass } from '../../units/Unit';
 import { createStats } from '../../units/Stats';
 import { WEAPON_DB } from '../Weapons';

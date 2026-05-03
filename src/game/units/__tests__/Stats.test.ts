@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { UnitStats, createStats } from '../Stats';
+import { createStats } from '../Stats';
 
 describe('UnitStats', () => {
   it('creates stats from required values', () => {

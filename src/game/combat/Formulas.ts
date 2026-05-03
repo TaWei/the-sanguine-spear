@@ -22,7 +22,7 @@ export function calcDamage(
   attackStat: number,
   weaponMt: number,
   defenseStat: number,
-  isMagical: boolean,
+  _isMagical: boolean,
 ): number {
   const rawDamage = attackStat + weaponMt - defenseStat;
   return Math.max(1, rawDamage);
