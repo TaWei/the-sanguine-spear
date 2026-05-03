@@ -62,7 +62,7 @@ src/
 | 4 | [04-combat-and-stats.md](./04-combat-and-stats.md) | ⬜ | Stats, combat formulas, weapon triangle, 2RN |
 | 5 | [05-enemy-ai.md](./05-enemy-ai.md) | ⬜ | Aggro range, decision matrix, automated enemy phase |
 | 6 | [06-polish-and-deployment.md](./06-polish-and-deployment.md) | ⬜ | Animations, juice, hosting |
-| 7 | [07-cutscene-system.md](./07-cutscene-system.md) | ⬜ | Fire Emblem dialog boxes, portraits, typewriter |
+| 7 | [07-cutscene-system.md](./07-cutscene-system.md) | ✅ | Fire Emblem dialog boxes, portraits, typewriter |
 
 ---
 
