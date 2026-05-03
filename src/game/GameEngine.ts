@@ -8,6 +8,9 @@ import { computeMoveRange } from './movement/MoveRange';
 import { WEAPON_DB } from './combat/Weapons';
 import { Commander } from './ai/Commander';
 import { ProgressionEngine } from './progression/ProgressionEngine';
+import { getAdjacentEnemies } from './combat/Adjacency';
+import { CombatEngine } from './combat/Engine';
+import { WeaponData } from './combat/Weapons';
 
 export class GameEngine {
   readonly grid: Grid;
@@ -76,6 +79,28 @@ export class GameEngine {
     const base = damageDealt > 0 ? 10 : 0;
     const killBonus = killed ? 30 : 0;
     this.progressionEngine.grantExp(unit, base + killBonus);
+  }
+
+  getWeaponForUnit(unit: Unit): WeaponData {
+    if (unit.unitClass === 'mage') return WEAPON_DB.Fire;
+    if (unit.unitClass === 'brigand') return WEAPON_DB['Iron Axe'];
+    if (unit.unitClass === 'soldier') return WEAPON_DB['Iron Lance'];
+    return WEAPON_DB['Iron Sword'];
+  }
+
+  getAdjacentEnemies(unit: Unit): Unit[] {
+    return getAdjacentEnemies(unit, this.grid, this.getWeaponForUnit(unit));
+  }
+
+  resolvePlayerCombat(
+    attacker: Unit,
+    defender: Unit,
+    rng?: () => number,
+  ): import('./combat/Engine').CombatResult {
+    const combat = new CombatEngine(this.grid);
+    const attWeapon = this.getWeaponForUnit(attacker);
+    const defWeapon = this.getWeaponForUnit(defender);
+    return combat.resolveCombat(attacker, defender, attWeapon, defWeapon, rng);
   }
 
   endTurn(): void {

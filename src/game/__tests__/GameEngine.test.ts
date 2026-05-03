@@ -202,4 +202,48 @@ describe('GameEngine', () => {
     engine.awardCombatExp(unit, 10, true);
     expect(unit.exp).toBe(40);
   });
+
+  it('getWeaponForUnit returns correct weapon by class', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const mage = engine.addUnit('m1', 'Mage', Faction.ENEMY, UnitClass.MAGE, stats, 0, 0);
+    const brigand = engine.addUnit('b1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 1, 1);
+    expect(engine.getWeaponForUnit(mage).name).toBe('Fire');
+    expect(engine.getWeaponForUnit(brigand).name).toBe('Iron Axe');
+  });
+
+  it('getAdjacentEnemies returns adjacent enemies after move', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+    const enemies = engine.getAdjacentEnemies(player);
+    expect(enemies).toHaveLength(1);
+  });
+
+  it('resolvePlayerCombat returns a CombatResult with log', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+
+    const result = engine.resolvePlayerCombat(player, enemy, () => 0); // guaranteed hit
+    expect(result.log.length).toBeGreaterThan(0);
+    expect(result.log[0].attacker).toBe(player);
+    expect(result.log[0].defender).toBe(enemy);
+  });
+
+  it('resolvePlayerCombat applies damage to units', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+    const enemyHpBefore = enemy.stats.hp;
+
+    engine.resolvePlayerCombat(player, enemy, () => 0);
+    expect(enemy.stats.hp).toBeLessThan(enemyHpBefore);
+  });
 });
