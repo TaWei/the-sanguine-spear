@@ -323,6 +323,16 @@ export class BattleScene extends Phaser.Scene {
 
       if (this.engine.turnManager.isEnemyPhase()) {
         this.executeEnemyActions(() => {
+          const objectives = this.engine.checkObjectives();
+          if (objectives.victory) {
+            this.showVictoryScreen();
+            return;
+          }
+          if (objectives.defeat) {
+            this.showDefeatScreen();
+            return;
+          }
+
           this.engine.endTurn(); // Enemy → Ally
           this.engine.endTurn(); // Ally → Player
           this.syncUnitSprites();
