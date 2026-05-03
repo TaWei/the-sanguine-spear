@@ -11,6 +11,7 @@ import { ProgressionEngine } from './progression/ProgressionEngine';
 import { getAdjacentEnemies } from './combat/Adjacency';
 import { CombatEngine } from './combat/Engine';
 import { WeaponData } from './combat/Weapons';
+import { LevelObjectives, ObjectiveResult } from './objectives/LevelObjectives';
 
 export class GameEngine {
   readonly grid: Grid;
@@ -101,6 +102,10 @@ export class GameEngine {
     const attWeapon = this.getWeaponForUnit(attacker);
     const defWeapon = this.getWeaponForUnit(defender);
     return combat.resolveCombat(attacker, defender, attWeapon, defWeapon, rng);
+  }
+
+  checkObjectives(): ObjectiveResult {
+    return new LevelObjectives(this.units).check();
   }
 
   endTurn(): void {

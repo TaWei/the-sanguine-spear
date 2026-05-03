@@ -246,4 +246,40 @@ describe('GameEngine', () => {
     engine.resolvePlayerCombat(player, enemy, () => 0);
     expect(enemy.stats.hp).toBeLessThan(enemyHpBefore);
   });
+
+  it('reports victory when all enemies are dead', () => {
+    const engine = new GameEngine(10, 8);
+    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 1, 1);
+    enemy.takeDamage(999);
+
+    const result = engine.checkObjectives();
+    expect(result.victory).toBe(true);
+    expect(result.defeat).toBe(false);
+  });
+
+  it('reports defeat when all players are dead', () => {
+    const engine = new GameEngine(10, 8);
+    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
+    player.takeDamage(999);
+    engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 1, 1);
+
+    const result = engine.checkObjectives();
+    expect(result.defeat).toBe(true);
+    expect(result.victory).toBe(false);
+  });
+
+  it('reports ongoing when both sides are alive', () => {
+    const engine = new GameEngine(10, 8);
+    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
+    engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 1, 1);
+
+    const result = engine.checkObjectives();
+    expect(result.ongoing).toBe(true);
+    expect(result.victory).toBe(false);
+    expect(result.defeat).toBe(false);
+  });
 });
