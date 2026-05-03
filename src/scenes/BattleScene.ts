@@ -410,6 +410,7 @@ export class BattleScene extends Phaser.Scene {
                 alpha: 0,
                 duration: 500,
                 onComplete: () => {
+                  this.engine.removeDeadUnits();
                   this.syncUnitSprites();
                   processNext(index + 1);
                 },
@@ -775,6 +776,7 @@ export class BattleScene extends Phaser.Scene {
         onComplete: () => {
           this.battleOverlay?.destroy();
           this.battleOverlay = null;
+          this.engine.removeDeadUnits();
           this.syncUnitSprites();
         },
       });

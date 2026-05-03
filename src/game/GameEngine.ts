@@ -108,6 +108,14 @@ export class GameEngine {
     return new LevelObjectives(this.units).check();
   }
 
+  removeDeadUnits(): void {
+    for (const unit of this.units) {
+      if (!unit.isAlive) {
+        this.grid.removeUnit(unit.gridX, unit.gridY);
+      }
+    }
+  }
+
   endTurn(): void {
     const liveUnits = this.getLiveUnits();
     this.turnManager.advancePhase(liveUnits);

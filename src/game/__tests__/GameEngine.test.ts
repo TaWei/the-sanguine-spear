@@ -282,4 +282,14 @@ describe('GameEngine', () => {
     expect(result.victory).toBe(false);
     expect(result.defeat).toBe(false);
   });
+
+  it('removes dead units from the grid', () => {
+    const engine = new GameEngine(10, 8);
+    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 3, 3);
+    enemy.takeDamage(999);
+
+    engine.removeDeadUnits();
+    expect(engine.getUnit(3, 3)).toBeNull();
+  });
 });
