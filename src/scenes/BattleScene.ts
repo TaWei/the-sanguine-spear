@@ -49,6 +49,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.engine = new GameEngine(GRID_COLS, GRID_ROWS);
     this.moveGraphics = this.add.graphics();
+    this.moveGraphics.setDepth(1);
 
     this.createGridVisuals();
     this.populateMap();
@@ -236,9 +237,12 @@ export class BattleScene extends Phaser.Scene {
 
       if (this.engine.turnManager.isEnemyPhase()) {
         this.executeEnemyActions(() => {
-          this.engine.endTurn();
+          this.engine.endTurn(); // Enemy → Ally
+          this.engine.endTurn(); // Ally → Player
           this.syncUnitSprites();
-          phaseText.setText('Phase: Player');
+          phaseText.setText(
+            `Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`,
+          );
         });
       }
     });
