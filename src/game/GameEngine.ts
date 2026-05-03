@@ -15,6 +15,7 @@ import { LevelObjectives, ObjectiveResult } from './objectives/LevelObjectives';
 import { findPath } from './movement/Pathfinder';
 import { GridNeighbor } from './map/Grid';
 import { TerrainHazardEngine } from './hazards/TerrainHazardEngine';
+import { LevelDefinition } from './levels/LevelDefinition';
 
 export class GameEngine {
   readonly grid: Grid;
@@ -47,6 +48,33 @@ export class GameEngine {
     this.units.push(unit);
     this.grid.placeUnit(unit, gridX, gridY);
     return unit;
+  }
+
+  loadLevel(def: LevelDefinition): void {
+    // Reset existing state
+    this.units = [];
+    // Re-initialize grid with new dimensions if needed
+    if (this.grid.cols !== def.cols || this.grid.rows !== def.rows) {
+      (this as any).grid = new Grid(def.cols, def.rows);
+    } else {
+      // Clear existing grid
+      for (let y = 0; y < this.grid.rows; y++) {
+        for (let x = 0; x < this.grid.cols; x++) {
+          this.grid.setTerrain(x, y, TerrainType.PLAINS);
+          if (this.grid.getUnit(x, y)) {
+            this.grid.removeUnit(x, y);
+          }
+        }
+      }
+    }
+    // Apply terrain
+    for (const t of def.terrain) {
+      this.grid.setTerrain(t.x, t.y, t.type);
+    }
+    // Place units
+    for (const u of def.units) {
+      this.addUnit(u.id, u.name, u.faction, u.unitClass, u.stats, u.x, u.y);
+    }
   }
 
   getUnit(x: number, y: number): Unit | null {

@@ -4,6 +4,7 @@ import { Faction, UnitClass } from '../units/Unit';
 import { createStats } from '../units/Stats';
 import { TerrainType } from '../map/Terrain';
 import { UNIT_STATE } from '../state/UnitState';
+import { getLevel } from '../levels/LevelData';
 
 describe('GameEngine', () => {
   it('initializes with a grid of specified size', () => {
@@ -412,5 +413,27 @@ describe('GameEngine', () => {
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
     const path = engine.findPath(unit, 8, 5);
     expect(path).toBeNull();
+  });
+
+  it('can load a level definition', () => {
+    const level = getLevel('level-1')!;
+    const engine = new GameEngine(level.cols, level.rows);
+    engine.loadLevel(level);
+    expect(engine.getAllUnits()).toHaveLength(level.units.length);
+    expect(engine.grid.getTerrain(0, 0)).toBe('mountain');
+  });
+
+  it('can load level 2 with lava and cliffs', () => {
+    const level = getLevel('level-2')!;
+    const engine = new GameEngine(level.cols, level.rows);
+    engine.loadLevel(level);
+    const lavaTiles = level.terrain.filter((t) => t.type === TerrainType.LAVA);
+    const cliffTiles = level.terrain.filter((t) => t.type === TerrainType.CLIFF);
+    expect(lavaTiles.length).toBeGreaterThan(0);
+    expect(cliffTiles.length).toBeGreaterThan(0);
+    expect(engine.getAllUnits()).toHaveLength(level.units.length);
+    const sylvie = engine.getUnit(3, 4);
+    expect(sylvie).not.toBeNull();
+    expect(sylvie!.unitClass).toBe(UnitClass.PEGASUS_KNIGHT);
   });
 });
