@@ -8,6 +8,7 @@ import { WEAPON_DB } from '../game/combat/Weapons';
 import { BattleMenu, MenuState, MenuAction } from '../game/ui/BattleMenu';
 import { BattleDisplayState, BattlePhase } from '../game/ui/BattleDisplayState';
 import { UNIT_STATE } from '../game/state/UnitState';
+import { EnemyPreview } from '../game/ui/EnemyPreview';
 
 const TERRAIN_COLORS: Record<string, number> = {
   plains: 0x8fbc8f,
@@ -45,6 +46,7 @@ export class BattleScene extends Phaser.Scene {
   private offsetX = 0;
   private offsetY = 0;
   private battleMenu!: BattleMenu;
+  private enemyPreview: EnemyPreview;
   private menuTexts: Phaser.GameObjects.Text[] = [];
   private battleOverlay: Phaser.GameObjects.Container | null = null;
   private battleDisplayState: BattleDisplayState | null = null;
@@ -57,6 +59,7 @@ export class BattleScene extends Phaser.Scene {
 
   constructor() {
     super({ key: 'BattleScene' });
+    this.enemyPreview = new EnemyPreview();
   }
 
   create(): void {
@@ -295,6 +298,18 @@ export class BattleScene extends Phaser.Scene {
     if (clickedUnit && clickedUnit.isPlayer && !clickedUnit.hasActed) {
       this.selectedUnit = clickedUnit;
       this.showMoveRange(clickedUnit);
+      return;
+    }
+
+    // Show enemy preview when clicking an enemy tile
+    if (clickedUnit && clickedUnit.faction === Faction.ENEMY) {
+      this.showEnemyPreview(clickedUnit);
+      return;
+    }
+
+    // Clicking elsewhere clears any active enemy preview
+    if (this.enemyPreview.isActive) {
+      this.clearEnemyPreview();
     }
   }
 
@@ -325,6 +340,43 @@ export class BattleScene extends Phaser.Scene {
         TILE_SIZE,
       );
     });
+  }
+
+  private showEnemyPreview(unit: Unit): void {
+    this.moveGraphics.clear();
+    this.enemyPreview.show(unit);
+    this.selectedUnit = null;
+
+    const range = this.engine.getMoveRange(unit);
+    const threatened = this.engine.getThreatenedTiles(unit);
+
+    range.forEach((_cost, key) => {
+      const [x, y] = key.split(',').map(Number);
+      this.moveGraphics.fillStyle(0xf39c12, 0.4);
+      this.moveGraphics.fillRect(
+        this.offsetX + x * TILE_SIZE,
+        this.offsetY + y * TILE_SIZE,
+        TILE_SIZE,
+        TILE_SIZE,
+      );
+    });
+
+    threatened.forEach((key) => {
+      if (range.has(key)) return;
+      const [x, y] = key.split(',').map(Number);
+      this.moveGraphics.fillStyle(0xe74c3c, 0.35);
+      this.moveGraphics.fillRect(
+        this.offsetX + x * TILE_SIZE,
+        this.offsetY + y * TILE_SIZE,
+        TILE_SIZE,
+        TILE_SIZE,
+      );
+    });
+  }
+
+  private clearEnemyPreview(): void {
+    this.enemyPreview.clear();
+    this.moveGraphics.clear();
   }
 
   private createUI(): void {
@@ -358,6 +410,7 @@ export class BattleScene extends Phaser.Scene {
   private triggerEndTurn(): void {
     this.selectedUnit = null;
     this.moveGraphics.clear();
+    this.enemyPreview.clear();
     this.battleMenu.reset();
     this.clearMenuTexts();
     this.engine.endTurn();
@@ -539,6 +592,7 @@ export class BattleScene extends Phaser.Scene {
     unit.state.reset();
     this.battleMenu.reset();
     this.clearMenuTexts();
+    this.enemyPreview.clear();
     this.moveGraphics.clear();
     this.selectedUnit = unit;
     this.showMoveRange(unit);

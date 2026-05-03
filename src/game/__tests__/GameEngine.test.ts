@@ -353,4 +353,25 @@ describe('GameEngine', () => {
     expect(result.log.length).toBeGreaterThan(0);
     expect(enemy.stats.hp).toBeLessThan(enemyHpBefore);
   });
+
+  it('can compute move range and threatened tiles for enemy units', () => {
+    const engine = new GameEngine(10, 10);
+    const eStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 3 });
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, eStats, 5, 5);
+
+    const moveRange = engine.getMoveRange(enemy);
+    expect(moveRange.has('5,5')).toBe(true);
+    expect(moveRange.has('5,8')).toBe(true);
+    expect(moveRange.has('8,5')).toBe(true);
+
+    const threatened = engine.getThreatenedTiles(enemy);
+    // With move 3 and weapon range 1, tiles at cardinal distance 4 from origin are threatened
+    expect(threatened.has('5,1')).toBe(true);
+    expect(threatened.has('5,9')).toBe(true);
+    expect(threatened.has('1,5')).toBe(true);
+    expect(threatened.has('9,5')).toBe(true);
+    // Tiles within move range are not in threatened set
+    expect(threatened.has('5,5')).toBe(false);
+    expect(threatened.has('5,6')).toBe(false);
+  });
 });
