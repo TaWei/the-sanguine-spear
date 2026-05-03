@@ -108,4 +108,23 @@ describe('findPath', () => {
       expect(step.x === 2 && step.y === 2).toBe(false);
     }
   });
+
+  it('finds path through cliff for flying unit', () => {
+    const grid = new Grid(5, 5);
+    grid.setTerrain(2, 2, TerrainType.CLIFF);
+    const pegStats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 3 });
+    const pegasus = new Unit('u1', 'Peg', Faction.PLAYER, UnitClass.PEGASUS_KNIGHT, pegStats, 1, 2);
+    const path = findPath(pegasus, grid, 3, 2);
+    expect(path).not.toBeNull();
+    expect(path!.some((p) => p.x === 2 && p.y === 2)).toBe(true);
+  });
+
+  it('does not find path through cliff for non-flying unit with low mov', () => {
+    const grid = new Grid(5, 5);
+    grid.setTerrain(2, 2, TerrainType.CLIFF);
+    const lordStats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 3 });
+    const lord = new Unit('u1', 'Lord', Faction.PLAYER, UnitClass.LORD, lordStats, 1, 2);
+    const path = findPath(lord, grid, 3, 2);
+    expect(path).toBeNull();
+  });
 });

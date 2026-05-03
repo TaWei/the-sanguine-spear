@@ -1,5 +1,6 @@
 import { Grid, GridNeighbor } from '../map/Grid';
 import { Unit } from '../units/Unit';
+import { getTerrainMoveCost } from './TerrainCost';
 
 export function findPath(unit: Unit, grid: Grid, destX: number, destY: number): GridNeighbor[] | null {
   const maxMov = unit.stats.mov;
@@ -25,7 +26,8 @@ export function findPath(unit: Unit, grid: Grid, destX: number, destY: number): 
     for (const neighbor of grid.getNeighbors(x, y)) {
       const nx = neighbor.x;
       const ny = neighbor.y;
-      const terrainCost = grid.getTerrainData(nx, ny).moveCost;
+      const terrain = grid.getTerrain(nx, ny);
+      const terrainCost = getTerrainMoveCost(unit, terrain);
 
       if (terrainCost >= 99) continue;
 
