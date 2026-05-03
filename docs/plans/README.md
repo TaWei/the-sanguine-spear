@@ -64,6 +64,8 @@ src/
 | 6 | [06-polish-and-deployment.md](./06-polish-and-deployment.md) | ⬜ | Animations, juice, hosting |
 | 7 | [07-cutscene-system.md](./07-cutscene-system.md) | ✅ | Fire Emblem dialog boxes, portraits, typewriter |
 | 8 | [08-character-progression.md](./08-character-progression.md) | ⬜ | Leveling, EXP, growth rates, stat caps |
+| 9 | [09-player-battle-mode.md](./09-player-battle-mode.md) | ⬜ | Fight menu, target selection, combat animation |
+| 10 | [10-level-objectives.md](./10-level-objectives.md) | ✅ | Victory/defeat conditions, level completion |
 
 ---
 
