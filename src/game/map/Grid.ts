@@ -1,6 +1,11 @@
 import { TERRAIN_DEFS, TerrainData, TerrainType } from './Terrain';
 import { Unit } from '../units/Unit';
 
+export interface GridNeighbor {
+  x: number;
+  y: number;
+}
+
 export class Grid {
   readonly cols: number;
   readonly rows: number;
@@ -60,5 +65,23 @@ export class Grid {
 
   isOccupied(x: number, y: number): boolean {
     return this.getUnit(x, y) !== null;
+  }
+
+  getNeighbors(x: number, y: number): GridNeighbor[] {
+    const result: GridNeighbor[] = [];
+    const dirs = [
+      { dx: 0, dy: -1 },
+      { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 },
+    ];
+    for (const { dx, dy } of dirs) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (this.isInBounds(nx, ny)) {
+        result.push({ x: nx, y: ny });
+      }
+    }
+    return result;
   }
 }

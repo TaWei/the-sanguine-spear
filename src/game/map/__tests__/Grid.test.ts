@@ -123,4 +123,32 @@ describe('Grid', () => {
     const grid = new Grid(5, 5);
     expect(grid.getUnit(99, 99)).toBeNull();
   });
+
+  it('getNeighbors returns only in-bounds cardinal neighbors', () => {
+    const grid = new Grid(5, 5);
+    const neighbors = grid.getNeighbors(0, 0);
+    const keys = neighbors.map((n) => `${n.x},${n.y}`);
+    expect(keys).toContain('1,0');
+    expect(keys).toContain('0,1');
+    expect(keys).not.toContain('-1,0');
+    expect(keys).not.toContain('0,-1');
+    expect(keys).toHaveLength(2);
+  });
+
+  it('getNeighbors returns 4 neighbors for interior tiles', () => {
+    const grid = new Grid(5, 5);
+    const neighbors = grid.getNeighbors(2, 2);
+    expect(neighbors).toHaveLength(4);
+    const keys = neighbors.map((n) => `${n.x},${n.y}`);
+    expect(keys).toContain('2,1');
+    expect(keys).toContain('2,3');
+    expect(keys).toContain('1,2');
+    expect(keys).toContain('3,2');
+  });
+
+  it('getNeighbors returns 3 neighbors for edge tiles', () => {
+    const grid = new Grid(5, 5);
+    const neighbors = grid.getNeighbors(0, 2);
+    expect(neighbors).toHaveLength(3);
+  });
 });
