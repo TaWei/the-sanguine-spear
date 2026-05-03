@@ -56,6 +56,8 @@ export class BattleScene extends Phaser.Scene {
   private inputEnabled = true;
   private bannerShownForTurn = 0;
   private preMovePosition: { x: number; y: number } | null = null;
+  private pathGraphics!: Phaser.GameObjects.Graphics;
+  private isAnimatingMovement = false;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -71,6 +73,8 @@ export class BattleScene extends Phaser.Scene {
     this.engine = new GameEngine(GRID_COLS, GRID_ROWS);
     this.moveGraphics = this.add.graphics();
     this.moveGraphics.setDepth(1);
+    this.pathGraphics = this.add.graphics();
+    this.pathGraphics.setDepth(2);
 
     this.createGridVisuals();
     this.populateMap();
@@ -240,10 +244,23 @@ export class BattleScene extends Phaser.Scene {
       }
       this.handleTileClick(gx, gy, pointer.x, pointer.y);
     });
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!this.inputEnabled || !this.engine.turnManager.isPlayerPhase() || this.inBattleMode || this.isAnimatingMovement) {
+        return;
+      }
+      const gx = Math.floor((pointer.x - this.offsetX) / TILE_SIZE);
+      const gy = Math.floor((pointer.y - this.offsetY) / TILE_SIZE);
+      if (!this.engine.grid.isInBounds(gx, gy)) {
+        this.pathGraphics.clear();
+        return;
+      }
+      this.handleTileHover(gx, gy);
+    });
   }
 
   private handleTileClick(gx: number, gy: number, pointerX: number, pointerY: number): void {
-    if (!this.inputEnabled || !this.engine.turnManager.isPlayerPhase() || this.inBattleMode) {
+    if (!this.inputEnabled || !this.engine.turnManager.isPlayerPhase() || this.inBattleMode || this.isAnimatingMovement) {
       return;
     }
 
@@ -268,17 +285,14 @@ export class BattleScene extends Phaser.Scene {
       if (range.has(key) && !clickedUnit) {
         const unitToMove = this.selectedUnit;
         this.preMovePosition = { x: unitToMove.gridX, y: unitToMove.gridY };
-        this.tweens.add({
-          targets: this.unitSprites.get(this.selectedUnit.id),
-          x: this.offsetX + gx * TILE_SIZE + TILE_SIZE / 2,
-          y: this.offsetY + gy * TILE_SIZE + TILE_SIZE / 2,
-          duration: 300,
-          onComplete: () => {
-            this.engine.moveUnit(unitToMove, gx, gy);
-            unitToMove.state.transition(UNIT_STATE.MOVING);
-            unitToMove.state.transition(UNIT_STATE.MENU);
-            this.showPostMoveMenu(unitToMove);
-          },
+        const path = this.engine.findPath(unitToMove, gx, gy);
+        if (!path) return;
+        this.pathGraphics.clear();
+        this.animatePathMovement(unitToMove, path, () => {
+          this.engine.moveUnit(unitToMove, gx, gy);
+          unitToMove.state.transition(UNIT_STATE.MOVING);
+          unitToMove.state.transition(UNIT_STATE.MENU);
+          this.showPostMoveMenu(unitToMove);
         });
         return;
       }
@@ -313,8 +327,86 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  private handleTileHover(gx: number, gy: number): void {
+    if (!this.selectedUnit || this.battleMenu.isVisible) {
+      this.pathGraphics.clear();
+      return;
+    }
+    const range = this.engine.getMoveRange(this.selectedUnit);
+    const key = `${String(gx)},${String(gy)}`;
+    if (!range.has(key) || this.engine.getUnit(gx, gy)) {
+      this.pathGraphics.clear();
+      return;
+    }
+    const path = this.engine.findPath(this.selectedUnit, gx, gy);
+    if (path) {
+      this.drawPathPreview(path);
+    } else {
+      this.pathGraphics.clear();
+    }
+  }
+
+  private drawPathPreview(path: import('../game/map/Grid').GridNeighbor[]): void {
+    this.pathGraphics.clear();
+    if (!path || path.length === 0 || !this.selectedUnit) return;
+
+    this.pathGraphics.lineStyle(3, 0xffffff, 0.8);
+    const startX = this.offsetX + this.selectedUnit.gridX * TILE_SIZE + TILE_SIZE / 2;
+    const startY = this.offsetY + this.selectedUnit.gridY * TILE_SIZE + TILE_SIZE / 2;
+    this.pathGraphics.beginPath();
+    this.pathGraphics.moveTo(startX, startY);
+
+    for (const step of path) {
+      const px = this.offsetX + step.x * TILE_SIZE + TILE_SIZE / 2;
+      const py = this.offsetY + step.y * TILE_SIZE + TILE_SIZE / 2;
+      this.pathGraphics.lineTo(px, py);
+    }
+    this.pathGraphics.strokePath();
+
+    // Draw arrowhead at destination
+    const dest = path[path.length - 1];
+    const dx = this.offsetX + dest.x * TILE_SIZE + TILE_SIZE / 2;
+    const dy = this.offsetY + dest.y * TILE_SIZE + TILE_SIZE / 2;
+    this.pathGraphics.fillStyle(0xffffff, 0.9);
+    this.pathGraphics.fillCircle(dx, dy, 4);
+  }
+
+  private animatePathMovement(unit: Unit, path: import('../game/map/Grid').GridNeighbor[], onComplete: () => void): void {
+    const sprite = this.unitSprites.get(unit.id);
+    if (!sprite) {
+      onComplete();
+      return;
+    }
+
+    this.isAnimatingMovement = true;
+    let stepIndex = 0;
+    const processStep = () => {
+      if (stepIndex >= path.length) {
+        this.isAnimatingMovement = false;
+        onComplete();
+        return;
+      }
+      const step = path[stepIndex];
+      const targetX = this.offsetX + step.x * TILE_SIZE + TILE_SIZE / 2;
+      const targetY = this.offsetY + step.y * TILE_SIZE + TILE_SIZE / 2;
+      this.tweens.add({
+        targets: sprite,
+        x: targetX,
+        y: targetY,
+        duration: 150,
+        ease: 'Linear',
+        onComplete: () => {
+          stepIndex++;
+          processStep();
+        },
+      });
+    };
+    processStep();
+  }
+
   private showMoveRange(unit: Unit): void {
     this.moveGraphics.clear();
+    this.pathGraphics.clear();
     const range = this.engine.getMoveRange(unit);
     const threatened = this.engine.getThreatenedTiles(unit);
 
@@ -377,6 +469,7 @@ export class BattleScene extends Phaser.Scene {
   private clearEnemyPreview(): void {
     this.enemyPreview.clear();
     this.moveGraphics.clear();
+    this.pathGraphics.clear();
   }
 
   private createUI(): void {
@@ -410,6 +503,7 @@ export class BattleScene extends Phaser.Scene {
   private triggerEndTurn(): void {
     this.selectedUnit = null;
     this.moveGraphics.clear();
+    this.pathGraphics.clear();
     this.enemyPreview.clear();
     this.battleMenu.reset();
     this.clearMenuTexts();
@@ -507,6 +601,7 @@ export class BattleScene extends Phaser.Scene {
 
   private showPostMoveMenu(unit: Unit): void {
     this.moveGraphics.clear();
+    this.pathGraphics.clear();
     this.selectedUnit = null;
 
     const enemies = this.engine.getAdjacentEnemies(unit);
@@ -594,6 +689,7 @@ export class BattleScene extends Phaser.Scene {
     this.clearMenuTexts();
     this.enemyPreview.clear();
     this.moveGraphics.clear();
+    this.pathGraphics.clear();
     this.selectedUnit = unit;
     this.showMoveRange(unit);
   }
@@ -601,6 +697,7 @@ export class BattleScene extends Phaser.Scene {
   private handleOutsideMenuClick(): void {
     if (this.battleMenu.state === MenuState.CHOOSE_TARGET) {
       this.moveGraphics.clear();
+      this.pathGraphics.clear();
       const unit = this.battleMenu.unit!;
       const enemies = this.engine.getAdjacentEnemies(unit);
       this.battleMenu.show(unit, enemies);
@@ -637,10 +734,12 @@ export class BattleScene extends Phaser.Scene {
         this.battleMenu.selectTarget(validTarget);
         this.clearMenuTexts();
         this.moveGraphics.clear();
+        this.pathGraphics.clear();
         this.startBattleMode(this.battleMenu.unit!, validTarget);
       } else {
         // Cancel target selection, return to action menu
         this.moveGraphics.clear();
+        this.pathGraphics.clear();
         const unit = this.battleMenu.unit!;
         const enemies = this.engine.getAdjacentEnemies(unit);
         this.battleMenu.show(unit, enemies);

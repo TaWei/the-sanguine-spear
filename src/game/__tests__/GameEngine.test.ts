@@ -374,4 +374,23 @@ describe('GameEngine', () => {
     expect(threatened.has('5,5')).toBe(false);
     expect(threatened.has('5,6')).toBe(false);
   });
+
+  it('can find path to a reachable tile', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 3 });
+    const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    const path = engine.findPath(unit, 7, 5);
+    expect(path).not.toBeNull();
+    expect(path).toHaveLength(2);
+    expect(path![0]).toEqual({ x: 6, y: 5 });
+    expect(path![1]).toEqual({ x: 7, y: 5 });
+  });
+
+  it('findPath returns null for unreachable tile', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 2 });
+    const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    const path = engine.findPath(unit, 8, 5);
+    expect(path).toBeNull();
+  });
 });

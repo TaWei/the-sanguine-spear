@@ -12,6 +12,8 @@ import { getAdjacentEnemies } from './combat/Adjacency';
 import { CombatEngine } from './combat/Engine';
 import { WeaponData } from './combat/Weapons';
 import { LevelObjectives, ObjectiveResult } from './objectives/LevelObjectives';
+import { findPath } from './movement/Pathfinder';
+import { GridNeighbor } from './map/Grid';
 
 export class GameEngine {
   readonly grid: Grid;
@@ -62,6 +64,10 @@ export class GameEngine {
 
   getMoveRange(unit: Unit): Map<string, number> {
     return computeMoveRange(unit, this.grid);
+  }
+
+  findPath(unit: Unit, destX: number, destY: number): GridNeighbor[] | null {
+    return findPath(unit, this.grid, destX, destY);
   }
 
   moveUnit(unit: Unit, x: number, y: number): void {
