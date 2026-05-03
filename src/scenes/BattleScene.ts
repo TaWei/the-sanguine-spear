@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TILE_SIZE, GRID_COLS, GRID_ROWS } from '../constants';
+import { TILE_SIZE } from '../constants';
 import { GameEngine } from '../game/GameEngine';
 import { Unit, Faction, UnitClass } from '../game/units/Unit';
 import { createStats } from '../game/units/Stats';
@@ -9,6 +9,7 @@ import { BattleMenu, MenuState, MenuAction } from '../game/ui/BattleMenu';
 import { BattleDisplayState, BattlePhase } from '../game/ui/BattleDisplayState';
 import { UNIT_STATE } from '../game/state/UnitState';
 import { EnemyPreview } from '../game/ui/EnemyPreview';
+import { getLevel } from '../game/levels/LevelData';
 
 const TERRAIN_COLORS: Record<string, number> = {
   plains: 0x8fbc8f,
@@ -16,6 +17,8 @@ const TERRAIN_COLORS: Record<string, number> = {
   mountain: 0x808080,
   water: 0x4682b4,
   wall: 0x2f4f4f,
+  lava: 0xff4500,
+  cliff: 0xa0522d,
 };
 
 const FACTION_COLORS: Record<string, number> = {
@@ -64,21 +67,29 @@ export class BattleScene extends Phaser.Scene {
     this.enemyPreview = new EnemyPreview();
   }
 
-  create(): void {
+  create(data?: { levelId?: string }): void {
     this.cameras.main.fadeIn(500, 0, 0, 0);
 
-    this.offsetX = (this.cameras.main.width - GRID_COLS * TILE_SIZE) / 2;
-    this.offsetY = (this.cameras.main.height - GRID_ROWS * TILE_SIZE) / 2;
+    const levelId = data?.levelId ?? 'level-1';
+    const level = getLevel(levelId);
+    if (!level) {
+      throw new Error(`Unknown level: ${levelId}`);
+    }
 
-    this.engine = new GameEngine(GRID_COLS, GRID_ROWS);
+    this.engine = new GameEngine(level.cols, level.rows);
+    this.engine.loadLevel(level);
+
+    this.offsetX = (this.cameras.main.width - level.cols * TILE_SIZE) / 2;
+    this.offsetY = (this.cameras.main.height - level.rows * TILE_SIZE) / 2;
+
     this.moveGraphics = this.add.graphics();
     this.moveGraphics.setDepth(1);
     this.pathGraphics = this.add.graphics();
     this.pathGraphics.setDepth(2);
 
     this.createGridVisuals();
-    this.populateMap();
-    this.spawnUnits();
+    this.syncTileColors();
+    this.syncUnitSprites();
     this.setupInput();
     this.createUI();
     this.battleMenu = new BattleMenu();
@@ -86,9 +97,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createGridVisuals(): void {
-    for (let y = 0; y < GRID_ROWS; y++) {
+    for (let y = 0; y < this.engine.grid.rows; y++) {
       this.tileRects[y] = [];
-      for (let x = 0; x < GRID_COLS; x++) {
+      for (let x = 0; x < this.engine.grid.cols; x++) {
         const px = this.offsetX + x * TILE_SIZE;
         const py = this.offsetY + y * TILE_SIZE;
         const rect = this.add.rectangle(
@@ -105,88 +116,15 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private populateMap(): void {
-    for (let y = 0; y < GRID_ROWS; y++) {
-      for (let x = 0; x < GRID_COLS; x++) {
-        if (x === 0 || x === GRID_COLS - 1 || y === 0 || y === GRID_ROWS - 1) {
-          this.engine.setTerrain(x, y, TerrainType.MOUNTAIN);
-        } else if ((x + y) % 7 === 0) {
-          this.engine.setTerrain(x, y, TerrainType.FOREST);
-        } else if ((x * y) % 11 === 0) {
-          this.engine.setTerrain(x, y, TerrainType.WATER);
-        }
-      }
-    }
-    this.syncTileColors();
-  }
-
   private syncTileColors(): void {
-    for (let y = 0; y < GRID_ROWS; y++) {
-      for (let x = 0; x < GRID_COLS; x++) {
+    for (let y = 0; y < this.engine.grid.rows; y++) {
+      for (let x = 0; x < this.engine.grid.cols; x++) {
         const terrain = this.engine.grid.getTerrain(x, y);
         const color = TERRAIN_COLORS[terrain] ?? TERRAIN_COLORS.plains;
         const rect = this.tileRects[y][x];
         rect.setFillStyle(color);
       }
     }
-  }
-
-  private spawnUnits(): void {
-    const pStats1 = createStats({
-      hp: 22,
-      maxHp: 22,
-      str: 8,
-      mag: 2,
-      skl: 7,
-      spd: 8,
-      luk: 6,
-      def: 6,
-      res: 2,
-      mov: 5,
-    });
-    const pStats2 = createStats({
-      hp: 16,
-      maxHp: 16,
-      str: 1,
-      mag: 9,
-      skl: 6,
-      spd: 7,
-      luk: 5,
-      def: 2,
-      res: 7,
-      mov: 5,
-    });
-    const eStats1 = createStats({
-      hp: 26,
-      maxHp: 26,
-      str: 9,
-      mag: 0,
-      skl: 4,
-      spd: 5,
-      luk: 3,
-      def: 5,
-      res: 1,
-      mov: 5,
-    });
-    const eStats2 = createStats({
-      hp: 20,
-      maxHp: 20,
-      str: 7,
-      mag: 0,
-      skl: 6,
-      spd: 5,
-      luk: 2,
-      def: 7,
-      res: 1,
-      mov: 5,
-    });
-
-    this.engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, pStats1, 2, 5);
-    this.engine.addUnit('p2', 'Elara', Faction.PLAYER, UnitClass.MAGE, pStats2, 3, 6);
-    this.engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, eStats1, 12, 4);
-    this.engine.addUnit('e2', 'Soldier', Faction.ENEMY, UnitClass.SOLDIER, eStats2, 13, 6);
-
-    this.syncUnitSprites();
   }
 
   private syncUnitSprites(): void {
