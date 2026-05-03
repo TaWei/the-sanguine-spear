@@ -101,6 +101,10 @@ export class Unit {
     return this.faction === Faction.ENEMY;
   }
 
+  get isFlying(): boolean {
+    return this.unitClass === UnitClass.PEGASUS_KNIGHT;
+  }
+
   get level(): number {
     return this._level;
   }

@@ -196,4 +196,16 @@ describe('Unit', () => {
     const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { level: 19 });
     expect(unit.isAtMaxLevel).toBe(false);
   });
+
+  it('pegasus knight is flying', () => {
+    const pegStats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 7 });
+    const unit = new Unit('u1', 'Peg', Faction.PLAYER, UnitClass.PEGASUS_KNIGHT, pegStats, 0, 0);
+    expect(unit.isFlying).toBe(true);
+  });
+
+  it('lord is not flying', () => {
+    const lordStats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const unit = new Unit('u1', 'Rowan', Faction.PLAYER, UnitClass.LORD, lordStats, 0, 0);
+    expect(unit.isFlying).toBe(false);
+  });
 });
