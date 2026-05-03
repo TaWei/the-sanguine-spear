@@ -14,6 +14,7 @@ import { WeaponData } from './combat/Weapons';
 import { LevelObjectives, ObjectiveResult } from './objectives/LevelObjectives';
 import { findPath } from './movement/Pathfinder';
 import { GridNeighbor } from './map/Grid';
+import { TerrainHazardEngine } from './hazards/TerrainHazardEngine';
 
 export class GameEngine {
   readonly grid: Grid;
@@ -22,6 +23,7 @@ export class GameEngine {
   private actionQueue: ActionQueue;
   private commander: Commander;
   private progressionEngine: ProgressionEngine;
+  private hazardEngine: TerrainHazardEngine;
 
   constructor(cols: number, rows: number) {
     this.grid = new Grid(cols, rows);
@@ -29,6 +31,7 @@ export class GameEngine {
     this.actionQueue = new ActionQueue();
     this.commander = new Commander(this.grid, WEAPON_DB);
     this.progressionEngine = new ProgressionEngine();
+    this.hazardEngine = new TerrainHazardEngine();
   }
 
   addUnit(
@@ -160,6 +163,9 @@ export class GameEngine {
   endTurn(): void {
     const liveUnits = this.getLiveUnits();
     this.turnManager.advancePhase(liveUnits);
+
+    // Apply terrain hazards at the start of the new phase
+    this.hazardEngine.applyHazards(this.getLiveUnits(), this.grid);
 
     if (this.turnManager.isEnemyPhase()) {
       const enemies = this.getUnitsByFaction(Faction.ENEMY);

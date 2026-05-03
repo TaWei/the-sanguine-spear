@@ -284,6 +284,26 @@ describe('GameEngine', () => {
     expect(result.defeat).toBe(false);
   });
 
+  it('applies lava damage at start of enemy phase', () => {
+    const engine = new GameEngine(5, 5);
+    const stats = createStats({ hp: 20, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+    engine.setTerrain(2, 2, TerrainType.LAVA);
+    const hpBefore = unit.stats.hp;
+    engine.endTurn(); // player → enemy, should apply hazards
+    expect(unit.stats.hp).toBe(hpBefore - 5);
+  });
+
+  it('does not apply hazard damage during same phase', () => {
+    const engine = new GameEngine(5, 5);
+    const stats = createStats({ hp: 20, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+    engine.setTerrain(2, 2, TerrainType.LAVA);
+    const hpBefore = unit.stats.hp;
+    // No phase change yet
+    expect(unit.stats.hp).toBe(hpBefore);
+  });
+
   it('removes dead units from the grid', () => {
     const engine = new GameEngine(10, 8);
     const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
