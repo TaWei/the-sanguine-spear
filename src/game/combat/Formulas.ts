@@ -2,7 +2,7 @@ export function calcHitRate(weaponHit: number, skl: number, luk: number): number
   return weaponHit + skl * 2 + Math.floor(luk / 2);
 }
 
-export function calcAvoid(spd: number, luk: number, terrainAvoid: number = 0): number {
+export function calcAvoid(spd: number, luk: number, terrainAvoid = 0): number {
   return spd * 2 + luk + terrainAvoid;
 }
 

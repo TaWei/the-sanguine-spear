@@ -49,8 +49,12 @@ export class Unit {
     this._gridY = gridY;
   }
 
-  get stats(): Readonly<UnitStats> { return this._stats; }
-  get hasActed(): boolean { return this.state.isExhausted(); }
+  get stats(): Readonly<UnitStats> {
+    return this._stats;
+  }
+  get hasActed(): boolean {
+    return this.state.isExhausted();
+  }
   set hasActed(v: boolean) {
     if (v) {
       if (this.state.current === UNIT_STATE.IDLE) {
@@ -67,11 +71,21 @@ export class Unit {
       this.state.reset();
     }
   }
-  get gridX(): number { return this._gridX; }
-  get gridY(): number { return this._gridY; }
-  get isAlive(): boolean { return this._stats.hp > 0; }
-  get isPlayer(): boolean { return this.faction === Faction.PLAYER; }
-  get isEnemy(): boolean { return this.faction === Faction.ENEMY; }
+  get gridX(): number {
+    return this._gridX;
+  }
+  get gridY(): number {
+    return this._gridY;
+  }
+  get isAlive(): boolean {
+    return this._stats.hp > 0;
+  }
+  get isPlayer(): boolean {
+    return this.faction === Faction.PLAYER;
+  }
+  get isEnemy(): boolean {
+    return this.faction === Faction.ENEMY;
+  }
 
   moveTo(x: number, y: number): void {
     this._gridX = x;

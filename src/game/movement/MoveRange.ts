@@ -10,20 +10,27 @@ export function computeMoveRange(unit: Unit, grid: Grid): Map<string, number> {
   const maxMov = unit.stats.mov;
   const startX = unit.gridX;
   const startY = unit.gridY;
-  const startKey = `${startX},${startY}`;
+  const startKey = `${String(startX)},${String(startY)}`;
 
   // Priority queue: [cost, x, y], ordered by cost ascending
   const queue: [number, number, number][] = [[0, startX, startY]];
   const visited = new Map<string, number>();
   visited.set(startKey, 0);
 
-  const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+  const dirs = [
+    [0, -1],
+    [0, 1],
+    [-1, 0],
+    [1, 0],
+  ];
 
   while (queue.length > 0) {
     // Extract the lowest-cost entry (simple linear scan for clarity)
     let minIdx = 0;
     for (let i = 1; i < queue.length; i++) {
-      if (queue[i][0] < queue[minIdx][0]) minIdx = i;
+      if (queue[i][0] < queue[minIdx][0]) {
+        minIdx = i;
+      }
     }
     const [cost, x, y] = queue.splice(minIdx, 1)[0];
 
@@ -31,25 +38,35 @@ export function computeMoveRange(unit: Unit, grid: Grid): Map<string, number> {
       const nx = x + dx;
       const ny = y + dy;
 
-      if (!grid.isInBounds(nx, ny)) continue;
+      if (!grid.isInBounds(nx, ny)) {
+        continue;
+      }
 
       const terrainData = grid.getTerrainData(nx, ny);
       const terrainCost = terrainData.moveCost;
 
       // Impassable terrain
-      if (terrainCost >= 99) continue;
+      if (terrainCost >= 99) {
+        continue;
+      }
 
       const newCost = cost + terrainCost;
-      if (newCost > maxMov) continue;
+      if (newCost > maxMov) {
+        continue;
+      }
 
-      const key = `${nx},${ny}`;
+      const key = `${String(nx)},${String(ny)}`;
       const prevCost = visited.get(key);
-      if (prevCost !== undefined && prevCost <= newCost) continue;
+      if (prevCost !== undefined && prevCost <= newCost) {
+        continue;
+      }
 
       // Cannot move through enemy units (but can move through allies? — skip for now, block all)
       if (grid.isOccupied(nx, ny)) {
         // Allow the starting tile
-        if (nx === startX && ny === startY) continue;
+        if (nx === startX && ny === startY) {
+          continue;
+        }
         // Block occupied tiles
         continue;
       }

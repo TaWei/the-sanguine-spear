@@ -55,7 +55,17 @@ describe('Grid', () => {
 
   it('can place and retrieve a unit', () => {
     const grid = new Grid(5, 5);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
     grid.placeUnit(unit, 2, 2);
     expect(grid.getUnit(2, 2)).toBe(unit);
@@ -68,7 +78,17 @@ describe('Grid', () => {
 
   it('removes a unit when placing null', () => {
     const grid = new Grid(5, 5);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
     grid.placeUnit(unit, 2, 2);
     grid.removeUnit(2, 2);
@@ -77,7 +97,17 @@ describe('Grid', () => {
 
   it('isOccupied returns true when a unit is present', () => {
     const grid = new Grid(5, 5);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
     grid.placeUnit(unit, 2, 2);
     expect(grid.isOccupied(2, 2)).toBe(true);

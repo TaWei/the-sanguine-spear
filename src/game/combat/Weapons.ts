@@ -19,11 +19,56 @@ export interface WeaponData {
 }
 
 export const WEAPON_DB: Record<string, WeaponData> = {
-  'Iron Sword':  { name: 'Iron Sword',  type: WeaponType.SWORD, mt: 5, hit: 90, crit: 0, minRange: 1, maxRange: 1, usesMagic: false },
-  'Iron Axe':    { name: 'Iron Axe',    type: WeaponType.AXE,   mt: 8, hit: 70, crit: 0, minRange: 1, maxRange: 1, usesMagic: false },
-  'Iron Lance':  { name: 'Iron Lance',  type: WeaponType.LANCE, mt: 6, hit: 80, crit: 0, minRange: 1, maxRange: 1, usesMagic: false },
-  'Iron Bow':    { name: 'Iron Bow',    type: WeaponType.BOW,   mt: 6, hit: 85, crit: 0, minRange: 2, maxRange: 2, usesMagic: false },
-  'Fire':        { name: 'Fire',        type: WeaponType.MAGIC, mt: 5, hit: 90, crit: 0, minRange: 1, maxRange: 2, usesMagic: true },
+  'Iron Sword': {
+    name: 'Iron Sword',
+    type: WeaponType.SWORD,
+    mt: 5,
+    hit: 90,
+    crit: 0,
+    minRange: 1,
+    maxRange: 1,
+    usesMagic: false,
+  },
+  'Iron Axe': {
+    name: 'Iron Axe',
+    type: WeaponType.AXE,
+    mt: 8,
+    hit: 70,
+    crit: 0,
+    minRange: 1,
+    maxRange: 1,
+    usesMagic: false,
+  },
+  'Iron Lance': {
+    name: 'Iron Lance',
+    type: WeaponType.LANCE,
+    mt: 6,
+    hit: 80,
+    crit: 0,
+    minRange: 1,
+    maxRange: 1,
+    usesMagic: false,
+  },
+  'Iron Bow': {
+    name: 'Iron Bow',
+    type: WeaponType.BOW,
+    mt: 6,
+    hit: 85,
+    crit: 0,
+    minRange: 2,
+    maxRange: 2,
+    usesMagic: false,
+  },
+  Fire: {
+    name: 'Fire',
+    type: WeaponType.MAGIC,
+    mt: 5,
+    hit: 90,
+    crit: 0,
+    minRange: 1,
+    maxRange: 2,
+    usesMagic: true,
+  },
 };
 
 export interface TriangleMod {
@@ -33,7 +78,7 @@ export interface TriangleMod {
 
 const ADVANTAGE: Record<string, WeaponType> = {
   [WeaponType.SWORD]: WeaponType.AXE,
-  [WeaponType.AXE]:   WeaponType.LANCE,
+  [WeaponType.AXE]: WeaponType.LANCE,
   [WeaponType.LANCE]: WeaponType.SWORD,
 };
 

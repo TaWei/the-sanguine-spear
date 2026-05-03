@@ -4,7 +4,7 @@ export function rollLevelUp(
 ): string[] {
   const increases: string[] = [];
   for (const [stat, rate] of Object.entries(growthRates)) {
-    if (rate && rate > 0 && rng() * 100 < rate) {
+    if (rate !== undefined && rate > 0 && rng() * 100 < rate) {
       increases.push(stat);
     }
   }

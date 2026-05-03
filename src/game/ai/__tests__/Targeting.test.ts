@@ -10,17 +10,47 @@ describe('Targeting', () => {
   const grid = new Grid(10, 10);
 
   const makeEnemy = () => {
-    const stats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const stats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
     return new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 5, 5);
   };
 
   const makeWeak = () => {
-    const stats = createStats({ hp: 16, str: 1, mag: 9, skl: 6, spd: 7, luk: 5, def: 2, res: 7, mov: 5 });
+    const stats = createStats({
+      hp: 16,
+      str: 1,
+      mag: 9,
+      skl: 6,
+      spd: 7,
+      luk: 5,
+      def: 2,
+      res: 7,
+      mov: 5,
+    });
     return new Unit('p1', 'Elara', Faction.PLAYER, UnitClass.MAGE, stats, 6, 5);
   };
 
   const makeTough = () => {
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     return new Unit('p2', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 6, 6);
   };
 
@@ -33,7 +63,17 @@ describe('Targeting', () => {
 
   it('returns 0 if target is not an enemy', () => {
     const enemy = makeEnemy();
-    const allyStats = createStats({ hp: 16, str: 1, mag: 9, skl: 6, spd: 7, luk: 5, def: 2, res: 7, mov: 5 });
+    const allyStats = createStats({
+      hp: 16,
+      str: 1,
+      mag: 9,
+      skl: 6,
+      spd: 7,
+      luk: 5,
+      def: 2,
+      res: 7,
+      mov: 5,
+    });
     const ally = new Unit('a1', 'Ally', Faction.ALLY, UnitClass.LORD, allyStats, 6, 5);
     const score = scoreTarget(enemy, ally, WEAPON_DB['Iron Axe'], grid);
     expect(score).toBe(0);
@@ -41,8 +81,26 @@ describe('Targeting', () => {
 
   it('returns 0 if target is same faction', () => {
     const enemy = makeEnemy();
-    const otherEnemyStats = createStats({ hp: 20, str: 5, mag: 0, skl: 4, spd: 5, luk: 3, def: 4, res: 1, mov: 5 });
-    const otherEnemy = new Unit('e2', 'Other', Faction.ENEMY, UnitClass.BRIGAND, otherEnemyStats, 6, 5);
+    const otherEnemyStats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 4,
+      res: 1,
+      mov: 5,
+    });
+    const otherEnemy = new Unit(
+      'e2',
+      'Other',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      otherEnemyStats,
+      6,
+      5,
+    );
     const score = scoreTarget(enemy, otherEnemy, WEAPON_DB['Iron Axe'], grid);
     expect(score).toBe(0);
   });
@@ -74,7 +132,17 @@ describe('Targeting', () => {
 
   it('pickBestTarget returns null if no valid targets', () => {
     const enemy = makeEnemy();
-    const deadStats = createStats({ hp: 0, str: 1, mag: 1, skl: 1, spd: 1, luk: 1, def: 1, res: 1, mov: 1 });
+    const deadStats = createStats({
+      hp: 0,
+      str: 1,
+      mag: 1,
+      skl: 1,
+      spd: 1,
+      luk: 1,
+      def: 1,
+      res: 1,
+      mov: 1,
+    });
     const dead = new Unit('p3', 'Dead', Faction.PLAYER, UnitClass.LORD, deadStats, 0, 0);
     const best = pickBestTarget(enemy, [dead], WEAPON_DB['Iron Axe'], grid);
     expect(best).toBeNull();

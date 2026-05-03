@@ -18,7 +18,17 @@ describe('GameEngine', () => {
 
   it('can add units and query them', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
     expect(unit.gridX).toBe(2);
     expect(unit.gridY).toBe(5);
@@ -27,7 +37,17 @@ describe('GameEngine', () => {
 
   it('can get all units by faction', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
     engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 7, 5);
 
@@ -37,7 +57,17 @@ describe('GameEngine', () => {
 
   it('can compute move range for a unit', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 3 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 3,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 4);
     const range = engine.getMoveRange(unit);
     expect(range.has('5,4')).toBe(true);
@@ -45,7 +75,17 @@ describe('GameEngine', () => {
 
   it('can move a unit and update grid', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
     engine.moveUnit(unit, 4, 7);
     expect(unit.gridX).toBe(4);
@@ -56,7 +96,17 @@ describe('GameEngine', () => {
 
   it('can advance turns and reset units', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
     unit.hasActed = true;
     engine.endTurn();
@@ -65,8 +115,28 @@ describe('GameEngine', () => {
 
   it('runs enemy AI on enemy phase', () => {
     const engine = new GameEngine(10, 8);
-    const pStats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
-    const eStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const pStats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const eStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
     engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, pStats, 6, 5);
     engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, eStats, 5, 5);
 
@@ -77,7 +147,17 @@ describe('GameEngine', () => {
 
   it('getAllUnits returns all added units', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
     engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 7, 5);
     expect(engine.getAllUnits()).toHaveLength(2);
@@ -85,7 +165,17 @@ describe('GameEngine', () => {
 
   it('getLiveUnits excludes dead units', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
     unit.takeDamage(999);
     expect(engine.getLiveUnits()).toHaveLength(0);

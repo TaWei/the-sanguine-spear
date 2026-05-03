@@ -16,9 +16,9 @@ export interface TerrainData {
 }
 
 export const TERRAIN_DEFS: Record<TerrainType, TerrainData> = {
-  plains:    { type: 'plains',    moveCost: 1,  defenseBonus: 0, avoidBonus: 0 },
-  forest:    { type: 'forest',    moveCost: 2,  defenseBonus: 1, avoidBonus: 20 },
-  mountain:  { type: 'mountain',  moveCost: 99, defenseBonus: 0, avoidBonus: 0 },
-  water:     { type: 'water',     moveCost: 99, defenseBonus: 0, avoidBonus: 0 },
-  wall:      { type: 'wall',      moveCost: 99, defenseBonus: 0, avoidBonus: 0 },
+  plains: { type: 'plains', moveCost: 1, defenseBonus: 0, avoidBonus: 0 },
+  forest: { type: 'forest', moveCost: 2, defenseBonus: 1, avoidBonus: 20 },
+  mountain: { type: 'mountain', moveCost: 99, defenseBonus: 0, avoidBonus: 0 },
+  water: { type: 'water', moveCost: 99, defenseBonus: 0, avoidBonus: 0 },
+  wall: { type: 'wall', moveCost: 99, defenseBonus: 0, avoidBonus: 0 },
 };

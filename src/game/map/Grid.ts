@@ -5,18 +5,18 @@ export class Grid {
   readonly cols: number;
   readonly rows: number;
   private tiles: TerrainType[][];
-  private units: Map<string, Unit> = new Map();
+  private units = new Map<string, Unit>();
 
   constructor(cols: number, rows: number) {
     this.cols = cols;
     this.rows = rows;
     this.tiles = Array.from({ length: rows }, () =>
-      Array.from({ length: cols }, () => TerrainType.PLAINS)
+      Array.from({ length: cols }, () => TerrainType.PLAINS),
     );
   }
 
   private key(x: number, y: number): string {
-    return `${x},${y}`;
+    return `${String(x)},${String(y)}`;
   }
 
   setTerrain(x: number, y: number, type: TerrainType): void {
@@ -26,7 +26,9 @@ export class Grid {
   }
 
   getTerrain(x: number, y: number): TerrainType {
-    if (!this.isInBounds(x, y)) return TerrainType.PLAINS;
+    if (!this.isInBounds(x, y)) {
+      return TerrainType.PLAINS;
+    }
     return this.tiles[y][x];
   }
 
@@ -39,7 +41,9 @@ export class Grid {
   }
 
   placeUnit(unit: Unit, x: number, y: number): void {
-    if (!this.isInBounds(x, y)) return;
+    if (!this.isInBounds(x, y)) {
+      return;
+    }
     this.units.set(this.key(x, y), unit);
   }
 
@@ -48,7 +52,9 @@ export class Grid {
   }
 
   getUnit(x: number, y: number): Unit | null {
-    if (!this.isInBounds(x, y)) return null;
+    if (!this.isInBounds(x, y)) {
+      return null;
+    }
     return this.units.get(this.key(x, y)) ?? null;
   }
 

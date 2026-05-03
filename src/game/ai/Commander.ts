@@ -18,18 +18,26 @@ export class Commander {
     const actions: Action[] = [];
 
     for (const enemy of enemies) {
-      if (!enemy.isAlive) continue;
+      if (!enemy.isAlive) {
+        continue;
+      }
 
       const weapon = this.getWeapon(enemy);
-      if (!weapon) continue;
+      if (!weapon) {
+        continue;
+      }
 
       const moveRange = computeMoveRange(enemy, this.grid);
       const reachable = this.findReachableTargets(enemy, players, moveRange, weapon);
 
-      if (reachable.length === 0) continue;
+      if (reachable.length === 0) {
+        continue;
+      }
 
       const target = pickBestTarget(enemy, reachable, weapon, this.grid);
-      if (!target) continue;
+      if (!target) {
+        continue;
+      }
 
       const movePos = this.findBestApproach(enemy, target, moveRange, weapon);
       if (movePos && (movePos[0] !== enemy.gridX || movePos[1] !== enemy.gridY)) {
@@ -53,9 +61,15 @@ export class Commander {
   }
 
   private getWeapon(unit: Unit): WeaponData | null {
-    if (unit.unitClass === 'mage') return this.weaponDb['Fire'];
-    if (unit.unitClass === 'brigand') return this.weaponDb['Iron Axe'];
-    if (unit.unitClass === 'soldier') return this.weaponDb['Iron Lance'];
+    if (unit.unitClass === 'mage') {
+      return this.weaponDb.Fire;
+    }
+    if (unit.unitClass === 'brigand') {
+      return this.weaponDb['Iron Axe'];
+    }
+    if (unit.unitClass === 'soldier') {
+      return this.weaponDb['Iron Lance'];
+    }
     return this.weaponDb['Iron Sword'];
   }
 
@@ -65,8 +79,10 @@ export class Commander {
     moveRange: Map<string, number>,
     weapon: WeaponData,
   ): Unit[] {
-    return players.filter(player => {
-      if (!player.isAlive) return false;
+    return players.filter((player) => {
+      if (!player.isAlive) {
+        return false;
+      }
       for (const [key] of moveRange) {
         const [mx, my] = key.split(',').map(Number);
         const dist = Math.abs(mx - player.gridX) + Math.abs(my - player.gridY);

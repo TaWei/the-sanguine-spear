@@ -12,7 +12,7 @@ const PHASE_ORDER: GamePhase[] = [GamePhase.PLAYER, GamePhase.ENEMY, GamePhase.A
 
 export class TurnManager {
   private phase: GamePhase = GamePhase.PLAYER;
-  private turn: number = 1;
+  private turn = 1;
 
   get currentPhase(): GamePhase {
     return this.phase;

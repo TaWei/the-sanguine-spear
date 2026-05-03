@@ -2,8 +2,14 @@ import { Unit } from '../units/Unit';
 import { Grid } from '../map/Grid';
 import { WeaponData, getWeaponTriangleMod } from './Weapons';
 import {
-  calcHitRate, calcAvoid, calcDisplayHit, calcCritRate, calcCritAvoid,
-  calcDamage, rollTrueHit, rollCrit,
+  calcHitRate,
+  calcAvoid,
+  calcDisplayHit,
+  calcCritRate,
+  calcCritAvoid,
+  calcDamage,
+  rollTrueHit,
+  rollCrit,
 } from './Formulas';
 
 export interface CombatLogEntry {
@@ -47,7 +53,9 @@ export class CombatEngine {
     }
 
     // Defender counterattack if in range
-    if (this.isInRange(defender.gridX, defender.gridY, attacker.gridX, attacker.gridY, defenderWeapon)) {
+    if (
+      this.isInRange(defender.gridX, defender.gridY, attacker.gridX, attacker.gridY, defenderWeapon)
+    ) {
       const counter = this.resolveAttack(defender, attacker, defenderWeapon, attackerWeapon, rng);
       log.push(counter);
       return { log, attackerDied: !attacker.isAlive, defenderDied: !defender.isAlive };

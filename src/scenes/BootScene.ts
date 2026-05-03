@@ -6,12 +6,12 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.add.text(
-      this.cameras.main.centerX,
-      this.cameras.main.centerY,
-      'Loading...',
-      { fontSize: '24px', color: '#ffffff' }
-    ).setOrigin(0.5);
+    this.add
+      .text(this.cameras.main.centerX, this.cameras.main.centerY, 'Loading...', {
+        fontSize: '24px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5);
 
     // TODO: Load spritesheets, tilemaps, audio
     // this.load.image('tiles', 'assets/tiles.png');

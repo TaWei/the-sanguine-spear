@@ -4,7 +4,17 @@ import { Unit, Faction, UnitClass } from '../../units/Unit';
 import { createStats } from '../../units/Stats';
 
 describe('ActionQueue', () => {
-  const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+  const stats = createStats({
+    hp: 20,
+    str: 5,
+    mag: 5,
+    skl: 5,
+    spd: 5,
+    luk: 5,
+    def: 5,
+    res: 5,
+    mov: 5,
+  });
   const unit1 = new Unit('u1', 'One', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
   const unit2 = new Unit('u2', 'Two', Faction.PLAYER, UnitClass.LORD, stats, 1, 1);
 

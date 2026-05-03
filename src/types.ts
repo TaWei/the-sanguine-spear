@@ -1,5 +1,13 @@
 export type Faction = 'player' | 'enemy' | 'ally';
-export type UnitClassType = 'lord' | 'mercenary' | 'mage' | 'archer' | 'cavalry' | 'pegasus_knight' | 'soldier' | 'brigand';
+export type UnitClassType =
+  | 'lord'
+  | 'mercenary'
+  | 'mage'
+  | 'archer'
+  | 'cavalry'
+  | 'pegasus_knight'
+  | 'soldier'
+  | 'brigand';
 export type TerrainType = 'plains' | 'forest' | 'mountain' | 'water' | 'wall';
 
 export interface UnitStats {

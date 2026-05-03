@@ -22,20 +22,26 @@ const FACTION_COLORS: Record<string, number> = {
 };
 
 function getWeaponForUnit(unit: Unit) {
-  if (unit.unitClass === UnitClass.MAGE) return WEAPON_DB['Fire'];
-  if (unit.unitClass === UnitClass.BRIGAND) return WEAPON_DB['Iron Axe'];
-  if (unit.unitClass === UnitClass.SOLDIER) return WEAPON_DB['Iron Lance'];
+  if (unit.unitClass === UnitClass.MAGE) {
+    return WEAPON_DB.Fire;
+  }
+  if (unit.unitClass === UnitClass.BRIGAND) {
+    return WEAPON_DB['Iron Axe'];
+  }
+  if (unit.unitClass === UnitClass.SOLDIER) {
+    return WEAPON_DB['Iron Lance'];
+  }
   return WEAPON_DB['Iron Sword'];
 }
 
 export class BattleScene extends Phaser.Scene {
   private engine!: GameEngine;
   private tileRects: Phaser.GameObjects.Rectangle[][] = [];
-  private unitSprites: Map<string, Phaser.GameObjects.Container> = new Map();
+  private unitSprites = new Map<string, Phaser.GameObjects.Container>();
   private moveGraphics!: Phaser.GameObjects.Graphics;
   private selectedUnit: Unit | null = null;
-  private offsetX: number = 0;
-  private offsetY: number = 0;
+  private offsetX = 0;
+  private offsetY = 0;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -99,16 +105,60 @@ export class BattleScene extends Phaser.Scene {
         const terrain = this.engine.grid.getTerrain(x, y);
         const color = TERRAIN_COLORS[terrain] ?? TERRAIN_COLORS.plains;
         const rect = this.tileRects[y][x];
-        if (rect) rect.setFillStyle(color);
+        rect.setFillStyle(color);
       }
     }
   }
 
   private spawnUnits(): void {
-    const pStats1 = createStats({ hp: 22, maxHp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
-    const pStats2 = createStats({ hp: 16, maxHp: 16, str: 1, mag: 9, skl: 6, spd: 7, luk: 5, def: 2, res: 7, mov: 5 });
-    const eStats1 = createStats({ hp: 26, maxHp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
-    const eStats2 = createStats({ hp: 20, maxHp: 20, str: 7, mag: 0, skl: 6, spd: 5, luk: 2, def: 7, res: 1, mov: 5 });
+    const pStats1 = createStats({
+      hp: 22,
+      maxHp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const pStats2 = createStats({
+      hp: 16,
+      maxHp: 16,
+      str: 1,
+      mag: 9,
+      skl: 6,
+      spd: 7,
+      luk: 5,
+      def: 2,
+      res: 7,
+      mov: 5,
+    });
+    const eStats1 = createStats({
+      hp: 26,
+      maxHp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
+    const eStats2 = createStats({
+      hp: 20,
+      maxHp: 20,
+      str: 7,
+      mag: 0,
+      skl: 6,
+      spd: 5,
+      luk: 2,
+      def: 7,
+      res: 1,
+      mov: 5,
+    });
 
     this.engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, pStats1, 2, 5);
     this.engine.addUnit('p2', 'Elara', Faction.PLAYER, UnitClass.MAGE, pStats2, 3, 6);
@@ -119,23 +169,29 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private syncUnitSprites(): void {
-    for (const sprite of this.unitSprites.values()) sprite.destroy();
+    for (const sprite of this.unitSprites.values()) {
+      sprite.destroy();
+    }
     this.unitSprites.clear();
 
     for (const unit of this.engine.getAllUnits()) {
-      if (!unit.isAlive) continue;
+      if (!unit.isAlive) {
+        continue;
+      }
       const color = FACTION_COLORS[unit.faction] ?? 0xffffff;
       const px = this.offsetX + unit.gridX * TILE_SIZE + TILE_SIZE / 2;
       const py = this.offsetY + unit.gridY * TILE_SIZE + TILE_SIZE / 2;
 
       const body = this.add.rectangle(0, 0, TILE_SIZE - 8, TILE_SIZE - 8, color);
       body.setAlpha(unit.hasActed ? 0.5 : 1);
-      const label = this.add.text(0, TILE_SIZE / 2 + 2, unit.name.slice(0, 3), {
-        fontSize: '10px',
-        color: '#ffffff',
-        stroke: '#000000',
-        strokeThickness: 3,
-      }).setOrigin(0.5);
+      const label = this.add
+        .text(0, TILE_SIZE / 2 + 2, unit.name.slice(0, 3), {
+          fontSize: '10px',
+          color: '#ffffff',
+          stroke: '#000000',
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5);
 
       const container = this.add.container(px, py, [body, label]);
 
@@ -159,28 +215,33 @@ export class BattleScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       const gx = Math.floor((pointer.x - this.offsetX) / TILE_SIZE);
       const gy = Math.floor((pointer.y - this.offsetY) / TILE_SIZE);
-      if (!this.engine.grid.isInBounds(gx, gy)) return;
+      if (!this.engine.grid.isInBounds(gx, gy)) {
+        return;
+      }
       this.handleTileClick(gx, gy);
     });
   }
 
   private handleTileClick(gx: number, gy: number): void {
-    if (!this.engine.turnManager.isPlayerPhase()) return;
+    if (!this.engine.turnManager.isPlayerPhase()) {
+      return;
+    }
 
     const clickedUnit = this.engine.getUnit(gx, gy);
 
     if (this.selectedUnit) {
       const range = this.engine.getMoveRange(this.selectedUnit);
-      const key = `${gx},${gy}`;
+      const key = `${String(gx)},${String(gy)}`;
       if (range.has(key) && !clickedUnit) {
+        const unitToMove = this.selectedUnit;
         this.tweens.add({
           targets: this.unitSprites.get(this.selectedUnit.id),
           x: this.offsetX + gx * TILE_SIZE + TILE_SIZE / 2,
           y: this.offsetY + gy * TILE_SIZE + TILE_SIZE / 2,
           duration: 300,
           onComplete: () => {
-            this.engine.moveUnit(this.selectedUnit!, gx, gy);
-            this.selectedUnit!.hasActed = true;
+            this.engine.moveUnit(unitToMove, gx, gy);
+            unitToMove.hasActed = true;
             this.selectedUnit = null;
             this.moveGraphics.clear();
             this.syncUnitSprites();
@@ -212,28 +273,30 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createUI(): void {
-    const phaseText = this.add.text(16, 16, 'Phase: Player', {
-      fontSize: '20px',
-      color: '#ecf0f1',
-      backgroundColor: '#2c3e50',
-      padding: { x: 10, y: 6 },
-    }).setScrollFactor(0);
+    const phaseText = this.add
+      .text(16, 16, 'Phase: Player', {
+        fontSize: '20px',
+        color: '#ecf0f1',
+        backgroundColor: '#2c3e50',
+        padding: { x: 10, y: 6 },
+      })
+      .setScrollFactor(0);
 
-    const endTurn = this.add.text(16, 60, '[ End Turn ]', {
-      fontSize: '16px',
-      color: '#ecf0f1',
-      backgroundColor: '#c0392b',
-      padding: { x: 10, y: 6 },
-    }).setInteractive({ useHandCursor: true });
+    const endTurn = this.add
+      .text(16, 60, '[ End Turn ]', {
+        fontSize: '16px',
+        color: '#ecf0f1',
+        backgroundColor: '#c0392b',
+        padding: { x: 10, y: 6 },
+      })
+      .setInteractive({ useHandCursor: true });
 
     endTurn.on('pointerdown', () => {
       this.selectedUnit = null;
       this.moveGraphics.clear();
       this.engine.endTurn();
       this.syncUnitSprites();
-      phaseText.setText(
-        `Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`,
-      );
+      phaseText.setText(`Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`);
 
       if (this.engine.turnManager.isEnemyPhase()) {
         this.executeEnemyActions(() => {
@@ -264,25 +327,31 @@ export class BattleScene extends Phaser.Scene {
       const action = actions[index];
       if (action.type === 'move' && action.x !== undefined && action.y !== undefined) {
         const sprite = this.unitSprites.get(action.actor.id);
+        const moveX = action.x;
+        const moveY = action.y;
         if (sprite) {
-          const targetX = this.offsetX + action.x * TILE_SIZE + TILE_SIZE / 2;
-          const targetY = this.offsetY + action.y * TILE_SIZE + TILE_SIZE / 2;
+          const targetX = this.offsetX + moveX * TILE_SIZE + TILE_SIZE / 2;
+          const targetY = this.offsetY + moveY * TILE_SIZE + TILE_SIZE / 2;
           this.tweens.add({
             targets: sprite,
             x: targetX,
             y: targetY,
             duration: 300,
             onComplete: () => {
-              this.engine.moveUnit(action.actor, action.x!, action.y!);
+              this.engine.moveUnit(action.actor, moveX, moveY);
               processNext(index + 1);
             },
           });
         } else {
           processNext(index + 1);
         }
-      } else if (action.type === 'attack' && action.targetX !== undefined && action.targetY !== undefined) {
+      } else if (
+        action.type === 'attack' &&
+        action.targetX !== undefined &&
+        action.targetY !== undefined
+      ) {
         const target = this.engine.getUnit(action.targetX, action.targetY);
-        if (target && target.isAlive) {
+        if (target?.isAlive) {
           const targetSprite = this.unitSprites.get(target.id);
           if (targetSprite) {
             const weapon = getWeaponForUnit(action.actor);
@@ -298,11 +367,11 @@ export class BattleScene extends Phaser.Scene {
             if (isCritical) {
               this.cameras.main.shake(200, 0.01);
               this.cameras.main.flash(200, 255, 255, 255);
-            } else if (lastEntry?.hit) {
+            } else if (lastEntry.hit) {
               this.cameras.main.shake(100, 0.005);
             }
 
-            if (defenderDied && targetSprite) {
+            if (defenderDied) {
               this.tweens.add({
                 targets: targetSprite,
                 alpha: 0,
@@ -314,7 +383,7 @@ export class BattleScene extends Phaser.Scene {
               });
             } else {
               // Flash target red on hit
-              if (lastEntry?.hit) {
+              if (lastEntry.hit) {
                 this.tweens.add({
                   targets: targetSprite,
                   alpha: 0.3,

@@ -13,9 +13,15 @@ import { calcDamage } from '../combat/Formulas';
  * - Damage already taken bonus: (maxHp - hp) * 2
  */
 export function scoreTarget(attacker: Unit, target: Unit, weapon: WeaponData, grid: Grid): number {
-  if (!target.isAlive) return 0;
-  if (target.faction === attacker.faction) return 0;
-  if (target.faction === Faction.ALLY) return 0;
+  if (!target.isAlive) {
+    return 0;
+  }
+  if (target.faction === attacker.faction) {
+    return 0;
+  }
+  if (target.faction === Faction.ALLY) {
+    return 0;
+  }
 
   const atkStat = weapon.usesMagic ? attacker.stats.mag : attacker.stats.str;
   const defStat = weapon.usesMagic ? target.stats.res : target.stats.def;

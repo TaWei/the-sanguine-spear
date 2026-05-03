@@ -5,8 +5,15 @@ import { UNIT_STATE } from '../../state/UnitState';
 
 describe('Unit', () => {
   const stats = createStats({
-    hp: 22, str: 8, mag: 2, skl: 7, spd: 8,
-    luk: 6, def: 6, res: 2, mov: 5,
+    hp: 22,
+    str: 8,
+    mag: 2,
+    skl: 7,
+    spd: 8,
+    luk: 6,
+    def: 6,
+    res: 2,
+    mov: 5,
   });
 
   it('has an id, name, faction, class, stats, and position', () => {
@@ -56,7 +63,17 @@ describe('Unit', () => {
   });
 
   it('isAlive returns false when hp is 0', () => {
-    const deadStats = createStats({ hp: 0, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const deadStats = createStats({
+      hp: 0,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, deadStats, 2, 5);
     expect(unit.isAlive).toBe(false);
   });
@@ -67,7 +84,17 @@ describe('Unit', () => {
   });
 
   it('isEnemy returns true for enemy faction', () => {
-    const enemyStats = createStats({ hp: 20, str: 7, mag: 0, skl: 6, spd: 5, luk: 2, def: 7, res: 1, mov: 5 });
+    const enemyStats = createStats({
+      hp: 20,
+      str: 7,
+      mag: 0,
+      skl: 6,
+      spd: 5,
+      luk: 2,
+      def: 7,
+      res: 1,
+      mov: 5,
+    });
     const unit = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 12, 4);
     expect(unit.isEnemy).toBe(true);
     expect(unit.isPlayer).toBe(false);

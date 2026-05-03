@@ -14,7 +14,7 @@ describe('Weapon DB', () => {
   });
 
   it('Fire tome uses magic', () => {
-    const fire = WEAPON_DB['Fire'];
+    const fire = WEAPON_DB.Fire;
     expect(fire.type).toBe(WeaponType.MAGIC);
     expect(fire.mt).toBe(5);
     expect(fire.hit).toBe(90);

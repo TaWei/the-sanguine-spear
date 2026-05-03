@@ -87,7 +87,9 @@ export class GameEngine {
     const actions: Action[] = [];
     while (!this.actionQueue.isEmpty()) {
       const a = this.actionQueue.dequeue();
-      if (a) actions.push(a);
+      if (a) {
+        actions.push(a);
+      }
     }
     return actions;
   }

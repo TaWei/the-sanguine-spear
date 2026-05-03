@@ -67,6 +67,8 @@ describe('UnitState', () => {
 
   it('invalid transition throws an error', () => {
     const state = new UnitState();
-    expect(() => state.transition(UNIT_STATE.EXHAUSTED)).toThrow();
+    expect(() => {
+      state.transition(UNIT_STATE.EXHAUSTED);
+    }).toThrow();
   });
 });

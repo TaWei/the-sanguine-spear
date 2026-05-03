@@ -10,7 +10,9 @@ export function computeAttackRange(unit: Unit, grid: Grid, weapon: WeaponData): 
   for (let dy = -weapon.maxRange; dy <= weapon.maxRange; dy++) {
     for (let dx = -weapon.maxRange; dx <= weapon.maxRange; dx++) {
       const dist = Math.abs(dx) + Math.abs(dy);
-      if (dist < weapon.minRange || dist > weapon.maxRange) continue;
+      if (dist < weapon.minRange || dist > weapon.maxRange) {
+        continue;
+      }
       const tx = ux + dx;
       const ty = uy + dy;
       if (grid.isInBounds(tx, ty)) {

@@ -6,7 +6,17 @@ import { Grid } from '../../map/Grid';
 import { WEAPON_DB } from '../Weapons';
 
 describe('computeAttackRange', () => {
-  const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+  const stats = createStats({
+    hp: 20,
+    str: 8,
+    mag: 2,
+    skl: 7,
+    spd: 8,
+    luk: 6,
+    def: 6,
+    res: 2,
+    mov: 5,
+  });
 
   it('returns tiles within weapon range (1-range Iron Sword)', () => {
     const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
@@ -24,7 +34,7 @@ describe('computeAttackRange', () => {
   it('returns tiles within 1-2 range for Fire tome', () => {
     const unit = new Unit('p1', 'Elara', Faction.PLAYER, UnitClass.MAGE, stats, 5, 5);
     const grid = new Grid(10, 10);
-    const weapon = WEAPON_DB['Fire'];
+    const weapon = WEAPON_DB.Fire;
     const range = computeAttackRange(unit, grid, weapon);
     // 4 adjacent + some at distance 2 (Manhattan distance)
     expect(range.length).toBeGreaterThan(4);
