@@ -3,6 +3,7 @@ import { GameEngine } from '../GameEngine';
 import { Faction, UnitClass } from '../units/Unit';
 import { createStats } from '../units/Stats';
 import { TerrainType } from '../map/Terrain';
+import { UNIT_STATE } from '../state/UnitState';
 
 describe('GameEngine', () => {
   it('initializes with a grid of specified size', () => {
@@ -291,5 +292,65 @@ describe('GameEngine', () => {
 
     engine.removeDeadUnits();
     expect(engine.getUnit(3, 3)).toBeNull();
+  });
+
+  it('returns true when all live player units are exhausted', () => {
+    const engine = new GameEngine(10, 8);
+    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    engine.addUnit('p1', 'A', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
+    engine.addUnit('p2', 'B', Faction.PLAYER, UnitClass.MAGE, stats, 1, 1);
+    expect(engine.allPlayerUnitsExhausted()).toBe(false);
+    for (const u of engine.getUnitsByFaction(Faction.PLAYER)) {
+      u.state.transition(UNIT_STATE.MOVING);
+      u.state.transition(UNIT_STATE.MENU);
+      u.state.transition(UNIT_STATE.EXHAUSTED);
+    }
+    expect(engine.allPlayerUnitsExhausted()).toBe(true);
+  });
+
+  it('ignores dead units when checking exhaustion', () => {
+    const engine = new GameEngine(10, 8);
+    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const dead = engine.addUnit('p1', 'A', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
+    dead.takeDamage(999);
+    engine.addUnit('p2', 'B', Faction.PLAYER, UnitClass.MAGE, stats, 1, 1);
+    expect(engine.allPlayerUnitsExhausted()).toBe(false);
+  });
+
+  it('getThreatenedTiles returns attackable tiles outside move range', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 2 });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    const threatened = engine.getThreatenedTiles(player);
+    // From (5,5) with move 2 and weapon range 1, cardinal tiles at distance 3 are threatened
+    expect(threatened.has('5,2')).toBe(true);
+    expect(threatened.has('5,8')).toBe(true);
+    expect(threatened.has('2,5')).toBe(true);
+    expect(threatened.has('8,5')).toBe(true);
+    // Tiles within move range are not threatened
+    expect(threatened.has('5,5')).toBe(false);
+    expect(threatened.has('5,4')).toBe(false);
+  });
+
+  it('full player combat flow: move adjacent, detect enemy, resolve combat', () => {
+    const engine = new GameEngine(10, 10);
+    const pStats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const eStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, pStats, 4, 5);
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, eStats, 6, 5);
+
+    // Move player adjacent to enemy
+    engine.moveUnit(player, 5, 5);
+
+    // Verify enemy is detected as adjacent
+    const enemies = engine.getAdjacentEnemies(player);
+    expect(enemies).toHaveLength(1);
+    expect(enemies[0].id).toBe('e1');
+
+    // Resolve combat with guaranteed hit
+    const enemyHpBefore = enemy.stats.hp;
+    const result = engine.resolvePlayerCombat(player, enemy, () => 0);
+    expect(result.log.length).toBeGreaterThan(0);
+    expect(enemy.stats.hp).toBeLessThan(enemyHpBefore);
   });
 });

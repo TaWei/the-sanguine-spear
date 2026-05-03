@@ -5,7 +5,6 @@ import { Unit, Faction, UnitClass } from '../game/units/Unit';
 import { createStats } from '../game/units/Stats';
 import { TerrainType } from '../game/map/Terrain';
 import { WEAPON_DB } from '../game/combat/Weapons';
-import { CombatEngine } from '../game/combat/Engine';
 import { BattleMenu, MenuState, MenuAction } from '../game/ui/BattleMenu';
 import { BattleDisplayState, BattlePhase } from '../game/ui/BattleDisplayState';
 import { UNIT_STATE } from '../game/state/UnitState';
@@ -50,6 +49,11 @@ export class BattleScene extends Phaser.Scene {
   private battleOverlay: Phaser.GameObjects.Container | null = null;
   private battleDisplayState: BattleDisplayState | null = null;
   private inBattleMode = false;
+  private pendingBattleCallback: (() => void) | null = null;
+  private phaseText!: Phaser.GameObjects.Text;
+  private inputEnabled = true;
+  private bannerShownForTurn = 0;
+  private preMovePosition: { x: number; y: number } | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -71,6 +75,7 @@ export class BattleScene extends Phaser.Scene {
     this.setupInput();
     this.createUI();
     this.battleMenu = new BattleMenu();
+    this.beginPlayerPhase();
   }
 
   private createGridVisuals(): void {
@@ -225,27 +230,31 @@ export class BattleScene extends Phaser.Scene {
       const gx = Math.floor((pointer.x - this.offsetX) / TILE_SIZE);
       const gy = Math.floor((pointer.y - this.offsetY) / TILE_SIZE);
       if (!this.engine.grid.isInBounds(gx, gy)) {
+        if (this.battleMenu.isVisible && !this.isPointerOverMenuText(pointer.x, pointer.y)) {
+          this.handleOutsideMenuClick();
+        }
         return;
       }
-      this.handleTileClick(gx, gy);
+      this.handleTileClick(gx, gy, pointer.x, pointer.y);
     });
   }
 
-  private handleTileClick(gx: number, gy: number): void {
-    if (!this.engine.turnManager.isPlayerPhase()) {
-      return;
-    }
-
-    // Battle mode blocks map input
-    if (this.inBattleMode) {
+  private handleTileClick(gx: number, gy: number, pointerX: number, pointerY: number): void {
+    if (!this.inputEnabled || !this.engine.turnManager.isPlayerPhase() || this.inBattleMode) {
       return;
     }
 
     const clickedUnit = this.engine.getUnit(gx, gy);
 
-    // If menu is open, handle menu/target selection
+    // If menu is open, handle menu/target selection or outside clicks
     if (this.battleMenu.isVisible) {
-      this.handleMenuInput(gx, gy, clickedUnit);
+      if (this.battleMenu.state === MenuState.CHOOSE_TARGET) {
+        this.handleMenuInput(gx, gy, clickedUnit);
+      } else if (this.battleMenu.state === MenuState.CHOOSE_ACTION) {
+        if (!this.isPointerOverMenuText(pointerX, pointerY)) {
+          this.undoMove();
+        }
+      }
       return;
     }
 
@@ -255,6 +264,7 @@ export class BattleScene extends Phaser.Scene {
       const key = `${String(gx)},${String(gy)}`;
       if (range.has(key) && !clickedUnit) {
         const unitToMove = this.selectedUnit;
+        this.preMovePosition = { x: unitToMove.gridX, y: unitToMove.gridY };
         this.tweens.add({
           targets: this.unitSprites.get(this.selectedUnit.id),
           x: this.offsetX + gx * TILE_SIZE + TILE_SIZE / 2,
@@ -271,6 +281,16 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
+    // If clicking on already-selected unit, open menu without moving
+    if (clickedUnit && clickedUnit === this.selectedUnit && !clickedUnit.hasActed) {
+      this.moveGraphics.clear();
+      clickedUnit.state.transition(UNIT_STATE.MOVING);
+      clickedUnit.state.transition(UNIT_STATE.MENU);
+      this.preMovePosition = null;
+      this.showPostMoveMenu(clickedUnit);
+      return;
+    }
+
     // Select a fresh player unit
     if (clickedUnit && clickedUnit.isPlayer && !clickedUnit.hasActed) {
       this.selectedUnit = clickedUnit;
@@ -281,6 +301,8 @@ export class BattleScene extends Phaser.Scene {
   private showMoveRange(unit: Unit): void {
     this.moveGraphics.clear();
     const range = this.engine.getMoveRange(unit);
+    const threatened = this.engine.getThreatenedTiles(unit);
+
     range.forEach((_cost, key) => {
       const [x, y] = key.split(',').map(Number);
       this.moveGraphics.fillStyle(0x3498db, 0.4);
@@ -291,10 +313,22 @@ export class BattleScene extends Phaser.Scene {
         TILE_SIZE,
       );
     });
+
+    threatened.forEach((key) => {
+      if (range.has(key)) return;
+      const [x, y] = key.split(',').map(Number);
+      this.moveGraphics.fillStyle(0xe74c3c, 0.35);
+      this.moveGraphics.fillRect(
+        this.offsetX + x * TILE_SIZE,
+        this.offsetY + y * TILE_SIZE,
+        TILE_SIZE,
+        TILE_SIZE,
+      );
+    });
   }
 
   private createUI(): void {
-    const phaseText = this.add
+    this.phaseText = this.add
       .text(16, 16, 'Phase: Player', {
         fontSize: '20px',
         color: '#ecf0f1',
@@ -313,35 +347,54 @@ export class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     endTurn.on('pointerdown', () => {
-      this.selectedUnit = null;
-      this.moveGraphics.clear();
-      this.battleMenu.reset();
-      this.clearMenuTexts();
-      this.engine.endTurn();
-      this.syncUnitSprites();
-      phaseText.setText(`Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`);
-
-      if (this.engine.turnManager.isEnemyPhase()) {
-        this.executeEnemyActions(() => {
-          const objectives = this.engine.checkObjectives();
-          if (objectives.victory) {
-            this.showVictoryScreen();
-            return;
-          }
-          if (objectives.defeat) {
-            this.showDefeatScreen();
-            return;
-          }
-
-          this.engine.endTurn(); // Enemy → Ally
-          this.engine.endTurn(); // Ally → Player
-          this.syncUnitSprites();
-          phaseText.setText(
-            `Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`,
-          );
-        });
-      }
+      this.triggerEndTurn();
     });
+  }
+
+  private updatePhaseText(): void {
+    this.phaseText.setText(`Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`);
+  }
+
+  private triggerEndTurn(): void {
+    this.selectedUnit = null;
+    this.moveGraphics.clear();
+    this.battleMenu.reset();
+    this.clearMenuTexts();
+    this.engine.endTurn();
+    this.syncUnitSprites();
+    this.updatePhaseText();
+
+    if (this.engine.turnManager.isEnemyPhase()) {
+      this.inputEnabled = false;
+      this.executeEnemyActions(() => {
+        const objectives = this.engine.checkObjectives();
+        if (objectives.victory) {
+          this.showVictoryScreen();
+          return;
+        }
+        if (objectives.defeat) {
+          this.showDefeatScreen();
+          return;
+        }
+
+        this.engine.endTurn(); // Enemy → Ally
+        this.engine.endTurn(); // Ally → Player
+        this.syncUnitSprites();
+        this.updatePhaseText();
+        this.beginPlayerPhase();
+      });
+    } else if (this.engine.turnManager.isPlayerPhase()) {
+      this.beginPlayerPhase();
+    }
+  }
+
+  private checkAutoEndTurn(): void {
+    if (this.engine.allPlayerUnitsExhausted()) {
+      this.time.delayedCall(400, () => {
+        if (!this.engine.turnManager.isPlayerPhase()) return;
+        this.triggerEndTurn();
+      });
+    }
   }
 
   private executeEnemyActions(onComplete: () => void): void {
@@ -385,60 +438,9 @@ export class BattleScene extends Phaser.Scene {
       ) {
         const target = this.engine.getUnit(action.targetX, action.targetY);
         if (target?.isAlive) {
-          const targetSprite = this.unitSprites.get(target.id);
-          if (targetSprite) {
-            const weapon = getWeaponForUnit(action.actor);
-            const defWeapon = getWeaponForUnit(target);
-            const combat = new CombatEngine(this.engine.grid);
-            const rng = () => Math.floor(Math.random() * 100);
-            const result = combat.resolveCombat(action.actor, target, weapon, defWeapon, rng);
-
-            const lastEntry = result.log[result.log.length - 1];
-            const isCritical = result.log.some((e) => e.critical);
-            const defenderDied = result.defenderDied;
-
-            if (isCritical) {
-              this.cameras.main.shake(200, 0.01);
-              this.cameras.main.flash(200, 255, 255, 255);
-            } else if (lastEntry.hit) {
-              this.cameras.main.shake(100, 0.005);
-            }
-
-            if (defenderDied) {
-              this.tweens.add({
-                targets: targetSprite,
-                alpha: 0,
-                duration: 500,
-                onComplete: () => {
-                  this.engine.removeDeadUnits();
-                  this.syncUnitSprites();
-                  processNext(index + 1);
-                },
-              });
-            } else {
-              // Flash target red on hit
-              if (lastEntry.hit) {
-                this.tweens.add({
-                  targets: targetSprite,
-                  alpha: 0.3,
-                  duration: 100,
-                  yoyo: true,
-                  hold: 100,
-                  onComplete: () => {
-                    this.syncUnitSprites();
-                    processNext(index + 1);
-                  },
-                });
-              } else {
-                this.time.delayedCall(200, () => {
-                  this.syncUnitSprites();
-                  processNext(index + 1);
-                });
-              }
-            }
-          } else {
+          this.startBattleMode(action.actor, target, () => {
             processNext(index + 1);
-          }
+          });
         } else {
           processNext(index + 1);
         }
@@ -481,18 +483,21 @@ export class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     if (enemies.length > 0) {
-      fightText.on('pointerdown', () => {
+      fightText.on('pointerdown', (_pointer, _localX, _localY, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
         this.battleMenu.selectAction(MenuAction.FIGHT);
         this.clearMenuTexts();
         this.highlightEnemyTargets(enemies);
       });
     }
 
-    endText.on('pointerdown', () => {
+    endText.on('pointerdown', (_pointer, _localX, _localY, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
       this.battleMenu.reset();
       unit.state.transition(UNIT_STATE.EXHAUSTED);
       this.clearMenuTexts();
       this.syncUnitSprites();
+      this.checkAutoEndTurn();
     });
 
     this.menuTexts.push(fightText, endText);
@@ -503,6 +508,52 @@ export class BattleScene extends Phaser.Scene {
       text.destroy();
     }
     this.menuTexts = [];
+  }
+
+  private isPointerOverMenuText(pointerX: number, pointerY: number): boolean {
+    for (const text of this.menuTexts) {
+      if (text.getBounds().contains(pointerX, pointerY)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private undoMove(): void {
+    const unit = this.battleMenu.unit;
+    if (!unit) return;
+
+    if (this.preMovePosition) {
+      const { x, y } = this.preMovePosition;
+      this.engine.moveUnit(unit, x, y);
+      const sprite = this.unitSprites.get(unit.id);
+      if (sprite) {
+        sprite.setPosition(
+          this.offsetX + x * TILE_SIZE + TILE_SIZE / 2,
+          this.offsetY + y * TILE_SIZE + TILE_SIZE / 2,
+        );
+      }
+      this.preMovePosition = null;
+    }
+
+    unit.state.reset();
+    this.battleMenu.reset();
+    this.clearMenuTexts();
+    this.moveGraphics.clear();
+    this.selectedUnit = unit;
+    this.showMoveRange(unit);
+  }
+
+  private handleOutsideMenuClick(): void {
+    if (this.battleMenu.state === MenuState.CHOOSE_TARGET) {
+      this.moveGraphics.clear();
+      const unit = this.battleMenu.unit!;
+      const enemies = this.engine.getAdjacentEnemies(unit);
+      this.battleMenu.show(unit, enemies);
+      this.showPostMoveMenu(unit);
+    } else if (this.battleMenu.state === MenuState.CHOOSE_ACTION) {
+      this.undoMove();
+    }
   }
 
   private highlightEnemyTargets(enemies: Unit[]): void {
@@ -525,20 +576,28 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private handleMenuInput(_gx: number, _gy: number, clickedUnit: Unit | null): void {
-    if (this.battleMenu.state === MenuState.CHOOSE_TARGET && clickedUnit && clickedUnit.isEnemy) {
-      const validTarget = this.battleMenu.adjacentEnemies.find((e) => e.id === clickedUnit.id);
+  private handleMenuInput(gx: number, gy: number, clickedUnit: Unit | null): void {
+    if (this.battleMenu.state === MenuState.CHOOSE_TARGET) {
+      const validTarget = this.battleMenu.adjacentEnemies.find((e) => e.id === clickedUnit?.id);
       if (validTarget) {
         this.battleMenu.selectTarget(validTarget);
         this.clearMenuTexts();
         this.moveGraphics.clear();
         this.startBattleMode(this.battleMenu.unit!, validTarget);
+      } else {
+        // Cancel target selection, return to action menu
+        this.moveGraphics.clear();
+        const unit = this.battleMenu.unit!;
+        const enemies = this.engine.getAdjacentEnemies(unit);
+        this.battleMenu.show(unit, enemies);
+        this.showPostMoveMenu(unit);
       }
     }
   }
 
-  private startBattleMode(attacker: Unit, defender: Unit): void {
+  private startBattleMode(attacker: Unit, defender: Unit, onComplete?: () => void): void {
     this.inBattleMode = true;
+    this.pendingBattleCallback = onComplete ?? null;
     const result = this.engine.resolvePlayerCombat(attacker, defender);
     this.battleDisplayState = new BattleDisplayState(attacker, defender, result.log);
 
@@ -740,7 +799,7 @@ export class BattleScene extends Phaser.Scene {
 
   private updatePanelHp(unit: Unit, _color: number): void {
     const isLeft = unit.id === this.battleDisplayState!.attacker.id;
-    const panelIndex = isLeft ? 2 : 3; // overlay children: bg, vsText, attPanel, defPanel
+    const panelIndex = isLeft ? 1 : 2; // overlay children: bg, attPanel, defPanel, vsText
     const panel = this.battleOverlay!.getAt(panelIndex) as Phaser.GameObjects.Container;
 
     const hpRatio = Math.max(0, unit.stats.hp / unit.stats.maxHp);
@@ -768,42 +827,49 @@ export class BattleScene extends Phaser.Scene {
 
   private endBattleMode(): void {
     this.inBattleMode = false;
+
+    const afterFade = () => {
+      this.battleOverlay?.destroy();
+      this.battleOverlay = null;
+      this.engine.removeDeadUnits();
+      this.syncUnitSprites();
+
+      // Exhaust the player unit
+      if (this.battleDisplayState?.attacker.isPlayer) {
+        const unit = this.battleDisplayState.attacker;
+        if (unit.state.current === UNIT_STATE.MENU) {
+          unit.state.transition(UNIT_STATE.EXHAUSTED);
+        }
+      }
+
+      // Check win/loss after combat resolves
+      const objectives = this.engine.checkObjectives();
+      if (objectives.victory) {
+        this.showVictoryScreen();
+        return;
+      }
+      if (objectives.defeat) {
+        this.showDefeatScreen();
+        return;
+      }
+
+      this.battleDisplayState = null;
+      this.battleMenu.reset();
+      this.checkAutoEndTurn();
+      this.pendingBattleCallback?.();
+      this.pendingBattleCallback = null;
+    };
+
     if (this.battleOverlay) {
       this.tweens.add({
         targets: this.battleOverlay,
         alpha: 0,
         duration: 400,
-        onComplete: () => {
-          this.battleOverlay?.destroy();
-          this.battleOverlay = null;
-          this.engine.removeDeadUnits();
-          this.syncUnitSprites();
-        },
+        onComplete: afterFade,
       });
+    } else {
+      afterFade();
     }
-
-    // Exhaust the player unit
-    if (this.battleDisplayState?.attacker.isPlayer) {
-      const unit = this.battleDisplayState.attacker;
-      if (unit.state.current === UNIT_STATE.MENU) {
-        unit.state.transition(UNIT_STATE.EXHAUSTED);
-      }
-    }
-
-    this.battleDisplayState = null;
-
-    // Check win/loss after combat resolves
-    const objectives = this.engine.checkObjectives();
-    if (objectives.victory) {
-      this.showVictoryScreen();
-      return;
-    }
-    if (objectives.defeat) {
-      this.showDefeatScreen();
-      return;
-    }
-
-    this.battleMenu.reset();
   }
 
   private showVictoryScreen(): void {
@@ -896,5 +962,59 @@ export class BattleScene extends Phaser.Scene {
     restart.on('pointerdown', () => {
       this.scene.restart();
     });
+  }
+
+  private showTurnBanner(turnNumber: number, onComplete: () => void): void {
+    this.inputEnabled = false;
+    const overlay = this.add.container(0, 0);
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height * 0.4,
+      this.cameras.main.width,
+      80,
+      0x000000,
+      0.7,
+    );
+    const text = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.4, `Turn ${turnNumber}`, {
+        fontSize: '36px',
+        color: '#f1c40f',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setAlpha(0);
+    overlay.add([bg, text]);
+
+    this.tweens.add({
+      targets: text,
+      alpha: 1,
+      duration: 300,
+      onComplete: () => {
+        this.time.delayedCall(1200, () => {
+          this.tweens.add({
+            targets: overlay,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => {
+              overlay.destroy();
+              onComplete();
+            },
+          });
+        });
+      },
+    });
+  }
+
+  private beginPlayerPhase(): void {
+    if (this.bannerShownForTurn === this.engine.turnManager.turnNumber) {
+      this.inputEnabled = true;
+      return;
+    }
+    this.showTurnBanner(this.engine.turnManager.turnNumber, () => {
+      this.inputEnabled = true;
+    });
+    this.bannerShownForTurn = this.engine.turnManager.turnNumber;
   }
 }

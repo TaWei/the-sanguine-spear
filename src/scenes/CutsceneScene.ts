@@ -46,6 +46,13 @@ export class CutsceneScene extends Phaser.Scene {
   private waitingForInput = false;
   private waitTimer: Phaser.Time.TimerEvent | null = null;
 
+  // Input debounce
+  private lastAdvanceTime = 0;
+  private static readonly ADVANCE_COOLDOWN_MS = 150;
+
+  // Finish guard
+  private isFinishing = false;
+
   constructor() {
     super({ key: 'CutsceneScene' });
   }
@@ -142,6 +149,14 @@ export class CutsceneScene extends Phaser.Scene {
   }
 
   private handleAdvance(): void {
+    if (this.isFinishing) return;
+
+    const now = Date.now();
+    if (now - this.lastAdvanceTime < CutsceneScene.ADVANCE_COOLDOWN_MS) {
+      return;
+    }
+    this.lastAdvanceTime = now;
+
     if (this.player.isComplete()) {
       this.finishCutscene();
       return;
@@ -371,6 +386,9 @@ export class CutsceneScene extends Phaser.Scene {
   }
 
   private finishCutscene(): void {
+    if (this.isFinishing) return;
+    this.isFinishing = true;
+
     this.cameras.main.fadeOut(300, 0, 0, 0, (_camera: unknown, progress: number) => {
       if (progress === 1) {
         this.onComplete();

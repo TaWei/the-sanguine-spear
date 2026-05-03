@@ -116,6 +116,41 @@ export class GameEngine {
     }
   }
 
+  allPlayerUnitsExhausted(): boolean {
+    const livePlayers = this.getUnitsByFaction(Faction.PLAYER).filter((u) => u.isAlive);
+    if (livePlayers.length === 0) return true;
+    return livePlayers.every((u) => u.state.isExhausted());
+  }
+
+  getThreatenedTiles(unit: Unit): Set<string> {
+    const moveRange = computeMoveRange(unit, this.grid);
+    const weapon = this.getWeaponForUnit(unit);
+    const threatened = new Set<string>();
+    const directions = [
+      { dx: 0, dy: -1 },
+      { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 },
+    ];
+
+    moveRange.forEach((_cost, moveKey) => {
+      const [mx, my] = moveKey.split(',').map(Number);
+      for (const { dx, dy } of directions) {
+        for (let dist = weapon.minRange; dist <= weapon.maxRange; dist++) {
+          const ax = mx + dx * dist;
+          const ay = my + dy * dist;
+          if (!this.grid.isInBounds(ax, ay)) continue;
+          const key = `${String(ax)},${String(ay)}`;
+          if (!moveRange.has(key)) {
+            threatened.add(key);
+          }
+        }
+      }
+    });
+
+    return threatened;
+  }
+
   endTurn(): void {
     const liveUnits = this.getLiveUnits();
     this.turnManager.advancePhase(liveUnits);

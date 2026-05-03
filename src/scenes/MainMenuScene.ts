@@ -36,7 +36,8 @@ export class MainMenuScene extends Phaser.Scene {
 
     startBtn.on('pointerover', () => startBtn.setStyle({ color: '#f1c40f' }));
     startBtn.on('pointerout', () => startBtn.setStyle({ color: '#ecf0f1' }));
-    startBtn.on('pointerdown', () => {
+    startBtn.on('pointerdown', (_pointer: unknown, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
       this.cameras.main.fadeOut(500, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
         this.scene.start('BattleScene');
@@ -55,7 +56,8 @@ export class MainMenuScene extends Phaser.Scene {
 
     prologueBtn.on('pointerover', () => prologueBtn.setStyle({ color: '#f1c40f' }));
     prologueBtn.on('pointerout', () => prologueBtn.setStyle({ color: '#bdc3c7' }));
-    prologueBtn.on('pointerdown', () => {
+    prologueBtn.on('pointerdown', (_pointer: unknown, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
       this.scene.launch('CutsceneScene', {
         cutsceneId: 'prologue_intro',
         onComplete: () => {

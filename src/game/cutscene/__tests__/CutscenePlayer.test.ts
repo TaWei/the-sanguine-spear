@@ -62,6 +62,16 @@ describe('CutscenePlayer', () => {
       expect(player.isComplete()).toBe(true);
     });
 
+    it('extra advances past end do not change state', () => {
+      player.advance();
+      player.advance();
+      player.advance(); // past end
+      const idx = player.getFrameIndex();
+      player.advance();
+      expect(player.getFrameIndex()).toBe(idx);
+      expect(player.isComplete()).toBe(true);
+    });
+
     it('returns frame index', () => {
       expect(player.getFrameIndex()).toBe(0);
       player.advance();

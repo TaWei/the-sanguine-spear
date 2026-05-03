@@ -46,6 +46,29 @@ describe('BattleMenu', () => {
     expect(menu.selectedTarget).toBe(enemy);
   });
 
+  it('full fight flow preserves selectedAction and selectedTarget', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    expect(menu.state).toBe(MenuState.CHOOSE_ACTION);
+    menu.selectAction(MenuAction.FIGHT);
+    expect(menu.state).toBe(MenuState.CHOOSE_TARGET);
+    expect(menu.selectedAction).toBe(MenuAction.FIGHT);
+    menu.selectTarget(enemy);
+    expect(menu.state).toBe(MenuState.RESOLVED);
+    expect(menu.selectedTarget).toBe(enemy);
+    expect(menu.selectedAction).toBe(MenuAction.FIGHT);
+  });
+
+  it('re-showing the menu during CHOOSE_TARGET resets back to CHOOSE_ACTION', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.FIGHT);
+    expect(menu.state).toBe(MenuState.CHOOSE_TARGET);
+    menu.show(player, [enemy]);
+    expect(menu.state).toBe(MenuState.CHOOSE_ACTION);
+    expect(menu.selectedAction).toBeNull();
+  });
+
   it('cannot select target before choosing FIGHT', () => {
     const menu = new BattleMenu();
     menu.show(player, [enemy]);
