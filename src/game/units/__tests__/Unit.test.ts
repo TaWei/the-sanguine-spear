@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Unit, Faction, UnitClass } from '../Unit';
 import { createStats } from '../Stats';
 import { UNIT_STATE } from '../../state/UnitState';
+import { createGrowthRates } from '../../progression/GrowthRates';
 
 describe('Unit', () => {
   const stats = createStats({
@@ -147,5 +148,52 @@ describe('Unit', () => {
     unit.resetState();
     expect(unit.hasActed).toBe(false);
     expect(unit.state.current).toBe(UNIT_STATE.IDLE);
+  });
+
+  it('starts at level 1 with 0 exp by default', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    expect(unit.level).toBe(1);
+    expect(unit.exp).toBe(0);
+  });
+
+  it('can be constructed with a custom level and exp', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { level: 5, exp: 30 });
+    expect(unit.level).toBe(5);
+    expect(unit.exp).toBe(30);
+  });
+
+  it('has default zero growth rates', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    expect(unit.growthRates.hp).toBe(0);
+    expect(unit.growthRates.str).toBe(0);
+  });
+
+  it('can be constructed with custom growth rates', () => {
+    const growths = createGrowthRates({ hp: 80, str: 55 });
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { growthRates: growths });
+    expect(unit.growthRates.hp).toBe(80);
+    expect(unit.growthRates.str).toBe(55);
+  });
+
+  it('gainExp adds to exp total', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    unit.gainExp(40);
+    expect(unit.exp).toBe(40);
+  });
+
+  it('gainExp does not exceed 99 below max level', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    unit.gainExp(150);
+    expect(unit.exp).toBe(99);
+  });
+
+  it('is at max level when level reaches 20 (unpromoted)', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { level: 20 });
+    expect(unit.isAtMaxLevel).toBe(true);
+  });
+
+  it('is not at max level below 20', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { level: 19 });
+    expect(unit.isAtMaxLevel).toBe(false);
   });
 });

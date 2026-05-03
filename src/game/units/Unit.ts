@@ -1,5 +1,6 @@
 import { UnitStats } from './Stats';
 import { UnitState, UNIT_STATE } from '../state/UnitState';
+import { GrowthRates, createGrowthRates } from '../progression/GrowthRates';
 
 export const Faction = {
   PLAYER: 'player',
@@ -21,6 +22,12 @@ export const UnitClass = {
 export type Faction = (typeof Faction)[keyof typeof Faction];
 export type UnitClass = (typeof UnitClass)[keyof typeof UnitClass];
 
+export interface UnitOptions {
+  level?: number;
+  exp?: number;
+  growthRates?: GrowthRates;
+}
+
 export class Unit {
   readonly id: string;
   readonly name: string;
@@ -30,6 +37,9 @@ export class Unit {
   readonly state: UnitState = new UnitState();
   private _gridX: number;
   private _gridY: number;
+  private _level: number;
+  private _exp: number;
+  private _growthRates: GrowthRates;
 
   constructor(
     id: string,
@@ -39,6 +49,7 @@ export class Unit {
     stats: UnitStats,
     gridX: number,
     gridY: number,
+    options: UnitOptions = {},
   ) {
     this.id = id;
     this.name = name;
@@ -47,6 +58,9 @@ export class Unit {
     this._stats = stats;
     this._gridX = gridX;
     this._gridY = gridY;
+    this._level = Math.max(1, Math.min(20, options.level ?? 1));
+    this._exp = Math.max(0, Math.min(99, options.exp ?? 0));
+    this._growthRates = options.growthRates ?? createGrowthRates();
   }
 
   get stats(): Readonly<UnitStats> {
@@ -87,6 +101,22 @@ export class Unit {
     return this.faction === Faction.ENEMY;
   }
 
+  get level(): number {
+    return this._level;
+  }
+
+  get exp(): number {
+    return this._exp;
+  }
+
+  get growthRates(): Readonly<GrowthRates> {
+    return this._growthRates;
+  }
+
+  get isAtMaxLevel(): boolean {
+    return this._level >= 20;
+  }
+
   moveTo(x: number, y: number): void {
     this._gridX = x;
     this._gridY = y;
@@ -101,5 +131,16 @@ export class Unit {
 
   resetState(): void {
     this.state.reset();
+  }
+
+  gainExp(amount: number): void {
+    if (this.isAtMaxLevel) return;
+    this._exp = Math.min(99, this._exp + amount);
+  }
+
+  applyLevelUp(newStats: UnitStats): void {
+    this._stats = newStats;
+    this._exp = 0;
+    this._level = Math.min(20, this._level + 1);
   }
 }
