@@ -63,6 +63,7 @@ src/
 | 5 | [05-enemy-ai.md](./05-enemy-ai.md) | ⬜ | Aggro range, decision matrix, automated enemy phase |
 | 6 | [06-polish-and-deployment.md](./06-polish-and-deployment.md) | ⬜ | Animations, juice, hosting |
 | 7 | [07-cutscene-system.md](./07-cutscene-system.md) | ✅ | Fire Emblem dialog boxes, portraits, typewriter |
+| 8 | [08-character-progression.md](./08-character-progression.md) | ⬜ | Leveling, EXP, growth rates, stat caps |
 
 ---
 

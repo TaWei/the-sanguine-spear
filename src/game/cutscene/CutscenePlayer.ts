@@ -70,10 +70,12 @@ export function createCutscenePlayer(script: CutsceneScript): CutscenePlayer {
     if (current.type === 'goto') {
       // Search forward from the next frame; if not found, search from start
       let targetIndex = script.frames.findIndex(
-        (f, i) => i > frameIndex && f.label === current.label,
+        (f, i) => i > frameIndex && (f as CutsceneCommand & { label?: string }).label === current.label,
       );
       if (targetIndex === -1) {
-        targetIndex = script.frames.findIndex((f) => f.label === current.label);
+        targetIndex = script.frames.findIndex(
+          (f) => (f as CutsceneCommand & { label?: string }).label === current.label,
+        );
       }
       if (targetIndex !== -1 && targetIndex !== frameIndex) {
         frameIndex = targetIndex;
