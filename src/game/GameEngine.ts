@@ -7,6 +7,7 @@ import { ActionQueue, Action } from './state/ActionQueue';
 import { computeMoveRange } from './movement/MoveRange';
 import { WEAPON_DB } from './combat/Weapons';
 import { Commander } from './ai/Commander';
+import { ProgressionEngine } from './progression/ProgressionEngine';
 
 export class GameEngine {
   readonly grid: Grid;
@@ -14,12 +15,14 @@ export class GameEngine {
   private units: Unit[] = [];
   private actionQueue: ActionQueue;
   private commander: Commander;
+  private progressionEngine: ProgressionEngine;
 
   constructor(cols: number, rows: number) {
     this.grid = new Grid(cols, rows);
     this.turnManager = new TurnManager();
     this.actionQueue = new ActionQueue();
     this.commander = new Commander(this.grid, WEAPON_DB);
+    this.progressionEngine = new ProgressionEngine();
   }
 
   addUnit(
@@ -67,6 +70,12 @@ export class GameEngine {
 
   setTerrain(x: number, y: number, type: TerrainType): void {
     this.grid.setTerrain(x, y, type);
+  }
+
+  awardCombatExp(unit: Unit, damageDealt: number, killed: boolean): void {
+    const base = damageDealt > 0 ? 10 : 0;
+    const killBonus = killed ? 30 : 0;
+    this.progressionEngine.grantExp(unit, base + killBonus);
   }
 
   endTurn(): void {

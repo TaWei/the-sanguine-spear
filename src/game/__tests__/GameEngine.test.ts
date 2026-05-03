@@ -186,4 +186,20 @@ describe('GameEngine', () => {
     engine.setTerrain(3, 3, TerrainType.FOREST);
     expect(engine.grid.getTerrain(3, 3)).toBe('forest');
   });
+
+  it('awards combat exp for dealing damage', () => {
+    const engine = new GameEngine(10, 8);
+    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    engine.awardCombatExp(unit, 10, false);
+    expect(unit.exp).toBe(10);
+  });
+
+  it('awards combat exp with kill bonus', () => {
+    const engine = new GameEngine(10, 8);
+    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    engine.awardCombatExp(unit, 10, true);
+    expect(unit.exp).toBe(40);
+  });
 });
