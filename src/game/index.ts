@@ -5,3 +5,4 @@ export * from './movement';
 export * from './combat';
 export * from './ai';
 export * from './state';
+export * from './progression';
