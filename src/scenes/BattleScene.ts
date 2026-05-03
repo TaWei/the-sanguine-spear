@@ -478,7 +478,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     endText.on('pointerdown', () => {
-      this.battleMenu.selectAction(MenuAction.END_TURN);
+      this.battleMenu.reset();
       unit.state.transition(UNIT_STATE.EXHAUSTED);
       this.clearMenuTexts();
       this.syncUnitSprites();
