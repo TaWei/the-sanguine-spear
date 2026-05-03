@@ -273,6 +273,18 @@ describe('GameEngine', () => {
     expect(result.victory).toBe(false);
   });
 
+  it('endTurn returns hazard report with lava damage', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const unit = engine.addUnit('p1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+    engine.setTerrain(2, 2, TerrainType.LAVA);
+    const report = engine.endTurn();
+    expect(report.damagedUnits.length).toBe(1);
+    expect(report.damagedUnits[0].unit).toBe(unit);
+    expect(report.damagedUnits[0].damage).toBe(5);
+    expect(report.damagedUnits[0].terrain).toBe('lava');
+  });
+
   it('reports ongoing when both sides are alive', () => {
     const engine = new GameEngine(10, 8);
     const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });

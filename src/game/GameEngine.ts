@@ -14,7 +14,7 @@ import { WeaponData } from './combat/Weapons';
 import { LevelObjectives, ObjectiveResult } from './objectives/LevelObjectives';
 import { findPath } from './movement/Pathfinder';
 import { GridNeighbor } from './map/Grid';
-import { TerrainHazardEngine } from './hazards/TerrainHazardEngine';
+import { TerrainHazardEngine, HazardReport } from './hazards/TerrainHazardEngine';
 import { LevelDefinition } from './levels/LevelDefinition';
 
 export class GameEngine {
@@ -188,12 +188,12 @@ export class GameEngine {
     return threatened;
   }
 
-  endTurn(): void {
+  endTurn(): HazardReport {
     const liveUnits = this.getLiveUnits();
     this.turnManager.advancePhase(liveUnits);
 
     // Apply terrain hazards at the start of the new phase
-    this.hazardEngine.applyHazards(this.getLiveUnits(), this.grid);
+    const hazardReport = this.hazardEngine.applyHazards(this.getLiveUnits(), this.grid);
 
     if (this.turnManager.isEnemyPhase()) {
       const enemies = this.getUnitsByFaction(Faction.ENEMY);
@@ -203,6 +203,8 @@ export class GameEngine {
         this.actionQueue.enqueue(action);
       }
     }
+
+    return hazardReport;
   }
 
   getPendingActions(): Action[] {

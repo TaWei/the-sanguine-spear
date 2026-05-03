@@ -445,7 +445,8 @@ export class BattleScene extends Phaser.Scene {
     this.enemyPreview.clear();
     this.battleMenu.reset();
     this.clearMenuTexts();
-    this.engine.endTurn();
+    const report = this.engine.endTurn();
+    this.showHazardDamage(report);
     this.syncUnitSprites();
     this.updatePhaseText();
 
@@ -462,14 +463,40 @@ export class BattleScene extends Phaser.Scene {
           return;
         }
 
-        this.engine.endTurn(); // Enemy → Ally
-        this.engine.endTurn(); // Ally → Player
+        const report1 = this.engine.endTurn(); // Enemy → Ally
+        this.showHazardDamage(report1);
+        const report2 = this.engine.endTurn(); // Ally → Player
+        this.showHazardDamage(report2);
         this.syncUnitSprites();
         this.updatePhaseText();
         this.beginPlayerPhase();
       });
     } else if (this.engine.turnManager.isPlayerPhase()) {
       this.beginPlayerPhase();
+    }
+  }
+
+  private showHazardDamage(report: import('../game/hazards/TerrainHazardEngine').HazardReport): void {
+    for (const entry of report.damagedUnits) {
+      const px = this.offsetX + entry.unit.gridX * TILE_SIZE + TILE_SIZE / 2;
+      const py = this.offsetY + entry.unit.gridY * TILE_SIZE + TILE_SIZE / 2;
+      const text = this.add
+        .text(px, py - 10, `-${entry.damage}`, {
+          fontSize: '14px',
+          color: '#ff4500',
+          stroke: '#000000',
+          strokeThickness: 3,
+        })
+        .setOrigin(0.5);
+
+      this.tweens.add({
+        targets: text,
+        y: py - 40,
+        alpha: 0,
+        duration: 1200,
+        ease: 'Power2',
+        onComplete: () => text.destroy(),
+      });
     }
   }
 
