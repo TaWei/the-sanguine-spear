@@ -312,6 +312,7 @@ export class BattleScene extends Phaser.Scene {
   private animatePathMovement(unit: Unit, path: import('../game/map/Grid').GridNeighbor[], onComplete: () => void): void {
     const sprite = this.unitSprites.get(unit.id);
     if (!sprite) {
+      this.isAnimatingMovement = false;
       onComplete();
       return;
     }
@@ -439,6 +440,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private triggerEndTurn(): void {
+    if (this.inBattleMode || this.isAnimatingMovement) return;
+
     this.selectedUnit = null;
     this.moveGraphics.clear();
     this.pathGraphics.clear();
@@ -954,26 +957,21 @@ export class BattleScene extends Phaser.Scene {
 
       // Exhaust the player unit
       if (this.battleDisplayState?.attacker.isPlayer) {
-        const unit = this.battleDisplayState.attacker;
-        if (unit.state.current === UNIT_STATE.MENU) {
-          unit.state.transition(UNIT_STATE.EXHAUSTED);
-        }
+        this.battleDisplayState.attacker.hasActed = true;
       }
 
       // Check win/loss after combat resolves
       const objectives = this.engine.checkObjectives();
       if (objectives.victory) {
         this.showVictoryScreen();
-        return;
-      }
-      if (objectives.defeat) {
+      } else if (objectives.defeat) {
         this.showDefeatScreen();
-        return;
+      } else {
+        this.checkAutoEndTurn();
       }
 
       this.battleDisplayState = null;
       this.battleMenu.reset();
-      this.checkAutoEndTurn();
       this.pendingBattleCallback?.();
       this.pendingBattleCallback = null;
     };

@@ -208,4 +208,38 @@ describe('Unit', () => {
     const unit = new Unit('u1', 'Rowan', Faction.PLAYER, UnitClass.LORD, lordStats, 0, 0);
     expect(unit.isFlying).toBe(false);
   });
+
+  it('hasActed setter works from IDLE state', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    unit.hasActed = true;
+    expect(unit.hasActed).toBe(true);
+    expect(unit.state.current).toBe(UNIT_STATE.EXHAUSTED);
+  });
+
+  it('hasActed setter works from MOVING state', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    unit.state.transition(UNIT_STATE.MOVING);
+    unit.hasActed = true;
+    expect(unit.hasActed).toBe(true);
+    expect(unit.state.current).toBe(UNIT_STATE.EXHAUSTED);
+  });
+
+  it('hasActed setter works from MENU state', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    unit.state.transition(UNIT_STATE.MOVING);
+    unit.state.transition(UNIT_STATE.MENU);
+    unit.hasActed = true;
+    expect(unit.hasActed).toBe(true);
+    expect(unit.state.current).toBe(UNIT_STATE.EXHAUSTED);
+  });
+
+  it('hasActed setter is idempotent when already EXHAUSTED', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    unit.state.transition(UNIT_STATE.MOVING);
+    unit.state.transition(UNIT_STATE.MENU);
+    unit.state.transition(UNIT_STATE.EXHAUSTED);
+    expect(() => { unit.hasActed = true; }).not.toThrow();
+    expect(unit.hasActed).toBe(true);
+    expect(unit.state.current).toBe(UNIT_STATE.EXHAUSTED);
+  });
 });
