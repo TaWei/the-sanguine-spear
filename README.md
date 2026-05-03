@@ -1,53 +1,121 @@
 # The Sanguine Spear
 
-A Fire Emblem-inspired tactical RPG built with [Phaser 3](https://phaser.io/) and TypeScript.
+A Fire Emblem–inspired tactical RPG built with **Phaser 3**, **TypeScript**, and **Vite**.
+
+[Play locally →](http://localhost:5173) `npm run dev`
+
+---
 
 ## Features
 
-- Grid-based tactical movement
-- Turn-based combat phases (Player / Enemy / Ally)
-- Unit classes with distinct stats and growth rates
-- Terrain system affecting movement, defense, and avoid
-- Phaser 3 + Vite + TypeScript stack
+- **Grid-based tactical movement** — Dijkstra pathfinding with terrain cost weights
+- **Turn-based phases** — Player → Enemy → Ally cycle with phase-specific AI
+- **Fire Emblem GBA-style combat** — hit/avoid/crit formulas, 2RN true hit, weapon triangle
+- **Weapon triangle** — Sword > Axe > Lance > Sword (advantage/disadvantage modifiers)
+- **Terrain system** — movement costs, defense/avoid bonuses
+- **Enemy AI** — target scoring, approach logic, sequential action execution
+- **Unit classes** — Lord, Mercenary, Mage, Archer, Cavalry, Pegasus Knight, Soldier, Brigand
+- **Visual effects** — screen shake, hit flash, death fade, movement tweens
 
-## Getting Started
+---
+
+## Tech Stack
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Phaser | 3.80 | Rendering, input, scenes |
+| TypeScript | 5.4 | All source code |
+| Vite | 5.2 | Dev server, bundler |
+| Vitest | 4.1 | Unit test runner |
+| ESLint | 10 | Linting (strict type-checked) |
+| Prettier | 3 | Code formatting |
+
+---
+
+## Quick Start
 
 ```bash
-# Install dependencies
+cd ~/workspace/the-sanguine-spear
 npm install
-
-# Start the dev server
-npm run dev
-
-# Build for production
-npm run build
+npm run dev        # http://localhost:5173
 ```
 
-## Project Structure
+---
+
+## Development
+
+```bash
+npm run dev              # Start dev server
+npm run lint             # ESLint check (zero warnings)
+npm run lint:fix         # Auto-fix ESLint issues
+npm run format           # Prettier format
+npm run format:check     # Prettier check
+npm test                 # Run all tests (vitest)
+npx vitest run <path>    # Single test file
+npx vitest               # Watch mode
+npx tsc --noEmit         # Type check
+npm run build            # Production build → dist/
+npm run preview          # Preview production build
+```
+
+---
+
+## Architecture
 
 ```
 src/
-  main.ts                 # Game bootstrap
-  constants.ts            # Game constants (grid size, factions, classes, terrain)
-  types.ts                # TypeScript interfaces for units, tiles, stats
-  scenes/
-    BootScene.ts          # Asset preloading
-    MainMenuScene.ts      # Title screen
-    BattleScene.ts        # Main tactical battle map
-  entities/
-    Tile.ts               # Grid tile with terrain data
-    Unit.ts               # Combat unit with stats, movement, and rendering
-public/
-  assets/                 # Spritesheets, tilemaps, audio (add here)
+  game/                  ← PURE LOGIC. Zero Phaser imports. 100% testable.
+    GameEngine.ts        # Facade composing all subsystems
+    map/                 # Terrain, Grid, Cursor
+    units/               # Unit, Stats, Growth
+    movement/            # Dijkstra move range
+    combat/              # Weapons, Formulas, CombatEngine, AttackRange
+    state/               # UnitState FSM, TurnManager, ActionQueue
+    ai/                  # Targeting, Commander
+    index.ts             # Barrel exports
+  scenes/                ← PHASER RENDERING. Thin shell.
+    BattleScene.ts       # Renders grid, units, UI. Delegates to GameEngine.
+    BootScene.ts
+    MainMenuScene.ts
+  entities/              # DEPRECATED. Unused prototype wrappers.
 ```
+
+**Golden rule:** `src/game/` is pure logic. No Phaser imports allowed. `src/scenes/` handles all rendering.
+
+---
+
+## Implemented Systems
+
+| System | Status |
+|--------|--------|
+| Grid, Terrain, Cursor | ✅ |
+| Unit stats, classes, factions | ✅ |
+| Movement (Dijkstra range) | ✅ |
+| Turn phases (Player/Enemy/Ally) | ✅ |
+| Weapon database + triangle | ✅ |
+| Combat formulas (hit/avoid/crit/damage) | ✅ |
+| 2RN true hit | ✅ |
+| Combat engine with counterattacks | ✅ |
+| Enemy AI targeting + movement | ✅ |
+| Visual effects (shake, flash, fade) | ✅ |
+| Unit tests (163 passing) | ✅ |
+| ESLint + Prettier | ✅ |
+
+---
 
 ## Roadmap
 
-- [ ] Weapon triangle (Sword > Axe > Lance > Sword)
-- [ ] Combat calculations (hit rate, crit, damage)
-- [ ] Inventory and equippable items
-- [ ] AI pathfinding and behavior trees
-- [ ] Map objectives (rout enemy, seize, defend)
+- [ ] Save/load system
+- [ ] Action menu (attack / wait / items)
+- [ ] Inventory and equippable weapons
+- [ ] Ally phase AI
+- [ ] Map objectives (seize, defend, rout)
 - [ ] Animated spritesheets
-- [ ] Sound design and music
-- [ ] Story chapters and dialogue system
+- [ ] Audio (SFX, music)
+- [ ] Story chapters and dialogue
+
+---
+
+## License
+
+MIT

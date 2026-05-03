@@ -350,6 +350,34 @@ import { Commander, pickBestTarget } from '../game/ai';
 
 ---
 
+## Linting
+
+**ESLint** (flat config via `eslint.config.mjs`) + **Prettier** (`.prettierrc`).
+
+Config: `typescript-eslint` strictTypeChecked + stylisticTypeChecked + prettier.
+
+### Key Rules
+- `@typescript-eslint/no-explicit-any`: **error**
+- `@typescript-eslint/no-unsafe-*`: **error** (assignment, call, member-access, return, argument)
+- `@typescript-eslint/no-floating-promises`: **error**
+- `@typescript-eslint/strict-boolean-expressions`: **error**
+- `curly`: **error** — braces required on all conditionals
+- `eqeqeq`: **error** — strict equality only
+- `no-restricted-imports` on `phaser` in `src/game/`: **error**
+- Tests (`*.test.ts`): relaxed — `no-explicit-any`, `no-unsafe-*`, and `no-non-null-assertion` off
+
+### Commands
+```bash
+npm run lint         # check all files, zero warnings
+npm run lint:fix     # auto-fix issues
+npm run format       # prettier --write
+npm run format:check # prettier --check
+```
+
+**Run lint before every commit.** CI should block on `npm run lint` failures.
+
+---
+
 ## Development Workflow
 
 ```bash
@@ -357,6 +385,11 @@ cd ~/workspace/the-sanguine-spear
 
 # Dev server
 npm run dev              # http://localhost:5173
+
+# Lint & format
+npm run lint             # check
+npm run lint:fix         # auto-fix
+npm run format           # prettier write
 
 # Tests
 npm test                 # all tests
@@ -402,5 +435,6 @@ This repo was implemented via Linear tickets JER-118 through JER-146 under the J
 2. If it's rendering/visual → goes in `src/scenes/` or new Phaser code.
 3. Never put Phaser imports in `src/game/`.
 4. Always add barrel export to the module's `index.ts`.
-5. Run `npm test` before committing.
-6. Run `npx tsc --noEmit` if you modified scene code.
+5. Run `npm run lint` before committing. Fix or suppress.
+6. Run `npm test` before committing.
+7. Run `npx tsc --noEmit` if you modified scene code.
