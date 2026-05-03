@@ -779,6 +779,110 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.battleDisplayState = null;
+
+    // Check win/loss after combat resolves
+    const objectives = this.engine.checkObjectives();
+    if (objectives.victory) {
+      this.showVictoryScreen();
+      return;
+    }
+    if (objectives.defeat) {
+      this.showDefeatScreen();
+      return;
+    }
+
     this.battleMenu.reset();
+  }
+
+  private showVictoryScreen(): void {
+    const overlay = this.add.container(0, 0);
+
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.85,
+    );
+    overlay.add(bg);
+
+    const title = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.4, 'Victory', {
+        fontSize: '48px',
+        color: '#f1c40f',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    overlay.add(title);
+
+    const subtitle = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.55, 'All enemies defeated', {
+        fontSize: '18px',
+        color: '#bdc3c7',
+      })
+      .setOrigin(0.5);
+    overlay.add(subtitle);
+
+    const restart = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.7, '[ Play Again ]', {
+        fontSize: '20px',
+        color: '#ffffff',
+        backgroundColor: '#27ae60',
+        padding: { x: 16, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    overlay.add(restart);
+
+    restart.on('pointerdown', () => {
+      this.scene.restart();
+    });
+  }
+
+  private showDefeatScreen(): void {
+    const overlay = this.add.container(0, 0);
+
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.85,
+    );
+    overlay.add(bg);
+
+    const title = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.4, 'Defeat', {
+        fontSize: '48px',
+        color: '#e74c3c',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    overlay.add(title);
+
+    const subtitle = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.55, 'All units lost', {
+        fontSize: '18px',
+        color: '#bdc3c7',
+      })
+      .setOrigin(0.5);
+    overlay.add(subtitle);
+
+    const restart = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.7, '[ Try Again ]', {
+        fontSize: '20px',
+        color: '#ffffff',
+        backgroundColor: '#c0392b',
+        padding: { x: 16, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    overlay.add(restart);
+
+    restart.on('pointerdown', () => {
+      this.scene.restart();
+    });
   }
 }
