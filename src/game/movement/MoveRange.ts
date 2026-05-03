@@ -1,5 +1,6 @@
 import { Grid } from '../map/Grid';
 import { Unit } from '../units/Unit';
+import { getTerrainMoveCost } from './TerrainCost';
 
 /**
  * Compute all reachable tiles and their movement costs using Dijkstra's algorithm.
@@ -42,8 +43,8 @@ export function computeMoveRange(unit: Unit, grid: Grid): Map<string, number> {
         continue;
       }
 
-      const terrainData = grid.getTerrainData(nx, ny);
-      const terrainCost = terrainData.moveCost;
+      const terrain = grid.getTerrain(nx, ny);
+      const terrainCost = getTerrainMoveCost(unit, terrain);
 
       // Impassable terrain
       if (terrainCost >= 99) {
