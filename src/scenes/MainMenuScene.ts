@@ -42,5 +42,26 @@ export class MainMenuScene extends Phaser.Scene {
         this.scene.start('BattleScene');
       });
     });
+
+    const prologueBtn = this.add
+      .text(cx, cy + 140, '[ Watch Prologue ]', {
+        fontSize: '20px',
+        color: '#bdc3c7',
+        backgroundColor: '#1a1a2e',
+        padding: { x: 16, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    prologueBtn.on('pointerover', () => prologueBtn.setStyle({ color: '#f1c40f' }));
+    prologueBtn.on('pointerout', () => prologueBtn.setStyle({ color: '#bdc3c7' }));
+    prologueBtn.on('pointerdown', () => {
+      this.scene.launch('CutsceneScene', {
+        cutsceneId: 'prologue_intro',
+        onComplete: () => {
+          this.scene.stop('CutsceneScene');
+        },
+      });
+    });
   }
 }
