@@ -1,4 +1,5 @@
 import { Unit } from '../units/Unit';
+import { UnitStats } from '../units/Stats';
 import { levelUp, LevelUpResult } from './LevelUpEngine';
 import { CLASS_CAPS } from './StatCaps';
 
@@ -6,6 +7,7 @@ export interface ProgressionResult {
   expGained: number;
   leveledUp: boolean;
   levelUpResult?: LevelUpResult;
+  oldStats?: UnitStats;
 }
 
 export class ProgressionEngine {
@@ -25,6 +27,7 @@ export class ProgressionEngine {
     // Level up occurs
     const overflow = totalExp - 100;
     const caps = CLASS_CAPS[unit.unitClass];
+    const oldStats = { ...unit.stats };
 
     const result = levelUp(unit.stats, unit.growthRates, caps, rng);
     unit.applyLevelUp(result.newStats);
@@ -34,6 +37,6 @@ export class ProgressionEngine {
       unit.gainExp(overflow);
     }
 
-    return { expGained: amount, leveledUp: true, levelUpResult: result };
+    return { expGained: amount, leveledUp: true, levelUpResult: result, oldStats };
   }
 }

@@ -85,4 +85,18 @@ describe('ProgressionEngine', () => {
     expect(unit.level).toBe(20);
     expect(unit.exp).toBe(0); // exp resets on level-up; no overflow kept at max level
   });
+
+  it('includes oldStats in result when leveling up', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 0, 0, {
+      growthRates: growths,
+    });
+    const engine = new ProgressionEngine();
+    const rng = makeRng([0, 0]);
+    const result = engine.grantExp(unit, 100, rng);
+    expect(result.leveledUp).toBe(true);
+    expect(result.oldStats).toBeDefined();
+    expect(result.oldStats!.hp).toBe(20);
+    expect(result.oldStats!.str).toBe(8);
+    expect(unit.stats.hp).toBe(21); // mutated
+  });
 });
