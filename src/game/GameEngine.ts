@@ -11,7 +11,10 @@ import { ProgressionEngine } from './progression/ProgressionEngine';
 import { getAdjacentEnemies } from './combat/Adjacency';
 import { CombatEngine } from './combat/Engine';
 import { WeaponData } from './combat/Weapons';
-import { createWeaponItem, WeaponItem } from './items/ItemTypes';
+import { createWeaponItem, WeaponItem, Item, createStaffItem, StaffItem } from './items/ItemTypes';
+import { StaffEngine, StaffResult } from './staves/StaffEngine';
+import { getHealTargets } from './staves/getHealTargets';
+import { StaffData, STAFF_DB } from './staves/Staves';
 import { LevelObjectives, ObjectiveResult } from './objectives/LevelObjectives';
 import { findPath } from './movement/Pathfinder';
 import { GridNeighbor } from './map/Grid';
@@ -46,8 +49,10 @@ export class GameEngine {
     gridY: number,
   ): Unit {
     const unit = new Unit(id, name, faction, unitClass, stats, gridX, gridY);
-    const defaultWeapon = getDefaultWeaponItem(unitClass);
-    unit.inventory.add(defaultWeapon);
+    const startingItems = getStartingItems(unitClass);
+    for (const item of startingItems) {
+      unit.inventory.add(item);
+    }
     this.units.push(unit);
     this.grid.placeUnit(unit, gridX, gridY);
     return unit;
@@ -198,6 +203,43 @@ export class GameEngine {
     return getAdjacentEnemies(unit, this.grid, this.getWeaponForUnit(unit));
   }
 
+  getStaffForUnit(unit: Unit): { data: StaffData; index: number } | null {
+    const index = unit.inventory.items.findIndex((i) => i.kind === 'staff');
+    if (index === -1) return null;
+    const item = unit.inventory.items[index] as StaffItem;
+    return {
+      data: {
+        name: item.name,
+        healAmount: item.healAmount,
+        minRange: item.minRange,
+        maxRange: item.maxRange,
+      },
+      index,
+    };
+  }
+
+  getHealTargets(unit: Unit): Unit[] {
+    const staffInfo = this.getStaffForUnit(unit);
+    if (!staffInfo) return [];
+    return getHealTargets(unit, this.grid, staffInfo.data);
+  }
+
+  resolveStaffHeal(healer: Unit, target: Unit): StaffResult {
+    const staffInfo = this.getStaffForUnit(healer);
+    if (!staffInfo) {
+      throw new Error(`${healer.name} has no staff`);
+    }
+    const engine = new StaffEngine();
+    return engine.resolve(healer, target, staffInfo.data, healer.inventory, staffInfo.index);
+  }
+
+  applyStaffExp(unit: Unit, staffResult: StaffResult): import('./progression/ProgressionEngine').ProgressionResult | null {
+    if (!unit.isAlive || staffResult.expAward <= 0) {
+      return null;
+    }
+    return this.progressionEngine.grantExp(unit, staffResult.expAward);
+  }
+
   resolvePlayerCombat(
     attacker: Unit,
     defender: Unit,
@@ -304,24 +346,25 @@ export class GameEngine {
   }
 }
 
-function getDefaultWeaponItem(unitClass: UnitClass): WeaponItem {
+function getStartingItems(unitClass: UnitClass): Item[] {
+  const items: Item[] = [];
+
   if (unitClass === 'mage') {
-    return createWeaponItem('Fire', 'magic', 5, 90, 0, 1, 2, true);
+    items.push(createWeaponItem('Fire', 'magic', 5, 90, 0, 1, 2, true));
+    items.push(createStaffItem('Heal', 10, 1, 1));
+  } else if (unitClass === 'brigand') {
+    items.push(createWeaponItem('Iron Axe', 'axe', 8, 70, 0, 1, 1, false));
+  } else if (unitClass === 'berserker') {
+    items.push(createWeaponItem('Killer Axe', 'axe', 9, 70, 30, 1, 1, false));
+  } else if (unitClass === 'soldier') {
+    items.push(createWeaponItem('Iron Lance', 'lance', 6, 80, 0, 1, 1, false));
+  } else if (unitClass === 'swordmaster') {
+    items.push(createWeaponItem('Killer Sword', 'sword', 7, 85, 30, 1, 1, false));
+  } else if (unitClass === 'archer') {
+    items.push(createWeaponItem('Iron Bow', 'bow', 6, 85, 0, 2, 2, false));
+  } else {
+    items.push(createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false));
   }
-  if (unitClass === 'brigand') {
-    return createWeaponItem('Iron Axe', 'axe', 8, 70, 0, 1, 1, false);
-  }
-  if (unitClass === 'berserker') {
-    return createWeaponItem('Killer Axe', 'axe', 9, 70, 30, 1, 1, false);
-  }
-  if (unitClass === 'soldier') {
-    return createWeaponItem('Iron Lance', 'lance', 6, 80, 0, 1, 1, false);
-  }
-  if (unitClass === 'swordmaster') {
-    return createWeaponItem('Killer Sword', 'sword', 7, 85, 30, 1, 1, false);
-  }
-  if (unitClass === 'archer') {
-    return createWeaponItem('Iron Bow', 'bow', 6, 85, 0, 2, 2, false);
-  }
-  return createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false);
+
+  return items;
 }
