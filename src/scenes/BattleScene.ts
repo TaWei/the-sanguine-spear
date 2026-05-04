@@ -9,6 +9,8 @@ import { EnemyPreview } from '../game/ui/EnemyPreview';
 import { getLevel, getNextLevelId } from '../game/levels/LevelData';
 import { ExpPopup } from '../game/ui/ExpPopup';
 import { StatusWindow } from '../game/ui/StatusWindow';
+import { ItemMenu } from '../game/ui/ItemMenu';
+import type { Item } from '../game/items/ItemTypes';
 import type { CombatResult } from '../game/combat/Engine';
 
 const TERRAIN_COLORS: Record<string, number> = {
@@ -55,6 +57,8 @@ export class BattleScene extends Phaser.Scene {
   private levelUpBanner: Phaser.GameObjects.Container | null = null;
   private statusWindow: StatusWindow = new StatusWindow();
   private statusOverlay: Phaser.GameObjects.Container | null = null;
+  private itemMenu: ItemMenu = new ItemMenu();
+  private itemOverlay: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -764,7 +768,33 @@ export class BattleScene extends Phaser.Scene {
       },
     );
 
-    this.menuTexts.push(fightText, endText, statusText);
+    const itemsText = this.add
+      .text(px, py + 72, '[ Items ]', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#8e44ad',
+        padding: { x: 8, y: 4 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    itemsText.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        this.battleMenu.selectAction(MenuAction.ITEMS);
+        this.clearMenuTexts();
+        this.showItemMenu(unit);
+      },
+    );
+
+    this.menuTexts.push(fightText, endText, statusText, itemsText);
   }
 
   private showStatusWindow(unit: Unit): void {
@@ -881,6 +911,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private undoMove(): void {
+    if (this.itemOverlay) {
+      this.hideItemMenu(false);
+      return;
+    }
     if (this.statusOverlay) {
       this.hideStatusWindow();
       return;
@@ -914,6 +948,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private handleOutsideMenuClick(): void {
+    if (this.itemOverlay) {
+      this.hideItemMenu(false);
+      return;
+    }
     if (this.statusOverlay) {
       this.hideStatusWindow();
       return;
@@ -1631,5 +1669,225 @@ export class BattleScene extends Phaser.Scene {
         onComplete();
       },
     });
+  }
+
+  private showItemMenu(unit: Unit): void {
+    this.inputEnabled = false;
+    const overlay = this.add.container(0, 0);
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7,
+    );
+    overlay.add(bg);
+
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+
+    const panel = this.add.rectangle(cx, cy, 280, 320, 0x2c3e50, 0.95);
+    panel.setStrokeStyle(2, 0x8e44ad);
+    overlay.add(panel);
+
+    const title = this.add
+      .text(cx, cy - 130, 'Items', {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    overlay.add(title);
+
+    const items = unit.inventory.items;
+    this.itemMenu.open(items.map((i) => ({ name: i.name, uses: i.uses })));
+
+    if (items.length === 0) {
+      const noneText = this.add
+        .text(cx, cy, 'No items', {
+          fontSize: '14px',
+          color: '#bdc3c7',
+        })
+        .setOrigin(0.5);
+      overlay.add(noneText);
+    } else {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const y = cy - 80 + i * 32;
+        const itemText = this.add
+          .text(cx, y, `${item.name} x${item.uses}`, {
+            fontSize: '14px',
+            color: '#ffffff',
+            backgroundColor: '#34495e',
+            padding: { x: 8, y: 4 },
+          })
+          .setOrigin(0.5)
+          .setInteractive({ useHandCursor: true });
+
+        itemText.on(
+          'pointerdown',
+          (
+            _pointer: Phaser.Input.Pointer,
+            _localX: number,
+            _localY: number,
+            event: Phaser.Types.Input.EventData,
+          ) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            event.stopPropagation();
+            this.showItemConfirm(unit, item, i);
+          },
+        );
+
+        overlay.add(itemText);
+      }
+    }
+
+    const closeBtn = this.add
+      .text(cx, cy + 130, '[ Close ]', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#c0392b',
+        padding: { x: 8, y: 4 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    closeBtn.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        this.hideItemMenu(false);
+      },
+    );
+
+    overlay.add(closeBtn);
+    this.itemOverlay = overlay;
+  }
+
+  private showItemConfirm(unit: Unit, item: Item, index: number): void {
+    this.itemMenu.selectItem(index);
+    this.itemOverlay?.destroy();
+    this.itemOverlay = null;
+
+    const overlay = this.add.container(0, 0);
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7,
+    );
+    overlay.add(bg);
+
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+
+    const panel = this.add.rectangle(cx, cy, 260, 180, 0x2c3e50, 0.95);
+    panel.setStrokeStyle(2, 0x8e44ad);
+    overlay.add(panel);
+
+    const confirmText = this.add
+      .text(cx, cy - 40, `Use ${item.name}?`, {
+        fontSize: '16px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5);
+    overlay.add(confirmText);
+
+    const yesBtn = this.add
+      .text(cx - 50, cy + 20, '[ Yes ]', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#27ae60',
+        padding: { x: 12, y: 6 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    yesBtn.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        unit.inventory.useAt(index);
+        this.applyItemEffect(unit, item);
+        this.itemMenu.confirmUse();
+        this.hideItemMenu(true);
+      },
+    );
+
+    const noBtn = this.add
+      .text(cx + 50, cy + 20, '[ No ]', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#c0392b',
+        padding: { x: 12, y: 6 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    noBtn.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        this.itemMenu.cancel();
+        this.hideItemMenu(false);
+      },
+    );
+
+    overlay.add(yesBtn);
+    overlay.add(noBtn);
+    this.itemOverlay = overlay;
+  }
+
+  private applyItemEffect(unit: Unit, item: Item): void {
+    if (item.kind === 'recovery') {
+      const heal = Math.min(item.healAmount, unit.stats.maxHp - unit.stats.hp);
+      if (heal > 0) {
+        unit.takeDamage(-heal);
+      }
+    }
+  }
+
+  private hideItemMenu(didUse: boolean): void {
+    this.itemOverlay?.destroy();
+    this.itemOverlay = null;
+    this.itemMenu.close();
+    this.inputEnabled = true;
+
+    if (didUse) {
+      const unit = this.battleMenu.unit;
+      if (unit) {
+        unit.state.transition(UNIT_STATE.EXHAUSTED);
+        this.clearMenuTexts();
+        this.syncUnitSprites();
+        this.checkAutoEndTurn();
+      }
+    } else {
+      const unit = this.battleMenu.unit;
+      if (unit) {
+        this.battleMenu.show(unit, this.engine.getAdjacentEnemies(unit));
+        this.showPostMoveMenu(unit);
+      }
+    }
   }
 }
