@@ -698,7 +698,7 @@ export class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: enemies.length > 0 });
 
     const endText = this.add
-      .text(px, py + 24, '[ End Turn ]', {
+      .text(px, py + 72, '[ End Turn ]', {
         fontSize: '14px',
         color: '#ffffff',
         backgroundColor: '#2c3e50',
@@ -748,7 +748,7 @@ export class BattleScene extends Phaser.Scene {
     );
 
     const statusText = this.add
-      .text(px, py + 48, '[ Status ]', {
+      .text(px, py + 24, '[ Status ]', {
         fontSize: '14px',
         color: '#ffffff',
         backgroundColor: '#27ae60',
@@ -774,7 +774,7 @@ export class BattleScene extends Phaser.Scene {
     );
 
     const itemsText = this.add
-      .text(px, py + 72, '[ Items ]', {
+      .text(px, py + 48, '[ Items ]', {
         fontSize: '14px',
         color: '#ffffff',
         backgroundColor: '#8e44ad',
