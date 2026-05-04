@@ -62,4 +62,14 @@ describe('ActionQueue', () => {
     queue.clear();
     expect(queue.isEmpty()).toBe(true);
   });
+
+  it('can enqueue and dequeue a staff action', () => {
+    const queue = new ActionQueue();
+    const actor = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.MAGE, stats, 0, 0);
+    queue.enqueue({ type: 'staff', actor, targetX: 1, targetY: 2 });
+    const action = queue.dequeue();
+    expect(action?.type).toBe('staff');
+    expect(action?.targetX).toBe(1);
+    expect(action?.targetY).toBe(2);
+  });
 });

@@ -4,6 +4,7 @@ export const ActionType = {
   MOVE: 'move',
   ATTACK: 'attack',
   WAIT: 'wait',
+  STAFF: 'staff',
 } as const;
 
 export type ActionType = (typeof ActionType)[keyof typeof ActionType];
