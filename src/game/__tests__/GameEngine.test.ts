@@ -1161,5 +1161,27 @@ describe('GameEngine', () => {
       expect(unit.level).toBe(2);
       expect(unit.exp).toBe(10); // 80 + 30 = 110, overflow 10
     });
+    it('can check promotion eligibility through GameEngine', () => {
+      const engine = new GameEngine(10, 8);
+      const stats = createStats({
+        hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+      // Default level 1 — not eligible
+      expect(engine.canPromote(unit)).toBe(false);
+    });
+
+    it('promotes a unit through GameEngine', () => {
+      const engine = new GameEngine(10, 8);
+      const stats = createStats({
+        hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+      // Simulate level 10 via internal assignment for test
+      (unit as unknown as { _level: number })._level = 10;
+      const result = engine.promote(unit);
+      expect(result.success).toBe(true);
+      expect(unit.unitClass).toBe('paladin');
+    });
   });
 });

@@ -20,6 +20,9 @@ import { findPath } from './movement/Pathfinder';
 import { GridNeighbor } from './map/Grid';
 import { TerrainHazardEngine, HazardReport } from './hazards/TerrainHazardEngine';
 import { LevelDefinition } from './levels/LevelDefinition';
+import { CutsceneTriggerEngine } from './cutscene/TriggerEngine';
+import { CutsceneTrigger, TriggerContext } from './cutscene/CutsceneTrigger';
+import { PromotionEngine } from './promotion/PromotionEngine';
 
 export class GameEngine {
   grid: Grid;
@@ -29,6 +32,8 @@ export class GameEngine {
   private commander: Commander;
   private progressionEngine: ProgressionEngine;
   private hazardEngine: TerrainHazardEngine;
+  private triggerEngine = new CutsceneTriggerEngine();
+  private promotionEngine = new PromotionEngine();
 
   constructor(cols: number, rows: number) {
     this.grid = new Grid(cols, rows);
@@ -61,6 +66,7 @@ export class GameEngine {
   loadLevel(def: LevelDefinition): void {
     // Reset existing state
     this.units = [];
+    this.triggerEngine.reset();
     // Re-initialize grid with new dimensions if needed
     if (this.grid.cols !== def.cols || this.grid.rows !== def.rows) {
       this.grid = new Grid(def.cols, def.rows);
@@ -83,6 +89,8 @@ export class GameEngine {
     for (const u of def.units) {
       this.addUnit(u.id, u.name, u.faction, u.unitClass, u.stats, u.x, u.y);
     }
+    // Register triggers
+    this.triggerEngine.register(def.triggers ?? []);
   }
 
   getUnit(x: number, y: number): Unit | null {
@@ -343,6 +351,22 @@ export class GameEngine {
       }
     }
     return actions;
+  }
+
+  evaluateTrigger(ctx: TriggerContext): CutsceneTrigger | null {
+    return this.triggerEngine.evaluate(ctx);
+  }
+
+  markFirstCombat(): void {
+    this.triggerEngine.markFirstCombat();
+  }
+
+  canPromote(unit: Unit): boolean {
+    return this.promotionEngine.canPromote(unit);
+  }
+
+  promote(unit: Unit): import('./promotion/PromotionEngine').PromotionResult {
+    return this.promotionEngine.promote(unit);
   }
 }
 
