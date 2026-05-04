@@ -158,6 +158,39 @@ describe('Unit', () => {
     expect(unit.exp).toBe(0);
   });
 
+  it('starts at base tier', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    expect(unit.tier).toBe('base');
+  });
+
+  it('can apply promotion changing class and stats', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { level: 10 });
+    const promotedStats = createStats({
+      hp: 26, str: 11, mag: 2, skl: 9, spd: 10, luk: 8, def: 9, res: 4, mov: 6,
+    });
+    unit.applyPromotion('paladin', promotedStats);
+    expect(unit.unitClass).toBe('paladin');
+    expect(unit.level).toBe(1);
+    expect(unit.exp).toBe(0);
+    expect(unit.tier).toBe('promoted');
+    expect(unit.stats.hp).toBe(26);
+  });
+
+  it('is at max level at 20 for base tier', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { level: 20 });
+    expect(unit.isAtMaxLevel).toBe(true);
+  });
+
+  it('is at max level at 20 for promoted tier', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.SWORDMASTER, stats, 2, 5, { level: 20 });
+    expect(unit.isAtMaxLevel).toBe(true);
+  });
+
+  it('is not at max level below 20 for promoted tier', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.SWORDMASTER, stats, 2, 5, { level: 19 });
+    expect(unit.isAtMaxLevel).toBe(false);
+  });
+
   it('can be constructed with a custom level and exp', () => {
     const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, {
       level: 5,

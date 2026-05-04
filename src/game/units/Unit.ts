@@ -20,7 +20,14 @@ export const UnitClass = {
   BRIGAND: 'brigand',
   SWORDMASTER: 'swordmaster',
   BERSERKER: 'berserker',
+  PALADIN: 'paladin',
+  SAGE: 'sage',
+  SNIPER: 'sniper',
+  FALCON_KNIGHT: 'falcon_knight',
+  GENERAL: 'general',
 } as const;
+
+export type UnitTier = 'base' | 'promoted';
 
 export type Faction = (typeof Faction)[keyof typeof Faction];
 export type UnitClass = (typeof UnitClass)[keyof typeof UnitClass];
@@ -35,7 +42,7 @@ export class Unit {
   readonly id: string;
   readonly name: string;
   readonly faction: Faction;
-  readonly unitClass: UnitClass;
+  private _unitClass: UnitClass;
   readonly inventory: Inventory;
   private _stats: UnitStats;
   readonly state: UnitState = new UnitState();
@@ -44,6 +51,7 @@ export class Unit {
   private _level: number;
   private _exp: number;
   private _growthRates: GrowthRates;
+  private _tier: UnitTier = 'base';
 
   constructor(
     id: string,
@@ -58,7 +66,7 @@ export class Unit {
     this.id = id;
     this.name = name;
     this.faction = faction;
-    this.unitClass = unitClass;
+    this._unitClass = unitClass;
     this.inventory = new Inventory();
     this._stats = stats;
     this._gridX = gridX;
@@ -66,6 +74,10 @@ export class Unit {
     this._level = Math.max(1, Math.min(20, options.level ?? 1));
     this._exp = Math.max(0, Math.min(99, options.exp ?? 0));
     this._growthRates = options.growthRates ?? createGrowthRates();
+  }
+
+  get unitClass(): UnitClass {
+    return this._unitClass;
   }
 
   get stats(): Readonly<UnitStats> {
@@ -126,6 +138,10 @@ export class Unit {
     return this._level >= 20;
   }
 
+  get tier(): UnitTier {
+    return this._tier;
+  }
+
   moveTo(x: number, y: number): void {
     this._gridX = x;
     this._gridY = y;
@@ -160,5 +176,13 @@ export class Unit {
     this._stats = newStats;
     this._exp = 0;
     this._level = Math.min(20, this._level + 1);
+  }
+
+  applyPromotion(newClass: UnitClass, newStats: UnitStats): void {
+    this._unitClass = newClass;
+    this._stats = newStats;
+    this._level = 1;
+    this._exp = 0;
+    this._tier = 'promoted';
   }
 }
