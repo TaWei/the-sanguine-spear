@@ -13,6 +13,9 @@ export interface HazardReport {
 
 export class TerrainHazardEngine {
   computeHazardDamage(unit: Unit, grid: Grid): number {
+    if (unit.isFlying) {
+      return 0;
+    }
     const terrainData = grid.getTerrainData(unit.gridX, unit.gridY);
     const hazardDamage = terrainData.hazardDamage ?? 0;
     if (hazardDamage <= 0) {

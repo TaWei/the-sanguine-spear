@@ -94,4 +94,25 @@ describe('TerrainHazardEngine', () => {
     expect(report.damagedUnits.map((d) => d.unit.id)).toContain('u3');
     expect(report.damagedUnits.find((d) => d.unit.id === 'u1')!.damage).toBe(5);
   });
+
+  it('applies no lava damage to flying units (pegasus knight)', () => {
+    const grid = new Grid(5, 5);
+    grid.setTerrain(2, 2, TerrainType.LAVA);
+    const stats = createStats({
+      hp: 20,
+      maxHp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
+    const unit = new Unit('u1', 'Pegasus', Faction.PLAYER, UnitClass.PEGASUS_KNIGHT, stats, 2, 2);
+    const engine = new TerrainHazardEngine();
+    const damage = engine.computeHazardDamage(unit, grid);
+    expect(damage).toBe(0);
+  });
 });

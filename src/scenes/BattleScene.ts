@@ -37,7 +37,7 @@ export class BattleScene extends Phaser.Scene {
   private battleMenu!: BattleMenu;
   private enemyPreview: EnemyPreview;
   private menuTexts: Phaser.GameObjects.Text[] = [];
-  private enemyPreviewTexts: Phaser.GameObjects.Text[] = [];
+  private enemyPreviewTexts: Phaser.GameObjects.GameObject[] = [];
   private battleOverlay: Phaser.GameObjects.Container | null = null;
   private battleDisplayState: BattleDisplayState | null = null;
   private inBattleMode = false;
@@ -674,7 +674,12 @@ export class BattleScene extends Phaser.Scene {
     if (enemies.length > 0) {
       fightText.on(
         'pointerdown',
-        (_pointer, _localX, _localY, event: Phaser.Types.Input.EventData) => {
+        (
+          _pointer: Phaser.Input.Pointer,
+          _localX: number,
+          _localY: number,
+          event: Phaser.Types.Input.EventData,
+        ) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           event.stopPropagation();
           this.battleMenu.selectAction(MenuAction.FIGHT);
@@ -684,15 +689,23 @@ export class BattleScene extends Phaser.Scene {
       );
     }
 
-    endText.on('pointerdown', (_pointer, _localX, _localY, event: Phaser.Types.Input.EventData) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      event.stopPropagation();
-      this.battleMenu.reset();
-      unit.state.transition(UNIT_STATE.EXHAUSTED);
-      this.clearMenuTexts();
-      this.syncUnitSprites();
-      this.checkAutoEndTurn();
-    });
+    endText.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        this.battleMenu.reset();
+        unit.state.transition(UNIT_STATE.EXHAUSTED);
+        this.clearMenuTexts();
+        this.syncUnitSprites();
+        this.checkAutoEndTurn();
+      },
+    );
 
     this.menuTexts.push(fightText, endText);
   }
@@ -778,7 +791,7 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private handleMenuInput(gx: number, gy: number, clickedUnit: Unit | null): void {
+  private handleMenuInput(_gx: number, _gy: number, clickedUnit: Unit | null): void {
     if (this.battleMenu.state === MenuState.CHOOSE_TARGET) {
       const validTarget = this.battleMenu.adjacentEnemies.find((e) => e.id === clickedUnit?.id);
       const unit = this.battleMenu.unit;
@@ -1088,23 +1101,23 @@ export class BattleScene extends Phaser.Scene {
     }
     const isLeft = unit.id === this.battleDisplayState.attacker.id;
     const panelIndex = isLeft ? 1 : 2; // overlay children: bg, attPanel, defPanel, vsText
-    const panel = this.battleOverlay.getAt(panelIndex);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const panel = this.battleOverlay.getAt(panelIndex) as Phaser.GameObjects.Container;
 
     const hpRatio = Math.max(0, unit.stats.hp / unit.stats.maxHp);
     const hpColor = hpRatio > 0.5 ? 0x2ecc71 : hpRatio > 0.25 ? 0xf1c40f : 0xe74c3c;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const oldFill = panel.getByName('hpFill');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const oldFill = panel.getByName('hpFill') as Phaser.GameObjects.GameObject;
+
     oldFill.destroy();
     const newFill = this.add.rectangle(-50 + (120 * hpRatio) / 2, 10, 120 * hpRatio, 12, hpColor);
     newFill.setName('hpFill');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+
     panel.add(newFill);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const hpText = panel.getByName('hpText');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const hpText = panel.getByName('hpText') as Phaser.GameObjects.Text;
     hpText.setText(`${unit.stats.hp.toString()} / ${unit.stats.maxHp.toString()}`);
   }
 
