@@ -6,8 +6,8 @@ export type PortraitPosition = 'left' | 'right';
 
 /** A character that can appear in cutscenes */
 export interface CutsceneCharacter {
-  id: string;          // unique identifier (e.g., 'rowan', 'elara')
-  name: string;        // display name (e.g., 'Rowan')
+  id: string; // unique identifier (e.g., 'rowan', 'elara')
+  name: string; // display name (e.g., 'Rowan')
   portraitKey: string; // asset key for the portrait sprite
 }
 
@@ -19,7 +19,7 @@ export type CutsceneCommand =
       text: string;
       expression?: Expression; // override expression for this line
       choices?: { label: string; jumpToLabel: string }[];
-      label?: string;           // label for goto-jump targeting
+      label?: string; // label for goto-jump targeting
     }
   | {
       type: 'enter';

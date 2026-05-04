@@ -124,6 +124,48 @@ describe('Grid', () => {
     expect(grid.getUnit(99, 99)).toBeNull();
   });
 
+  it('placeUnit throws when tile is occupied by another unit', () => {
+    const grid = new Grid(5, 5);
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
+    const unitA = new Unit('a1', 'A', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+    const unitB = new Unit('b1', 'B', Faction.ENEMY, UnitClass.BRIGAND, stats, 2, 2);
+    grid.placeUnit(unitA, 2, 2);
+    expect(() => {
+      grid.placeUnit(unitB, 2, 2);
+    }).toThrow('already occupied');
+  });
+
+  it('placeUnit allows re-placing the same unit on its own tile', () => {
+    const grid = new Grid(5, 5);
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
+    const unit = new Unit('a1', 'A', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+    grid.placeUnit(unit, 2, 2);
+    expect(() => {
+      grid.placeUnit(unit, 2, 2);
+    }).not.toThrow();
+    expect(grid.getUnit(2, 2)).toBe(unit);
+  });
+
   it('getNeighbors returns only in-bounds cardinal neighbors', () => {
     const grid = new Grid(5, 5);
     const neighbors = grid.getNeighbors(0, 0);

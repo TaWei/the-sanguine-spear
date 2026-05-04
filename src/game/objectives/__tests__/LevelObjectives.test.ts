@@ -4,7 +4,17 @@ import { Unit, Faction, UnitClass } from '../../units/Unit';
 import { createStats } from '../../units/Stats';
 
 describe('LevelObjectives', () => {
-  const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+  const stats = createStats({
+    hp: 20,
+    str: 5,
+    mag: 5,
+    skl: 5,
+    spd: 5,
+    luk: 5,
+    def: 5,
+    res: 5,
+    mov: 5,
+  });
 
   it('returns victory when no live enemies remain', () => {
     const player = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);

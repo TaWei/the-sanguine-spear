@@ -10,7 +10,11 @@ export const prologueCutscene: CutsceneScript = {
     { type: 'enter', characterId: 'elara', position: 'right', expression: 'surprised' },
     { type: 'speak', speakerId: 'elara', text: 'What? When did this happen?' },
     { type: 'expression', characterId: 'rowan', expression: 'angry' },
-    { type: 'speak', speakerId: 'rowan', text: 'Last night. They struck while the garrison slept.' },
+    {
+      type: 'speak',
+      speakerId: 'rowan',
+      text: 'Last night. They struck while the garrison slept.',
+    },
     { type: 'expression', characterId: 'elara', expression: 'sad' },
     { type: 'speak', speakerId: 'elara', text: 'How many casualties?' },
     {

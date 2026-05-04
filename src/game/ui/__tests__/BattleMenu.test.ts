@@ -4,7 +4,17 @@ import { Unit, Faction, UnitClass } from '../../units/Unit';
 import { createStats } from '../../units/Stats';
 
 describe('BattleMenu', () => {
-  const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+  const stats = createStats({
+    hp: 20,
+    str: 5,
+    mag: 5,
+    skl: 5,
+    spd: 5,
+    luk: 5,
+    def: 5,
+    res: 5,
+    mov: 5,
+  });
   const player = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
   const enemy = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 6, 5);
 
@@ -72,7 +82,9 @@ describe('BattleMenu', () => {
   it('cannot select target before choosing FIGHT', () => {
     const menu = new BattleMenu();
     menu.show(player, [enemy]);
-    expect(() => menu.selectTarget(enemy)).toThrow();
+    expect(() => {
+      menu.selectTarget(enemy);
+    }).toThrow();
   });
 
   it('reset returns to hidden', () => {

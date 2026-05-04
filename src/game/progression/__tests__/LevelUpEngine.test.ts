@@ -10,8 +10,28 @@ function makeRng(sequence: number[]): () => number {
 }
 
 describe('LevelUpEngine', () => {
-  const baseStats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
-  const caps: StatCaps = { hp: 60, str: 27, mag: 20, skl: 28, spd: 30, luk: 30, def: 22, res: 22, mov: 6 };
+  const baseStats = createStats({
+    hp: 20,
+    str: 8,
+    mag: 2,
+    skl: 7,
+    spd: 8,
+    luk: 6,
+    def: 6,
+    res: 2,
+    mov: 5,
+  });
+  const caps: StatCaps = {
+    hp: 60,
+    str: 27,
+    mag: 20,
+    skl: 28,
+    spd: 30,
+    luk: 30,
+    def: 22,
+    res: 22,
+    mov: 6,
+  };
 
   it('increases stats where RNG rolls below growth rate', () => {
     const growths = createGrowthRates({ hp: 100, str: 0, skl: 100 });
@@ -26,7 +46,17 @@ describe('LevelUpEngine', () => {
   });
 
   it('does not increase stats at cap', () => {
-    const maxedStats = createStats({ hp: 60, str: 27, mag: 20, skl: 28, spd: 30, luk: 30, def: 22, res: 22, mov: 6 });
+    const maxedStats = createStats({
+      hp: 60,
+      str: 27,
+      mag: 20,
+      skl: 28,
+      spd: 30,
+      luk: 30,
+      def: 22,
+      res: 22,
+      mov: 6,
+    });
     const growths = createGrowthRates({ hp: 100, str: 100 });
     const rng = makeRng([0, 0]);
     const result = levelUp(maxedStats, growths, caps, rng);
@@ -43,7 +73,17 @@ describe('LevelUpEngine', () => {
   });
 
   it('does not reroll if all applicable stats are capped', () => {
-    const cappedStats = createStats({ hp: 60, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const cappedStats = createStats({
+      hp: 60,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const growths = createGrowthRates({ hp: 100 }); // hp capped, nothing else grows
     const rng = makeRng([0]);
     const result = levelUp(cappedStats, growths, caps, rng);

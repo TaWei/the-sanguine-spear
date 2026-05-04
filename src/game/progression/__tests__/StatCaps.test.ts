@@ -10,9 +10,18 @@ describe('StatCaps', () => {
   });
 
   it('every unit class has caps defined', () => {
-    const classes = ['lord', 'mercenary', 'mage', 'archer', 'cavalry', 'pegasus_knight', 'soldier', 'brigand'];
+    const classes = [
+      'lord',
+      'mercenary',
+      'mage',
+      'archer',
+      'cavalry',
+      'pegasus_knight',
+      'soldier',
+      'brigand',
+    ];
     for (const cls of classes) {
-      expect(CLASS_CAPS[cls as keyof typeof CLASS_CAPS]).toBeDefined();
+      expect(CLASS_CAPS[cls]).toBeDefined();
     }
   });
 });

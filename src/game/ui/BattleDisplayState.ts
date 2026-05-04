@@ -24,7 +24,7 @@ export class BattleDisplayState {
   readonly attackerInitialHp: number;
   readonly defenderInitialHp: number;
   private log: CombatLogEntry[];
-  private index: number = 0;
+  private index = 0;
 
   constructor(
     public readonly attacker: Unit,
@@ -55,7 +55,9 @@ export class BattleDisplayState {
   }
 
   advance(): void {
-    if (!this.canAdvance()) return;
+    if (!this.canAdvance()) {
+      return;
+    }
 
     // Skip counter phases if there is no counterattack log entry
     const next = PHASE_ORDER[this.index + 1];

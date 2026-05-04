@@ -17,6 +17,8 @@ export const UnitClass = {
   PEGASUS_KNIGHT: 'pegasus_knight',
   SOLDIER: 'soldier',
   BRIGAND: 'brigand',
+  SWORDMASTER: 'swordmaster',
+  BERSERKER: 'berserker',
 } as const;
 
 export type Faction = (typeof Faction)[keyof typeof Faction];
@@ -138,7 +140,9 @@ export class Unit {
   }
 
   gainExp(amount: number): void {
-    if (this.isAtMaxLevel) return;
+    if (this.isAtMaxLevel) {
+      return;
+    }
     this._exp = Math.min(99, this._exp + amount);
   }
 

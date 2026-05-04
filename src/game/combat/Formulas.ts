@@ -10,12 +10,26 @@ export function calcDisplayHit(hitRate: number, avoid: number): number {
   return Math.max(0, Math.min(100, hitRate - avoid));
 }
 
-export function calcCritRate(weaponCrit: number, skl: number): number {
-  return weaponCrit + Math.floor(skl / 2);
+export function calcCritRate(weaponCrit: number, skl: number, classBonus = 0): number {
+  return weaponCrit + Math.floor(skl / 2) + classBonus;
+}
+
+export function getClassCritBonus(unitClass: string): number {
+  if (unitClass === 'swordmaster') {
+    return 15;
+  }
+  if (unitClass === 'berserker') {
+    return 15;
+  }
+  return 0;
 }
 
 export function calcCritAvoid(luk: number): number {
   return luk;
+}
+
+export function calcDisplayCrit(critRate: number, critAvoid: number): number {
+  return Math.max(0, Math.min(100, critRate - critAvoid));
 }
 
 export function calcDamage(

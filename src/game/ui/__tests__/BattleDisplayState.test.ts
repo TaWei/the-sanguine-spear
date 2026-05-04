@@ -5,10 +5,35 @@ import { createStats } from '../../units/Stats';
 import { CombatLogEntry } from '../../combat/Engine';
 
 describe('BattleDisplayState', () => {
-  const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
-  const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+  const stats = createStats({
+    hp: 22,
+    str: 8,
+    mag: 2,
+    skl: 7,
+    spd: 8,
+    luk: 6,
+    def: 6,
+    res: 2,
+    mov: 5,
+  });
+  const enemyStats = createStats({
+    hp: 26,
+    str: 9,
+    mag: 0,
+    skl: 4,
+    spd: 5,
+    luk: 3,
+    def: 5,
+    res: 1,
+    mov: 5,
+  });
 
-  function makeLogEntry(attacker: Unit, defender: Unit, damage: number, hit: boolean): CombatLogEntry {
+  function makeLogEntry(
+    attacker: Unit,
+    defender: Unit,
+    damage: number,
+    hit: boolean,
+  ): CombatLogEntry {
     return {
       attacker,
       defender,
@@ -22,23 +47,53 @@ describe('BattleDisplayState', () => {
 
   it('starts at INTRO', () => {
     const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
-    const defender = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, { ...enemyStats }, 6, 5);
-    const state = new BattleDisplayState(attacker, defender, [makeLogEntry(attacker, defender, 8, true)]);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
+    const state = new BattleDisplayState(attacker, defender, [
+      makeLogEntry(attacker, defender, 8, true),
+    ]);
     expect(state.phase).toBe(BattlePhase.INTRO);
   });
 
   it('captures initial HP snapshots', () => {
     const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
-    const defender = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, { ...enemyStats }, 6, 5);
-    const state = new BattleDisplayState(attacker, defender, [makeLogEntry(attacker, defender, 8, true)]);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
+    const state = new BattleDisplayState(attacker, defender, [
+      makeLogEntry(attacker, defender, 8, true),
+    ]);
     expect(state.attackerInitialHp).toBe(22);
     expect(state.defenderInitialHp).toBe(26);
   });
 
   it('advances through phases', () => {
     const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
-    const defender = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, { ...enemyStats }, 6, 5);
-    const state = new BattleDisplayState(attacker, defender, [makeLogEntry(attacker, defender, 8, true)]);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
+    const state = new BattleDisplayState(attacker, defender, [
+      makeLogEntry(attacker, defender, 8, true),
+    ]);
 
     expect(state.canAdvance()).toBe(true);
     state.advance();
@@ -54,7 +109,15 @@ describe('BattleDisplayState', () => {
 
   it('includes counterattack phases when log has 2 entries', () => {
     const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
-    const defender = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, { ...enemyStats }, 6, 5);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
     const log = [
       makeLogEntry(attacker, defender, 8, true),
       makeLogEntry(defender, attacker, 6, true),
@@ -71,7 +134,15 @@ describe('BattleDisplayState', () => {
 
   it('skips counter phases when there is no counterattack', () => {
     const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
-    const defender = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, { ...enemyStats }, 6, 5);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
     const log = [makeLogEntry(attacker, defender, 8, true)];
     const state = new BattleDisplayState(attacker, defender, log);
 
@@ -83,7 +154,15 @@ describe('BattleDisplayState', () => {
 
   it('currentLogEntry maps to the correct combat log index', () => {
     const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
-    const defender = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, { ...enemyStats }, 6, 5);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
     const log = [
       makeLogEntry(attacker, defender, 8, true),
       makeLogEntry(defender, attacker, 6, true),

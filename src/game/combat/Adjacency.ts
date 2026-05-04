@@ -9,12 +9,16 @@ export function getAdjacentEnemies(unit: Unit, grid: Grid, weapon: WeaponData): 
 
   for (let dy = -maxR; dy <= maxR; dy++) {
     for (let dx = -maxR; dx <= maxR; dx++) {
-      if (dx === 0 && dy === 0) continue;
+      if (dx === 0 && dy === 0) {
+        continue;
+      }
       const dist = Math.abs(dx) + Math.abs(dy);
-      if (dist < minR || dist > maxR) continue;
+      if (dist < minR || dist > maxR) {
+        continue;
+      }
 
       const other = grid.getUnit(unit.gridX + dx, unit.gridY + dy);
-      if (other && other.faction === Faction.ENEMY && other.isAlive) {
+      if (other?.faction === Faction.ENEMY && other.isAlive) {
         enemies.push(other);
       }
     }

@@ -9,7 +9,18 @@ describe('TerrainHazardEngine', () => {
   it('applies lava damage to unit standing on lava', () => {
     const grid = new Grid(5, 5);
     grid.setTerrain(2, 2, TerrainType.LAVA);
-    const stats = createStats({ hp: 20, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      maxHp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
     const engine = new TerrainHazardEngine();
     const damage = engine.computeHazardDamage(unit, grid);
@@ -18,7 +29,18 @@ describe('TerrainHazardEngine', () => {
 
   it('applies no damage on safe terrain', () => {
     const grid = new Grid(5, 5);
-    const stats = createStats({ hp: 20, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      maxHp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
     const engine = new TerrainHazardEngine();
     const damage = engine.computeHazardDamage(unit, grid);
@@ -28,7 +50,18 @@ describe('TerrainHazardEngine', () => {
   it('does not overkill unit with hazard damage', () => {
     const grid = new Grid(5, 5);
     grid.setTerrain(2, 2, TerrainType.LAVA);
-    const stats = createStats({ hp: 3, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 3,
+      maxHp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
     const engine = new TerrainHazardEngine();
     const damage = engine.computeHazardDamage(unit, grid);
@@ -39,7 +72,18 @@ describe('TerrainHazardEngine', () => {
     const grid = new Grid(5, 5);
     grid.setTerrain(1, 1, TerrainType.LAVA);
     grid.setTerrain(3, 3, TerrainType.LAVA);
-    const stats = createStats({ hp: 20, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      maxHp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const u1 = new Unit('u1', 'A', Faction.PLAYER, UnitClass.LORD, stats, 1, 1);
     const u2 = new Unit('u2', 'B', Faction.PLAYER, UnitClass.MAGE, stats, 2, 2);
     const u3 = new Unit('u3', 'C', Faction.ENEMY, UnitClass.BRIGAND, stats, 3, 3);

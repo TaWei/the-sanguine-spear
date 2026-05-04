@@ -27,6 +27,20 @@ describe('Weapon DB', () => {
     expect(bow.minRange).toBe(2);
     expect(bow.maxRange).toBe(2);
   });
+
+  it('Killer weapons have +30 crit', () => {
+    expect(WEAPON_DB['Killer Sword'].crit).toBe(30);
+    expect(WEAPON_DB['Killer Axe'].crit).toBe(30);
+    expect(WEAPON_DB['Killer Lance'].crit).toBe(30);
+    expect(WEAPON_DB['Killer Bow'].crit).toBe(30);
+  });
+
+  it('Killer weapons preserve their weapon types', () => {
+    expect(WEAPON_DB['Killer Sword'].type).toBe(WeaponType.SWORD);
+    expect(WEAPON_DB['Killer Axe'].type).toBe(WeaponType.AXE);
+    expect(WEAPON_DB['Killer Lance'].type).toBe(WeaponType.LANCE);
+    expect(WEAPON_DB['Killer Bow'].type).toBe(WeaponType.BOW);
+  });
 });
 
 describe('Weapon Triangle', () => {

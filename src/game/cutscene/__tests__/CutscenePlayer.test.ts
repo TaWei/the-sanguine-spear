@@ -140,19 +140,13 @@ describe('CutscenePlayer', () => {
 
   describe('speak command', () => {
     it('exposes speaker ID from current speak frame', () => {
-      const script = makeScript([
-        speakFrame('rowan', 'Attack!'),
-        endFrame(),
-      ]);
+      const script = makeScript([speakFrame('rowan', 'Attack!'), endFrame()]);
       const p = createCutscenePlayer(script);
       expect(p.getCurrentSpeakerId()).toBe('rowan');
     });
 
     it('returns null for speaker when current frame is not speak', () => {
-      const script = makeScript([
-        { type: 'background', backgroundKey: 'castle' },
-        endFrame(),
-      ]);
+      const script = makeScript([{ type: 'background', backgroundKey: 'castle' }, endFrame()]);
       const p = createCutscenePlayer(script);
       expect(p.getCurrentSpeakerId()).toBeNull();
     });
@@ -236,7 +230,10 @@ describe('CutscenePlayer', () => {
       player.advance();
 
       expect(player.getCurrentSpeakerId()).toBe('rowan');
-      expect(player.getCurrentFrame()).toMatchObject({ type: 'speak', text: 'The bandits have taken the eastern fort.' });
+      expect(player.getCurrentFrame()).toMatchObject({
+        type: 'speak',
+        text: 'The bandits have taken the eastern fort.',
+      });
       expect(player.getStage().get('rowan')!.expression).toBe('neutral');
       player.advance();
 
@@ -247,7 +244,11 @@ describe('CutscenePlayer', () => {
       expect(player.getStage().get('elara')!.expression).toBe('surprised');
       player.advance();
 
-      expect(player.getCurrentFrame()).toMatchObject({ type: 'expression', characterId: 'rowan', expression: 'angry' });
+      expect(player.getCurrentFrame()).toMatchObject({
+        type: 'expression',
+        characterId: 'rowan',
+        expression: 'angry',
+      });
       player.advance();
 
       expect(player.getCurrentSpeakerId()).toBe('rowan');

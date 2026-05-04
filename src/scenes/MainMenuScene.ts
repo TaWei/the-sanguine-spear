@@ -36,13 +36,21 @@ export class MainMenuScene extends Phaser.Scene {
 
     startBtn.on('pointerover', () => startBtn.setStyle({ color: '#f1c40f' }));
     startBtn.on('pointerout', () => startBtn.setStyle({ color: '#ecf0f1' }));
-    startBtn.on('pointerdown', (_pointer: unknown, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-      event.stopPropagation();
-      this.cameras.main.fadeOut(500, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.start('BattleScene', { levelId: 'level-1' });
-      });
-    });
+    startBtn.on(
+      'pointerdown',
+      (
+        _pointer: unknown,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        event.stopPropagation();
+        this.cameras.main.fadeOut(500, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.scene.start('BattleScene', { levelId: 'level-1' });
+        });
+      },
+    );
 
     const level2Btn = this.add
       .text(cx, cy + 120, '[ Level 2: The Molten Pass ]', {
@@ -56,13 +64,21 @@ export class MainMenuScene extends Phaser.Scene {
 
     level2Btn.on('pointerover', () => level2Btn.setStyle({ color: '#f1c40f' }));
     level2Btn.on('pointerout', () => level2Btn.setStyle({ color: '#ecf0f1' }));
-    level2Btn.on('pointerdown', (_pointer: unknown, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-      event.stopPropagation();
-      this.cameras.main.fadeOut(500, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.start('BattleScene', { levelId: 'level-2' });
-      });
-    });
+    level2Btn.on(
+      'pointerdown',
+      (
+        _pointer: unknown,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        event.stopPropagation();
+        this.cameras.main.fadeOut(500, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.scene.start('BattleScene', { levelId: 'level-2' });
+        });
+      },
+    );
 
     const prologueBtn = this.add
       .text(cx, cy + 180, '[ Watch Prologue ]', {
@@ -76,14 +92,22 @@ export class MainMenuScene extends Phaser.Scene {
 
     prologueBtn.on('pointerover', () => prologueBtn.setStyle({ color: '#f1c40f' }));
     prologueBtn.on('pointerout', () => prologueBtn.setStyle({ color: '#bdc3c7' }));
-    prologueBtn.on('pointerdown', (_pointer: unknown, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
-      event.stopPropagation();
-      this.scene.launch('CutsceneScene', {
-        cutsceneId: 'prologue_intro',
-        onComplete: () => {
-          this.scene.stop('CutsceneScene');
-        },
-      });
-    });
+    prologueBtn.on(
+      'pointerdown',
+      (
+        _pointer: unknown,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        event.stopPropagation();
+        this.scene.launch('CutsceneScene', {
+          cutsceneId: 'prologue_intro',
+          onComplete: () => {
+            this.scene.stop('CutsceneScene');
+          },
+        });
+      },
+    );
   }
 }

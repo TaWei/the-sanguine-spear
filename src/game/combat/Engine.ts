@@ -8,7 +8,9 @@ export function calcCombatExp(
   hit: boolean,
   killed: boolean,
 ): number {
-  if (!hit) return 0;
+  if (!hit) {
+    return 0;
+  }
 
   const levelDiff = defenderLevel - attackerLevel;
   const hitExp = Math.max(1, Math.floor((31 + levelDiff) / 3));

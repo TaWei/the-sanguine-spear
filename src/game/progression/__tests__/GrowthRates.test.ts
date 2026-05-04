@@ -4,7 +4,15 @@ import { GrowthRates, createGrowthRates } from '../GrowthRates';
 describe('GrowthRates', () => {
   it('creates growth rates for all stats', () => {
     const growths: GrowthRates = createGrowthRates({
-      hp: 80, str: 55, mag: 20, skl: 50, spd: 60, luk: 45, def: 35, res: 25, mov: 0,
+      hp: 80,
+      str: 55,
+      mag: 20,
+      skl: 50,
+      spd: 60,
+      luk: 45,
+      def: 35,
+      res: 25,
+      mov: 0,
     });
     expect(growths.hp).toBe(80);
     expect(growths.str).toBe(55);

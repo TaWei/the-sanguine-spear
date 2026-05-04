@@ -6,7 +6,17 @@ import { Grid } from '../../map/Grid';
 import { WEAPON_DB } from '../Weapons';
 
 describe('getAdjacentEnemies', () => {
-  const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+  const stats = createStats({
+    hp: 20,
+    str: 5,
+    mag: 5,
+    skl: 5,
+    spd: 5,
+    luk: 5,
+    def: 5,
+    res: 5,
+    mov: 5,
+  });
 
   it('finds an enemy directly adjacent (range 1)', () => {
     const grid = new Grid(10, 10);

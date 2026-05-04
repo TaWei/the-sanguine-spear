@@ -6,7 +6,17 @@ import { Unit, Faction, UnitClass } from '../../units/Unit';
 import { createStats } from '../../units/Stats';
 
 describe('findPath', () => {
-  const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+  const stats = createStats({
+    hp: 20,
+    str: 5,
+    mag: 5,
+    skl: 5,
+    spd: 5,
+    luk: 5,
+    def: 5,
+    res: 5,
+    mov: 5,
+  });
 
   it('returns null when destination is the start tile', () => {
     const grid = new Grid(5, 5);
@@ -51,7 +61,17 @@ describe('findPath', () => {
 
   it('returns null when destination is out of move range', () => {
     const grid = new Grid(10, 10);
-    const shortStats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 2 });
+    const shortStats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 2,
+    });
     const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, shortStats, 5, 5);
     const path = findPath(unit, grid, 8, 5); // distance 3 > mov 2
     expect(path).toBeNull();
@@ -112,7 +132,17 @@ describe('findPath', () => {
   it('finds path through cliff for flying unit', () => {
     const grid = new Grid(5, 5);
     grid.setTerrain(2, 2, TerrainType.CLIFF);
-    const pegStats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 3 });
+    const pegStats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 3,
+    });
     const pegasus = new Unit('u1', 'Peg', Faction.PLAYER, UnitClass.PEGASUS_KNIGHT, pegStats, 1, 2);
     const path = findPath(pegasus, grid, 3, 2);
     expect(path).not.toBeNull();
@@ -122,7 +152,17 @@ describe('findPath', () => {
   it('does not find path through cliff for non-flying unit with low mov', () => {
     const grid = new Grid(5, 5);
     grid.setTerrain(2, 2, TerrainType.CLIFF);
-    const lordStats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 3 });
+    const lordStats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 3,
+    });
     const lord = new Unit('u1', 'Lord', Faction.PLAYER, UnitClass.LORD, lordStats, 1, 2);
     const path = findPath(lord, grid, 3, 2);
     expect(path).toBeNull();

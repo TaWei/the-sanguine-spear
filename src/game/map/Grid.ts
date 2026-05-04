@@ -49,6 +49,12 @@ export class Grid {
     if (!this.isInBounds(x, y)) {
       return;
     }
+    const existing = this.getUnit(x, y);
+    if (existing && existing !== unit) {
+      throw new Error(
+        `Tile (${String(x)},${String(y)}) is already occupied by ${existing.name} (${existing.id})`,
+      );
+    }
     this.units.set(this.key(x, y), unit);
   }
 

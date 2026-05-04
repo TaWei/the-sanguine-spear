@@ -104,7 +104,9 @@ export class GameEngine {
   moveUnit(unit: Unit, x: number, y: number): void {
     const oldX = unit.gridX;
     const oldY = unit.gridY;
-    if (oldX === x && oldY === y) return;
+    if (oldX === x && oldY === y) {
+      return;
+    }
 
     const target = this.grid.getUnit(x, y);
     if (target && target !== unit) {
@@ -138,11 +140,21 @@ export class GameEngine {
   }
 
   getWeaponForUnit(unit: Unit): WeaponData {
-    if (unit.unitClass === 'mage') return WEAPON_DB.Fire;
-    if (unit.unitClass === 'brigand') return WEAPON_DB['Iron Axe'];
-    if (unit.unitClass === 'berserker') return WEAPON_DB['Killer Axe'];
-    if (unit.unitClass === 'soldier') return WEAPON_DB['Iron Lance'];
-    if (unit.unitClass === 'swordmaster') return WEAPON_DB['Killer Sword'];
+    if (unit.unitClass === 'mage') {
+      return WEAPON_DB.Fire;
+    }
+    if (unit.unitClass === 'brigand') {
+      return WEAPON_DB['Iron Axe'];
+    }
+    if (unit.unitClass === 'berserker') {
+      return WEAPON_DB['Killer Axe'];
+    }
+    if (unit.unitClass === 'soldier') {
+      return WEAPON_DB['Iron Lance'];
+    }
+    if (unit.unitClass === 'swordmaster') {
+      return WEAPON_DB['Killer Sword'];
+    }
     return WEAPON_DB['Iron Sword'];
   }
 
@@ -161,10 +173,7 @@ export class GameEngine {
     return combat.resolveCombat(attacker, defender, attWeapon, defWeapon, rng);
   }
 
-  getCombatPreview(
-    attacker: Unit,
-    defender: Unit,
-  ): import('./combat/Engine').CombatPreview {
+  getCombatPreview(attacker: Unit, defender: Unit): import('./combat/Engine').CombatPreview {
     const combat = new CombatEngine(this.grid);
     const attWeapon = this.getWeaponForUnit(attacker);
     const defWeapon = this.getWeaponForUnit(defender);
@@ -185,7 +194,9 @@ export class GameEngine {
 
   allPlayerUnitsExhausted(): boolean {
     const livePlayers = this.getUnitsByFaction(Faction.PLAYER).filter((u) => u.isAlive);
-    if (livePlayers.length === 0) return true;
+    if (livePlayers.length === 0) {
+      return true;
+    }
     return livePlayers.every((u) => u.state.isExhausted());
   }
 
@@ -206,7 +217,9 @@ export class GameEngine {
         for (let dist = weapon.minRange; dist <= weapon.maxRange; dist++) {
           const ax = mx + dx * dist;
           const ay = my + dy * dist;
-          if (!this.grid.isInBounds(ax, ay)) continue;
+          if (!this.grid.isInBounds(ax, ay)) {
+            continue;
+          }
           const key = `${String(ax)},${String(ay)}`;
           if (!moveRange.has(key)) {
             threatened.add(key);

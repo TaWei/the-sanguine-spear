@@ -231,4 +231,59 @@ describe('CombatEngine', () => {
     // str(10) + mt(5) + triangle(1) - def(5) = 11 * 3 = 33
     expect(result.log[0].damage).toBe(33);
   });
+
+  it('previewCombat returns hit/crit/damage without rolling or applying damage', () => {
+    const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, attackerStats, 2, 5);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      defenderStats,
+      3,
+      5,
+    );
+    const grid = new Grid(10, 10);
+    const engine = new CombatEngine(grid);
+
+    const preview = engine.previewCombat(
+      attacker,
+      defender,
+      WEAPON_DB['Iron Sword'],
+      WEAPON_DB['Iron Axe'],
+    );
+
+    expect(preview.attacker.hit).toBeGreaterThan(0);
+    expect(preview.attacker.damage).toBe(9); // str(8)+mt(5)+tri(1)-def(5)=9
+    expect(preview.attacker.doubleAttack).toBe(false); // spd 8 vs 5 (diff 3)
+    expect(preview.defender).not.toBeNull();
+    expect(preview.defender!.hit).toBeGreaterThan(0);
+
+    // No damage applied
+    expect(defender.stats.hp).toBe(defenderStats.hp);
+    expect(attacker.stats.hp).toBe(attackerStats.hp);
+  });
+
+  it('previewCombat defender is null when out of range', () => {
+    const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, attackerStats, 2, 5);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      defenderStats,
+      4,
+      5,
+    );
+    const grid = new Grid(10, 10);
+    const engine = new CombatEngine(grid);
+
+    const preview = engine.previewCombat(
+      attacker,
+      defender,
+      WEAPON_DB['Iron Bow'],
+      WEAPON_DB['Iron Axe'],
+    );
+    expect(preview.defender).toBeNull();
+  });
 });

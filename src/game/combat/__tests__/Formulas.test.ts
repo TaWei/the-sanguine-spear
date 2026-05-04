@@ -5,6 +5,8 @@ import {
   calcDisplayHit,
   calcCritRate,
   calcCritAvoid,
+  calcDisplayCrit,
+  getClassCritBonus,
   calcDamage,
   rollTrueHit,
   rollCrit,
@@ -73,11 +75,51 @@ describe('Combat Formulas', () => {
       // 0 + floor(7/2) = 3
       expect(calcCritRate(weaponCrit, attackerStats.skl)).toBe(3);
     });
+
+    it('adds class bonus when provided', () => {
+      expect(calcCritRate(0, 10, 15)).toBe(20); // 0 + 5 + 15
+    });
+  });
+
+  describe('getClassCritBonus', () => {
+    it('swordmaster gets +15', () => {
+      expect(getClassCritBonus('swordmaster')).toBe(15);
+    });
+
+    it('berserker gets +15', () => {
+      expect(getClassCritBonus('berserker')).toBe(15);
+    });
+
+    it('other classes get 0', () => {
+      expect(getClassCritBonus('lord')).toBe(0);
+      expect(getClassCritBonus('mercenary')).toBe(0);
+      expect(getClassCritBonus('mage')).toBe(0);
+    });
   });
 
   describe('calcCritAvoid', () => {
     it('equals luk', () => {
       expect(calcCritAvoid(defenderStats.luk)).toBe(3);
+    });
+  });
+
+  describe('calcDisplayCrit', () => {
+    it('is attacker crit rate - defender crit avoid', () => {
+      const crit = calcCritRate(30, 10); // weapon 30 + floor(10/2) = 35
+      const avoid = calcCritAvoid(5); // 5
+      expect(calcDisplayCrit(crit, avoid)).toBe(30);
+    });
+
+    it('clamps to 0 minimum', () => {
+      expect(calcDisplayCrit(3, 10)).toBe(0);
+    });
+
+    it('clamps to 100 maximum', () => {
+      expect(calcDisplayCrit(200, 0)).toBe(100);
+    });
+
+    it('0 display crit means no crit possible', () => {
+      expect(calcDisplayCrit(0, 0)).toBe(0);
     });
   });
 

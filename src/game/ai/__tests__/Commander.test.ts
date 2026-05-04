@@ -284,4 +284,48 @@ describe('Commander', () => {
     expect(actions.length).toBeGreaterThan(0);
     expect(actions[actions.length - 1].type).toBe(ActionType.ATTACK);
   });
+
+  it('does not plan multiple enemies to the same destination tile', () => {
+    const grid = new Grid(10, 10);
+
+    const enemyStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 3,
+    });
+    // Both enemies start north of the player; optimal tile to attack is (5,6)
+    const enemyA = new Unit('e1', 'Bandit A', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 5, 3);
+    grid.placeUnit(enemyA, 5, 3);
+    const enemyB = new Unit('e2', 'Bandit B', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 5, 4);
+    grid.placeUnit(enemyB, 5, 4);
+
+    const playerStats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const player = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, playerStats, 5, 7);
+    grid.placeUnit(player, 5, 7);
+
+    const commander = new Commander(grid, WEAPON_DB);
+    const actions = commander.planEnemyTurn([enemyA, enemyB], [player]);
+
+    const moveActions = actions.filter((a) => a.type === ActionType.MOVE);
+    const destinations = new Set(moveActions.map((a) => `${String(a.x)},${String(a.y)}`));
+
+    // Each MOVE action must have a unique destination
+    expect(destinations.size).toBe(moveActions.length);
+  });
 });

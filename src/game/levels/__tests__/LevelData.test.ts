@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LEVELS, getLevel } from '../LevelData';
+import { LEVELS, getLevel, getNextLevelId } from '../LevelData';
 
 describe('LevelData', () => {
   it('has level 1 defined', () => {
@@ -18,5 +18,17 @@ describe('LevelData', () => {
 
   it('returns undefined for unknown level', () => {
     expect(getLevel('nonexistent')).toBeUndefined();
+  });
+
+  it('getNextLevelId returns the next level ID', () => {
+    expect(getNextLevelId('level-1')).toBe('level-2');
+  });
+
+  it('getNextLevelId returns null for the last level', () => {
+    expect(getNextLevelId('level-2')).toBeNull();
+  });
+
+  it('getNextLevelId returns null for unknown level', () => {
+    expect(getNextLevelId('nonexistent')).toBeNull();
   });
 });

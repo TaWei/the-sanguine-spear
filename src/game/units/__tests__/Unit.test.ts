@@ -157,7 +157,10 @@ describe('Unit', () => {
   });
 
   it('can be constructed with a custom level and exp', () => {
-    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { level: 5, exp: 30 });
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, {
+      level: 5,
+      exp: 30,
+    });
     expect(unit.level).toBe(5);
     expect(unit.exp).toBe(30);
   });
@@ -170,7 +173,9 @@ describe('Unit', () => {
 
   it('can be constructed with custom growth rates', () => {
     const growths = createGrowthRates({ hp: 80, str: 55 });
-    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { growthRates: growths });
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, {
+      growthRates: growths,
+    });
     expect(unit.growthRates.hp).toBe(80);
     expect(unit.growthRates.str).toBe(55);
   });
@@ -188,23 +193,47 @@ describe('Unit', () => {
   });
 
   it('is at max level when level reaches 20 (unpromoted)', () => {
-    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { level: 20 });
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, {
+      level: 20,
+    });
     expect(unit.isAtMaxLevel).toBe(true);
   });
 
   it('is not at max level below 20', () => {
-    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, { level: 19 });
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5, {
+      level: 19,
+    });
     expect(unit.isAtMaxLevel).toBe(false);
   });
 
   it('pegasus knight is flying', () => {
-    const pegStats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 7 });
+    const pegStats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 7,
+    });
     const unit = new Unit('u1', 'Peg', Faction.PLAYER, UnitClass.PEGASUS_KNIGHT, pegStats, 0, 0);
     expect(unit.isFlying).toBe(true);
   });
 
   it('lord is not flying', () => {
-    const lordStats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const lordStats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = new Unit('u1', 'Rowan', Faction.PLAYER, UnitClass.LORD, lordStats, 0, 0);
     expect(unit.isFlying).toBe(false);
   });
@@ -238,7 +267,9 @@ describe('Unit', () => {
     unit.state.transition(UNIT_STATE.MOVING);
     unit.state.transition(UNIT_STATE.MENU);
     unit.state.transition(UNIT_STATE.EXHAUSTED);
-    expect(() => { unit.hasActed = true; }).not.toThrow();
+    expect(() => {
+      unit.hasActed = true;
+    }).not.toThrow();
     expect(unit.hasActed).toBe(true);
     expect(unit.state.current).toBe(UNIT_STATE.EXHAUSTED);
   });

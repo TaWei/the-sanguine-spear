@@ -1,9 +1,5 @@
 import Phaser from 'phaser';
-import {
-  createCutscenePlayer,
-  getCutscene,
-  getCharacter,
-} from '../game/cutscene';
+import { createCutscenePlayer, getCutscene, getCharacter } from '../game/cutscene';
 
 const GAME_WIDTH = 1024;
 const GAME_HEIGHT = 768;
@@ -143,13 +139,21 @@ export class CutsceneScene extends Phaser.Scene {
   }
 
   private setupInput(): void {
-    this.input.keyboard!.on('keydown-SPACE', () => this.handleAdvance());
-    this.input.keyboard!.on('keydown-ENTER', () => this.handleAdvance());
-    this.input.on('pointerdown', () => this.handleAdvance());
+    this.input.keyboard!.on('keydown-SPACE', () => {
+      this.handleAdvance();
+    });
+    this.input.keyboard!.on('keydown-ENTER', () => {
+      this.handleAdvance();
+    });
+    this.input.on('pointerdown', () => {
+      this.handleAdvance();
+    });
   }
 
   private handleAdvance(): void {
-    if (this.isFinishing) return;
+    if (this.isFinishing) {
+      return;
+    }
 
     const now = Date.now();
     if (now - this.lastAdvanceTime < CutsceneScene.ADVANCE_COOLDOWN_MS) {
@@ -163,7 +167,9 @@ export class CutsceneScene extends Phaser.Scene {
     }
 
     const frame = this.player.getCurrentFrame();
-    if (!frame) return;
+    if (!frame) {
+      return;
+    }
 
     // If wait frame: skip waiting
     if (frame.type === 'wait' && this.waitTimer) {
@@ -251,7 +257,9 @@ export class CutsceneScene extends Phaser.Scene {
   }
 
   private startTypewriter(): void {
-    if (this.typewriterTimer) this.typewriterTimer.destroy();
+    if (this.typewriterTimer) {
+      this.typewriterTimer.destroy();
+    }
 
     this.typewriterTimer = this.time.addEvent({
       delay: TYPEWRITER_SPEED,
@@ -278,13 +286,11 @@ export class CutsceneScene extends Phaser.Scene {
     this.advanceIndicator.setVisible(true);
   }
 
-  private handleEnter(frame: {
-    characterId: string;
-    position: string;
-    expression?: string;
-  }): void {
+  private handleEnter(frame: { characterId: string; position: string; expression?: string }): void {
     const char = getCharacter(frame.characterId);
-    if (!char) return;
+    if (!char) {
+      return;
+    }
 
     const xPos = frame.position === 'left' ? PORTRAIT_LEFT_X : PORTRAIT_RIGHT_X;
 
@@ -386,7 +392,9 @@ export class CutsceneScene extends Phaser.Scene {
   }
 
   private finishCutscene(): void {
-    if (this.isFinishing) return;
+    if (this.isFinishing) {
+      return;
+    }
     this.isFinishing = true;
 
     this.cameras.main.fadeOut(300, 0, 0, 0, (_camera: unknown, progress: number) => {

@@ -1,10 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_SIZE } from '../constants';
 import { GameEngine } from '../game/GameEngine';
-import { Unit, Faction, UnitClass } from '../game/units/Unit';
-import { createStats } from '../game/units/Stats';
-import { TerrainType } from '../game/map/Terrain';
-import { WEAPON_DB } from '../game/combat/Weapons';
+import { Unit, Faction } from '../game/units/Unit';
 import { BattleMenu, MenuState, MenuAction } from '../game/ui/BattleMenu';
 import { BattleDisplayState, BattlePhase } from '../game/ui/BattleDisplayState';
 import { UNIT_STATE } from '../game/state/UnitState';
@@ -28,19 +25,6 @@ const FACTION_COLORS: Record<string, number> = {
   enemy: 0xe74c3c,
   ally: 0x2ecc71,
 };
-
-function getWeaponForUnit(unit: Unit) {
-  if (unit.unitClass === UnitClass.MAGE) {
-    return WEAPON_DB.Fire;
-  }
-  if (unit.unitClass === UnitClass.BRIGAND) {
-    return WEAPON_DB['Iron Axe'];
-  }
-  if (unit.unitClass === UnitClass.SOLDIER) {
-    return WEAPON_DB['Iron Lance'];
-  }
-  return WEAPON_DB['Iron Sword'];
-}
 
 export class BattleScene extends Phaser.Scene {
   private engine!: GameEngine;
@@ -192,7 +176,12 @@ export class BattleScene extends Phaser.Scene {
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!this.inputEnabled || !this.engine.turnManager.isPlayerPhase() || this.inBattleMode || this.isAnimatingMovement) {
+      if (
+        !this.inputEnabled ||
+        !this.engine.turnManager.isPlayerPhase() ||
+        this.inBattleMode ||
+        this.isAnimatingMovement
+      ) {
         return;
       }
       const gx = Math.floor((pointer.x - this.offsetX) / TILE_SIZE);
@@ -206,7 +195,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private handleTileClick(gx: number, gy: number, pointerX: number, pointerY: number): void {
-    if (!this.inputEnabled || !this.engine.turnManager.isPlayerPhase() || this.inBattleMode || this.isAnimatingMovement) {
+    if (
+      !this.inputEnabled ||
+      !this.engine.turnManager.isPlayerPhase() ||
+      this.inBattleMode ||
+      this.isAnimatingMovement
+    ) {
       return;
     }
 
@@ -232,7 +226,9 @@ export class BattleScene extends Phaser.Scene {
         const unitToMove = this.selectedUnit;
         this.preMovePosition = { x: unitToMove.gridX, y: unitToMove.gridY };
         const path = this.engine.findPath(unitToMove, gx, gy);
-        if (!path) return;
+        if (!path) {
+          return;
+        }
         this.pathGraphics.clear();
         this.animatePathMovement(unitToMove, path, () => {
           this.engine.moveUnit(unitToMove, gx, gy);
@@ -262,7 +258,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     // Show enemy preview when clicking an enemy tile
-    if (clickedUnit && clickedUnit.faction === Faction.ENEMY) {
+    if (clickedUnit?.faction === Faction.ENEMY) {
       this.showEnemyPreview(clickedUnit);
       return;
     }
@@ -294,7 +290,9 @@ export class BattleScene extends Phaser.Scene {
 
   private drawPathPreview(path: import('../game/map/Grid').GridNeighbor[]): void {
     this.pathGraphics.clear();
-    if (!path || path.length === 0 || !this.selectedUnit) return;
+    if (!path || path.length === 0 || !this.selectedUnit) {
+      return;
+    }
 
     this.pathGraphics.lineStyle(3, 0xffffff, 0.8);
     const startX = this.offsetX + this.selectedUnit.gridX * TILE_SIZE + TILE_SIZE / 2;
@@ -317,7 +315,11 @@ export class BattleScene extends Phaser.Scene {
     this.pathGraphics.fillCircle(dx, dy, 4);
   }
 
-  private animatePathMovement(unit: Unit, path: import('../game/map/Grid').GridNeighbor[], onComplete: () => void): void {
+  private animatePathMovement(
+    unit: Unit,
+    path: import('../game/map/Grid').GridNeighbor[],
+    onComplete: () => void,
+  ): void {
     const sprite = this.unitSprites.get(unit.id);
     if (!sprite) {
       this.isAnimatingMovement = false;
@@ -369,7 +371,9 @@ export class BattleScene extends Phaser.Scene {
     });
 
     threatened.forEach((key) => {
-      if (range.has(key)) return;
+      if (range.has(key)) {
+        return;
+      }
       const [x, y] = key.split(',').map(Number);
       this.moveGraphics.fillStyle(0xe74c3c, 0.35);
       this.moveGraphics.fillRect(
@@ -387,7 +391,9 @@ export class BattleScene extends Phaser.Scene {
     this.selectedUnit = null;
 
     // Compute threat against currently selected player unit if any
-    const playerUnits = this.engine.getUnitsByFaction(Faction.PLAYER).filter((u) => u.isAlive && !u.hasActed);
+    const playerUnits = this.engine
+      .getUnitsByFaction(Faction.PLAYER)
+      .filter((u) => u.isAlive && !u.hasActed);
     let threat = null;
     if (playerUnits.length > 0) {
       const target = playerUnits[0];
@@ -418,7 +424,9 @@ export class BattleScene extends Phaser.Scene {
     });
 
     threatened.forEach((key) => {
-      if (range.has(key)) return;
+      if (range.has(key)) {
+        return;
+      }
       const [x, y] = key.split(',').map(Number);
       this.moveGraphics.fillStyle(0xe74c3c, 0.35);
       this.moveGraphics.fillRect(
@@ -435,17 +443,19 @@ export class BattleScene extends Phaser.Scene {
       const py = this.offsetY + unit.gridY * TILE_SIZE - TILE_SIZE;
       const lines = [
         `${unit.name} | ${unit.unitClass}`,
-        `Hit ${threat.hit}%  Crit ${threat.crit}%  Dmg ${threat.damage}${threat.doubleAttack ? ' (2x)' : ''}`,
+        `Hit ${threat.hit.toString()}%  Crit ${threat.crit.toString()}%  Dmg ${threat.damage.toString()}${threat.doubleAttack ? ' (2x)' : ''}`,
       ];
       const bg = this.add.rectangle(px, py - 10, 220, 44, 0x000000, 0.8);
       bg.setOrigin(0.5);
       this.enemyPreviewTexts.push(bg);
 
-      const text = this.add.text(px, py - 10, lines.join('\n'), {
-        fontSize: '12px',
-        color: '#ecf0f1',
-        align: 'center',
-      }).setOrigin(0.5);
+      const text = this.add
+        .text(px, py - 10, lines.join('\n'), {
+          fontSize: '12px',
+          color: '#ecf0f1',
+          align: 'center',
+        })
+        .setOrigin(0.5);
       this.enemyPreviewTexts.push(text);
     }
   }
@@ -489,11 +499,15 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updatePhaseText(): void {
-    this.phaseText.setText(`Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`);
+    this.phaseText.setText(
+      `Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`,
+    );
   }
 
   private triggerEndTurn(): void {
-    if (this.inBattleMode || this.isAnimatingMovement) return;
+    if (this.inBattleMode || this.isAnimatingMovement) {
+      return;
+    }
 
     this.selectedUnit = null;
     this.moveGraphics.clear();
@@ -532,12 +546,14 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private showHazardDamage(report: import('../game/hazards/TerrainHazardEngine').HazardReport): void {
+  private showHazardDamage(
+    report: import('../game/hazards/TerrainHazardEngine').HazardReport,
+  ): void {
     for (const entry of report.damagedUnits) {
       const px = this.offsetX + entry.unit.gridX * TILE_SIZE + TILE_SIZE / 2;
       const py = this.offsetY + entry.unit.gridY * TILE_SIZE + TILE_SIZE / 2;
       const text = this.add
-        .text(px, py - 10, `-${entry.damage}`, {
+        .text(px, py - 10, `-${entry.damage.toString()}`, {
           fontSize: '14px',
           color: '#ff4500',
           stroke: '#000000',
@@ -551,7 +567,9 @@ export class BattleScene extends Phaser.Scene {
         alpha: 0,
         duration: 1200,
         ease: 'Power2',
-        onComplete: () => text.destroy(),
+        onComplete: () => {
+          text.destroy();
+        },
       });
     }
   }
@@ -559,7 +577,9 @@ export class BattleScene extends Phaser.Scene {
   private checkAutoEndTurn(): void {
     if (this.engine.allPlayerUnitsExhausted()) {
       this.time.delayedCall(400, () => {
-        if (!this.engine.turnManager.isPlayerPhase()) return;
+        if (!this.engine.turnManager.isPlayerPhase()) {
+          return;
+        }
         this.triggerEndTurn();
       });
     }
@@ -652,12 +672,15 @@ export class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     if (enemies.length > 0) {
-      fightText.on('pointerdown', (_pointer, _localX, _localY, event: Phaser.Types.Input.EventData) => {
-        event.stopPropagation();
-        this.battleMenu.selectAction(MenuAction.FIGHT);
-        this.clearMenuTexts();
-        this.highlightEnemyTargets(enemies);
-      });
+      fightText.on(
+        'pointerdown',
+        (_pointer, _localX, _localY, event: Phaser.Types.Input.EventData) => {
+          event.stopPropagation();
+          this.battleMenu.selectAction(MenuAction.FIGHT);
+          this.clearMenuTexts();
+          this.highlightEnemyTargets(enemies);
+        },
+      );
     }
 
     endText.on('pointerdown', (_pointer, _localX, _localY, event: Phaser.Types.Input.EventData) => {
@@ -690,7 +713,9 @@ export class BattleScene extends Phaser.Scene {
 
   private undoMove(): void {
     const unit = this.battleMenu.unit;
-    if (!unit) return;
+    if (!unit) {
+      return;
+    }
 
     if (this.preMovePosition) {
       const { x, y } = this.preMovePosition;
@@ -719,7 +744,10 @@ export class BattleScene extends Phaser.Scene {
     if (this.battleMenu.state === MenuState.CHOOSE_TARGET) {
       this.moveGraphics.clear();
       this.pathGraphics.clear();
-      const unit = this.battleMenu.unit!;
+      const unit = this.battleMenu.unit;
+      if (!unit) {
+        return;
+      }
       const enemies = this.engine.getAdjacentEnemies(unit);
       this.battleMenu.show(unit, enemies);
       this.showPostMoveMenu(unit);
@@ -751,17 +779,20 @@ export class BattleScene extends Phaser.Scene {
   private handleMenuInput(gx: number, gy: number, clickedUnit: Unit | null): void {
     if (this.battleMenu.state === MenuState.CHOOSE_TARGET) {
       const validTarget = this.battleMenu.adjacentEnemies.find((e) => e.id === clickedUnit?.id);
+      const unit = this.battleMenu.unit;
+      if (!unit) {
+        return;
+      }
       if (validTarget) {
         this.battleMenu.selectTarget(validTarget);
         this.clearMenuTexts();
         this.moveGraphics.clear();
         this.pathGraphics.clear();
-        this.startBattleMode(this.battleMenu.unit!, validTarget);
+        this.startBattleMode(unit, validTarget);
       } else {
         // Cancel target selection, return to action menu
         this.moveGraphics.clear();
         this.pathGraphics.clear();
-        const unit = this.battleMenu.unit!;
         const enemies = this.engine.getAdjacentEnemies(unit);
         this.battleMenu.show(unit, enemies);
         this.showPostMoveMenu(unit);
@@ -816,7 +847,9 @@ export class BattleScene extends Phaser.Scene {
     this.battleOverlay = overlay;
 
     // Start animation sequence
-    this.time.delayedCall(800, () => this.runBattleAnimation());
+    this.time.delayedCall(800, () => {
+      this.runBattleAnimation();
+    });
   }
 
   private createUnitBattlePanel(
@@ -834,55 +867,69 @@ export class BattleScene extends Phaser.Scene {
     panel.add(box);
 
     // Name
-    const nameText = this.add.text(0, -70, unit.name, {
-      fontSize: '18px',
-      color: '#ecf0f1',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+    const nameText = this.add
+      .text(0, -70, unit.name, {
+        fontSize: '18px',
+        color: '#ecf0f1',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
     panel.add(nameText);
 
     // Class
-    const classText = this.add.text(0, -50, unit.unitClass, {
-      fontSize: '12px',
-      color: '#bdc3c7',
-    }).setOrigin(0.5);
+    const classText = this.add
+      .text(0, -50, unit.unitClass, {
+        fontSize: '12px',
+        color: '#bdc3c7',
+      })
+      .setOrigin(0.5);
     panel.add(classText);
 
     // Combat stats row
     if (preview) {
-      const hitText = this.add.text(-60, -30, `Hit ${preview.hit}%`, {
-        fontSize: '12px',
-        color: '#ecf0f1',
-      }).setOrigin(0, 0.5);
+      const hitText = this.add
+        .text(-60, -30, `Hit ${preview.hit.toString()}%`, {
+          fontSize: '12px',
+          color: '#ecf0f1',
+        })
+        .setOrigin(0, 0.5);
       panel.add(hitText);
 
-      const critText = this.add.text(-60, -14, `Crit ${preview.crit}%`, {
-        fontSize: '12px',
-        color: preview.crit > 0 ? '#e74c3c' : '#95a5a6',
-      }).setOrigin(0, 0.5);
+      const critText = this.add
+        .text(-60, -14, `Crit ${preview.crit.toString()}%`, {
+          fontSize: '12px',
+          color: preview.crit > 0 ? '#e74c3c' : '#95a5a6',
+        })
+        .setOrigin(0, 0.5);
       panel.add(critText);
 
-      const dmgText = this.add.text(20, -30, `Dmg ${preview.damage}`, {
-        fontSize: '12px',
-        color: '#ecf0f1',
-      }).setOrigin(0, 0.5);
+      const dmgText = this.add
+        .text(20, -30, `Dmg ${preview.damage.toString()}`, {
+          fontSize: '12px',
+          color: '#ecf0f1',
+        })
+        .setOrigin(0, 0.5);
       panel.add(dmgText);
 
       if (preview.doubleAttack) {
-        const doubleText = this.add.text(20, -14, '2x', {
-          fontSize: '12px',
-          color: '#f1c40f',
-          fontStyle: 'bold',
-        }).setOrigin(0, 0.5);
+        const doubleText = this.add
+          .text(20, -14, '2x', {
+            fontSize: '12px',
+            color: '#f1c40f',
+            fontStyle: 'bold',
+          })
+          .setOrigin(0, 0.5);
         panel.add(doubleText);
       }
     }
 
     // HP label
-    const hpLabel = this.add.text(-70, 10, 'HP', {
-      fontSize: '12px',
-      color: '#bdc3c7',
-    }).setOrigin(0, 0.5);
+    const hpLabel = this.add
+      .text(-70, 10, 'HP', {
+        fontSize: '12px',
+        color: '#bdc3c7',
+      })
+      .setOrigin(0, 0.5);
     panel.add(hpLabel);
 
     // HP bar background
@@ -897,10 +944,12 @@ export class BattleScene extends Phaser.Scene {
     panel.add(hpFill);
 
     // HP text
-    const hpText = this.add.text(10, 30, `${unit.stats.hp} / ${unit.stats.maxHp}`, {
-      fontSize: '14px',
-      color: '#ecf0f1',
-    }).setOrigin(0.5);
+    const hpText = this.add
+      .text(10, 30, `${unit.stats.hp.toString()} / ${unit.stats.maxHp.toString()}`, {
+        fontSize: '14px',
+        color: '#ecf0f1',
+      })
+      .setOrigin(0.5);
     hpText.setName('hpText');
     panel.add(hpText);
 
@@ -908,7 +957,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private runBattleAnimation(): void {
-    if (!this.battleDisplayState || !this.battleOverlay) return;
+    if (!this.battleDisplayState || !this.battleOverlay) {
+      return;
+    }
 
     const state = this.battleDisplayState;
     if (!state.canAdvance()) {
@@ -919,49 +970,62 @@ export class BattleScene extends Phaser.Scene {
     state.advance();
     const entry = state.currentLogEntry;
 
-    if (state.phase === BattlePhase.ATTACKER_STRIKE || state.phase === BattlePhase.DEFENDER_COUNTER) {
+    if (
+      state.phase === BattlePhase.ATTACKER_STRIKE ||
+      state.phase === BattlePhase.DEFENDER_COUNTER
+    ) {
       // Flash the attacker
       const isCounter = state.phase === BattlePhase.DEFENDER_COUNTER;
       const target = isCounter ? state.attacker : state.defender;
 
       // Camera shake on hit
-      if (entry && entry.hit) {
+      if (entry?.hit) {
         this.cameras.main.shake(100, entry.critical ? 0.015 : 0.005);
       }
 
       this.time.delayedCall(400, () => {
-        if (entry && entry.hit) {
+        if (entry?.hit) {
           this.showDamageNumber(target, entry.damage, entry.critical);
         } else if (entry) {
           this.showMissText(target);
         }
         this.updateBattleHpBars();
-        this.time.delayedCall(600, () => this.runBattleAnimation());
+        this.time.delayedCall(600, () => {
+          this.runBattleAnimation();
+        });
       });
     } else if (
       state.phase === BattlePhase.DEFENDER_RECOIL ||
       state.phase === BattlePhase.ATTACKER_RECOIL
     ) {
       // Recoil phase — just advance after brief pause
-      this.time.delayedCall(300, () => this.runBattleAnimation());
+      this.time.delayedCall(300, () => {
+        this.runBattleAnimation();
+      });
     } else {
-      this.time.delayedCall(200, () => this.runBattleAnimation());
+      this.time.delayedCall(200, () => {
+        this.runBattleAnimation();
+      });
     }
   }
 
   private showDamageNumber(target: Unit, damage: number, critical: boolean): void {
-    if (!this.battleOverlay) return;
-    const isLeft = target.id === this.battleDisplayState!.attacker.id;
+    if (!this.battleOverlay || !this.battleDisplayState) {
+      return;
+    }
+    const isLeft = target.id === this.battleDisplayState.attacker.id;
     const x = this.cameras.main.width * (isLeft ? 0.25 : 0.75);
     const y = this.cameras.main.height * 0.5 - 80;
 
-    const text = this.add.text(x, y, critical ? `${damage}!` : String(damage), {
-      fontSize: critical ? '28px' : '22px',
-      color: critical ? '#e74c3c' : '#ffffff',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 4,
-    }).setOrigin(0.5);
+    const text = this.add
+      .text(x, y, critical ? `${damage.toString()}!` : String(damage), {
+        fontSize: critical ? '28px' : '22px',
+        color: critical ? '#e74c3c' : '#ffffff',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5);
     this.battleOverlay.add(text);
 
     this.tweens.add({
@@ -969,22 +1033,28 @@ export class BattleScene extends Phaser.Scene {
       y: y - 40,
       alpha: 0,
       duration: 800,
-      onComplete: () => text.destroy(),
+      onComplete: () => {
+        text.destroy();
+      },
     });
   }
 
   private showMissText(target: Unit): void {
-    if (!this.battleOverlay) return;
-    const isLeft = target.id === this.battleDisplayState!.attacker.id;
+    if (!this.battleOverlay || !this.battleDisplayState) {
+      return;
+    }
+    const isLeft = target.id === this.battleDisplayState.attacker.id;
     const x = this.cameras.main.width * (isLeft ? 0.25 : 0.75);
     const y = this.cameras.main.height * 0.5 - 80;
 
-    const text = this.add.text(x, y, 'Miss', {
-      fontSize: '20px',
-      color: '#95a5a6',
-      stroke: '#000000',
-      strokeThickness: 3,
-    }).setOrigin(0.5);
+    const text = this.add
+      .text(x, y, 'Miss', {
+        fontSize: '20px',
+        color: '#95a5a6',
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
     this.battleOverlay.add(text);
 
     this.tweens.add({
@@ -992,12 +1062,16 @@ export class BattleScene extends Phaser.Scene {
       y: y - 30,
       alpha: 0,
       duration: 600,
-      onComplete: () => text.destroy(),
+      onComplete: () => {
+        text.destroy();
+      },
     });
   }
 
   private updateBattleHpBars(): void {
-    if (!this.battleDisplayState || !this.battleOverlay) return;
+    if (!this.battleDisplayState || !this.battleOverlay) {
+      return;
+    }
     const { attacker, defender } = this.battleDisplayState;
 
     // Update attacker HP bar
@@ -1007,31 +1081,29 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updatePanelHp(unit: Unit, _color: number): void {
-    const isLeft = unit.id === this.battleDisplayState!.attacker.id;
+    if (!this.battleDisplayState || !this.battleOverlay) {
+      return;
+    }
+    const isLeft = unit.id === this.battleDisplayState.attacker.id;
     const panelIndex = isLeft ? 1 : 2; // overlay children: bg, attPanel, defPanel, vsText
-    const panel = this.battleOverlay!.getAt(panelIndex) as Phaser.GameObjects.Container;
+    const panel = this.battleOverlay.getAt(panelIndex);
 
     const hpRatio = Math.max(0, unit.stats.hp / unit.stats.maxHp);
     const hpColor = hpRatio > 0.5 ? 0x2ecc71 : hpRatio > 0.25 ? 0xf1c40f : 0xe74c3c;
 
-    const oldFill = panel.getByName('hpFill') as Phaser.GameObjects.Rectangle;
-    if (oldFill) {
-      oldFill.destroy();
-    }
-    const newFill = this.add.rectangle(
-      -50 + (120 * hpRatio) / 2,
-      10,
-      120 * hpRatio,
-      12,
-      hpColor,
-    );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const oldFill = panel.getByName('hpFill');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    oldFill.destroy();
+    const newFill = this.add.rectangle(-50 + (120 * hpRatio) / 2, 10, 120 * hpRatio, 12, hpColor);
     newFill.setName('hpFill');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     panel.add(newFill);
 
-    const hpText = panel.getByName('hpText') as Phaser.GameObjects.Text;
-    if (hpText) {
-      hpText.setText(`${unit.stats.hp} / ${unit.stats.maxHp}`);
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const hpText = panel.getByName('hpText');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    hpText.setText(`${unit.stats.hp.toString()} / ${unit.stats.maxHp.toString()}`);
   }
 
   private endBattleMode(): void {
@@ -1125,7 +1197,7 @@ export class BattleScene extends Phaser.Scene {
     overlay.add(title);
 
     const nextLevelId = getNextLevelId(this.currentLevelId);
-    const subtitleText = nextLevelId ? 'All enemies defeated' : 'Campaign Complete!';
+    const subtitleText = nextLevelId !== null ? 'All enemies defeated' : 'Campaign Complete!';
     const subtitle = this.add
       .text(this.cameras.main.width / 2, this.cameras.main.height * 0.55, subtitleText, {
         fontSize: '18px',
@@ -1138,7 +1210,7 @@ export class BattleScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => {
       this.cameras.main.fadeOut(1000, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => {
-        if (nextLevelId) {
+        if (nextLevelId !== null) {
           this.scene.start('BattleScene', { levelId: nextLevelId });
         } else {
           this.scene.start('MainMenuScene');
@@ -1205,13 +1277,18 @@ export class BattleScene extends Phaser.Scene {
       0.7,
     );
     const text = this.add
-      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.4, `Turn ${turnNumber}`, {
-        fontSize: '36px',
-        color: '#f1c40f',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 4,
-      })
+      .text(
+        this.cameras.main.width / 2,
+        this.cameras.main.height * 0.4,
+        `Turn ${turnNumber.toString()}`,
+        {
+          fontSize: '36px',
+          color: '#f1c40f',
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 4,
+        },
+      )
       .setOrigin(0.5)
       .setAlpha(0);
     overlay.add([bg, text]);
@@ -1268,7 +1345,7 @@ export class BattleScene extends Phaser.Scene {
 
     // Title
     const title = this.add
-      .text(0, -36, `${unit.name} +${progression.expGained} EXP`, {
+      .text(0, -36, `${unit.name} +${progression.expGained.toString()} EXP`, {
         fontSize: '18px',
         color: '#f1c40f',
         fontStyle: 'bold',
@@ -1283,19 +1360,13 @@ export class BattleScene extends Phaser.Scene {
 
     // Bar fill (initially at startExp width)
     const startRatio = startExp / 100;
-    const barFill = this.add.rectangle(
-      -100 + 100 * startRatio,
-      -4,
-      200 * startRatio,
-      14,
-      0x3498db,
-    );
+    const barFill = this.add.rectangle(-100 + 100 * startRatio, -4, 200 * startRatio, 14, 0x3498db);
     barFill.setName('barFill');
     container.add(barFill);
 
     // EXP text
     const expText = this.add
-      .text(0, 22, `EXP: ${startExp} / 100`, {
+      .text(0, 22, `EXP: ${startExp.toString()} / 100`, {
         fontSize: '14px',
         color: '#ecf0f1',
       })
@@ -1305,7 +1376,7 @@ export class BattleScene extends Phaser.Scene {
 
     // Level text
     const levelText = this.add
-      .text(0, 42, `Lv ${unit.level}`, {
+      .text(0, 42, `Lv ${unit.level.toString()}`, {
         fontSize: '14px',
         color: '#bdc3c7',
       })
@@ -1321,7 +1392,7 @@ export class BattleScene extends Phaser.Scene {
         const currentWidth = 200 * ratio;
         barFill.setSize(currentWidth, 14);
         barFill.setPosition(-100 + currentWidth / 2, -4);
-        expText.setText(`EXP: ${popup.currentExp} / 100`);
+        expText.setText(`EXP: ${popup.currentExp.toString()} / 100`);
 
         if (popup.isComplete()) {
           timer.remove();
@@ -1359,7 +1430,7 @@ export class BattleScene extends Phaser.Scene {
     container.add(bg);
 
     const text = this.add
-      .text(0, 0, `LEVEL UP! ${unit.name} is now Lv ${unit.level}`, {
+      .text(0, 0, `LEVEL UP! ${unit.name} is now Lv ${unit.level.toString()}`, {
         fontSize: '16px',
         color: '#ffffff',
         fontStyle: 'bold',

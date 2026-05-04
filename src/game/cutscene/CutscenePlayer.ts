@@ -1,4 +1,9 @@
-import type { CutsceneScript, CutsceneCommand, PortraitPosition, Expression } from './CutsceneTypes';
+import type {
+  CutsceneScript,
+  CutsceneCommand,
+  PortraitPosition,
+  Expression,
+} from './CutsceneTypes';
 
 export interface StageEntry {
   position: PortraitPosition;
@@ -52,13 +57,17 @@ export function createCutscenePlayer(script: CutsceneScript): CutscenePlayer {
   }
 
   function getCurrentFrame(): CutsceneCommand | null {
-    if (frameIndex >= script.frames.length) return null;
+    if (frameIndex >= script.frames.length) {
+      return null;
+    }
     return script.frames[frameIndex];
   }
 
   function advance(): void {
     const current = getCurrentFrame();
-    if (current === null) return;
+    if (current === null) {
+      return;
+    }
 
     applyCommand(current);
 
@@ -70,7 +79,8 @@ export function createCutscenePlayer(script: CutsceneScript): CutscenePlayer {
     if (current.type === 'goto') {
       // Search forward from the next frame; if not found, search from start
       let targetIndex = script.frames.findIndex(
-        (f, i) => i > frameIndex && (f as CutsceneCommand & { label?: string }).label === current.label,
+        (f, i) =>
+          i > frameIndex && (f as CutsceneCommand & { label?: string }).label === current.label,
       );
       if (targetIndex === -1) {
         targetIndex = script.frames.findIndex(

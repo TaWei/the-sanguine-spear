@@ -191,7 +191,17 @@ describe('GameEngine', () => {
 
   it('awards combat exp for dealing damage', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
     engine.awardCombatExp(unit, 10, false);
     expect(unit.exp).toBe(10);
@@ -199,7 +209,17 @@ describe('GameEngine', () => {
 
   it('awards combat exp with kill bonus', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
     engine.awardCombatExp(unit, 10, true);
     expect(unit.exp).toBe(40);
@@ -207,7 +227,17 @@ describe('GameEngine', () => {
 
   it('getWeaponForUnit returns correct weapon by class', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const mage = engine.addUnit('m1', 'Mage', Faction.ENEMY, UnitClass.MAGE, stats, 0, 0);
     const brigand = engine.addUnit('b1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 1, 1);
     expect(engine.getWeaponForUnit(mage).name).toBe('Fire');
@@ -216,8 +246,28 @@ describe('GameEngine', () => {
 
   it('getAdjacentEnemies returns adjacent enemies after move', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
-    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const enemyStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
     engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
     const enemies = engine.getAdjacentEnemies(player);
@@ -226,10 +276,38 @@ describe('GameEngine', () => {
 
   it('resolvePlayerCombat returns a CombatResult with log', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
-    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const enemyStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
-    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+    const enemy = engine.addUnit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      enemyStats,
+      6,
+      5,
+    );
 
     const result = engine.resolvePlayerCombat(player, enemy, () => 0); // guaranteed hit
     expect(result.log.length).toBeGreaterThan(0);
@@ -239,10 +317,38 @@ describe('GameEngine', () => {
 
   it('resolvePlayerCombat applies damage to units', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
-    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const enemyStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
-    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+    const enemy = engine.addUnit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      enemyStats,
+      6,
+      5,
+    );
     const enemyHpBefore = enemy.stats.hp;
 
     engine.resolvePlayerCombat(player, enemy, () => 0);
@@ -251,10 +357,38 @@ describe('GameEngine', () => {
 
   it('getCombatPreview returns hit/crit/damage without applying damage', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
-    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const enemyStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
-    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+    const enemy = engine.addUnit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      enemyStats,
+      6,
+      5,
+    );
 
     const preview = engine.getCombatPreview(player, enemy);
 
@@ -271,10 +405,38 @@ describe('GameEngine', () => {
 
   it('getCombatPreview defender is null when out of range', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
-    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const enemyStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
-    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 7, 5);
+    const enemy = engine.addUnit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      enemyStats,
+      7,
+      5,
+    );
 
     const preview = engine.getCombatPreview(player, enemy);
     expect(preview.defender).toBeNull();
@@ -282,7 +444,17 @@ describe('GameEngine', () => {
 
   it('reports victory when all enemies are dead', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
     const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 1, 1);
     enemy.takeDamage(999);
@@ -294,7 +466,17 @@ describe('GameEngine', () => {
 
   it('reports defeat when all players are dead', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
     player.takeDamage(999);
     engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 1, 1);
@@ -306,7 +488,17 @@ describe('GameEngine', () => {
 
   it('endTurn returns hazard report with lava damage', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = engine.addUnit('p1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
     engine.setTerrain(2, 2, TerrainType.LAVA);
     const report = engine.endTurn();
@@ -318,7 +510,17 @@ describe('GameEngine', () => {
 
   it('reports ongoing when both sides are alive', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
     engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 1, 1);
 
@@ -330,7 +532,18 @@ describe('GameEngine', () => {
 
   it('applies lava damage at start of enemy phase', () => {
     const engine = new GameEngine(5, 5);
-    const stats = createStats({ hp: 20, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      maxHp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
     engine.setTerrain(2, 2, TerrainType.LAVA);
     const hpBefore = unit.stats.hp;
@@ -340,7 +553,18 @@ describe('GameEngine', () => {
 
   it('does not apply hazard damage during same phase', () => {
     const engine = new GameEngine(5, 5);
-    const stats = createStats({ hp: 20, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      maxHp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
     engine.setTerrain(2, 2, TerrainType.LAVA);
     const hpBefore = unit.stats.hp;
@@ -350,7 +574,17 @@ describe('GameEngine', () => {
 
   it('removes dead units from the grid', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
     const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 3, 3);
     enemy.takeDamage(999);
 
@@ -360,7 +594,17 @@ describe('GameEngine', () => {
 
   it('returns true when all live player units are exhausted', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     engine.addUnit('p1', 'A', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
     engine.addUnit('p2', 'B', Faction.PLAYER, UnitClass.MAGE, stats, 1, 1);
     expect(engine.allPlayerUnitsExhausted()).toBe(false);
@@ -374,7 +618,17 @@ describe('GameEngine', () => {
 
   it('ignores dead units when checking exhaustion', () => {
     const engine = new GameEngine(10, 8);
-    const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const dead = engine.addUnit('p1', 'A', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
     dead.takeDamage(999);
     engine.addUnit('p2', 'B', Faction.PLAYER, UnitClass.MAGE, stats, 1, 1);
@@ -383,7 +637,17 @@ describe('GameEngine', () => {
 
   it('getThreatenedTiles returns attackable tiles outside move range', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 2 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 2,
+    });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
     const threatened = engine.getThreatenedTiles(player);
     // From (5,5) with move 2 and weapon range 1, cardinal tiles at distance 3 are threatened
@@ -398,8 +662,28 @@ describe('GameEngine', () => {
 
   it('full player combat flow: move adjacent, detect enemy, resolve combat', () => {
     const engine = new GameEngine(10, 10);
-    const pStats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
-    const eStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const pStats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const eStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, pStats, 4, 5);
     const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, eStats, 6, 5);
 
@@ -420,7 +704,17 @@ describe('GameEngine', () => {
 
   it('can compute move range and threatened tiles for enemy units', () => {
     const engine = new GameEngine(10, 10);
-    const eStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 3 });
+    const eStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 3,
+    });
     const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, eStats, 5, 5);
 
     const moveRange = engine.getMoveRange(enemy);
@@ -441,7 +735,17 @@ describe('GameEngine', () => {
 
   it('can find path to a reachable tile', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 3 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 3,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
     const path = engine.findPath(unit, 7, 5);
     expect(path).not.toBeNull();
@@ -452,7 +756,17 @@ describe('GameEngine', () => {
 
   it('findPath returns null for unreachable tile', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 2 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 2,
+    });
     const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
     const path = engine.findPath(unit, 8, 5);
     expect(path).toBeNull();
@@ -460,17 +774,41 @@ describe('GameEngine', () => {
 
   it('moveUnit throws when destination is occupied by another unit', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
     engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 6, 5);
-    expect(() => engine.moveUnit(player, 6, 5)).toThrow('occupied');
+    expect(() => {
+      engine.moveUnit(player, 6, 5);
+    }).toThrow('occupied');
   });
 
   it('moveUnit is a no-op when moving to the current tile', () => {
     const engine = new GameEngine(10, 10);
-    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
-    expect(() => engine.moveUnit(player, 5, 5)).not.toThrow();
+    expect(() => {
+      engine.moveUnit(player, 5, 5);
+    }).not.toThrow();
     expect(player.gridX).toBe(5);
     expect(player.gridY).toBe(5);
     expect(engine.getUnit(5, 5)).toBe(player);
@@ -501,10 +839,47 @@ describe('GameEngine', () => {
   describe('critical attack integration', () => {
     it('killer weapon + high skill yields lethal crit preview', () => {
       const engine = new GameEngine(10, 10);
-      const attackerStats = createStats({ hp: 30, str: 12, mag: 2, skl: 20, spd: 10, luk: 5, def: 6, res: 2, mov: 5 });
-      const defenderStats = createStats({ hp: 18, maxHp: 18, str: 8, mag: 2, skl: 7, spd: 5, luk: 0, def: 4, res: 2, mov: 5 });
-      const attacker = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.SWORDMASTER, attackerStats, 5, 5);
-      const defender = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, defenderStats, 5, 6);
+      const attackerStats = createStats({
+        hp: 30,
+        str: 12,
+        mag: 2,
+        skl: 20,
+        spd: 10,
+        luk: 5,
+        def: 6,
+        res: 2,
+        mov: 5,
+      });
+      const defenderStats = createStats({
+        hp: 18,
+        maxHp: 18,
+        str: 8,
+        mag: 2,
+        skl: 7,
+        spd: 5,
+        luk: 0,
+        def: 4,
+        res: 2,
+        mov: 5,
+      });
+      const attacker = engine.addUnit(
+        'p1',
+        'Rowan',
+        Faction.PLAYER,
+        UnitClass.SWORDMASTER,
+        attackerStats,
+        5,
+        5,
+      );
+      const defender = engine.addUnit(
+        'e1',
+        'Bandit',
+        Faction.ENEMY,
+        UnitClass.BRIGAND,
+        defenderStats,
+        5,
+        6,
+      );
 
       const preview = engine.getCombatPreview(attacker, defender);
       expect(preview.attacker.crit).toBeGreaterThan(0);
@@ -516,10 +891,47 @@ describe('GameEngine', () => {
 
     it('high luck nullifies enemy crit entirely', () => {
       const engine = new GameEngine(10, 10);
-      const attackerStats = createStats({ hp: 30, str: 12, mag: 2, skl: 20, spd: 10, luk: 5, def: 6, res: 2, mov: 5 });
-      const defenderStats = createStats({ hp: 30, maxHp: 30, str: 8, mag: 2, skl: 7, spd: 5, luk: 70, def: 6, res: 2, mov: 5 });
-      const attacker = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.SWORDMASTER, attackerStats, 5, 5);
-      const defender = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, defenderStats, 5, 6);
+      const attackerStats = createStats({
+        hp: 30,
+        str: 12,
+        mag: 2,
+        skl: 20,
+        spd: 10,
+        luk: 5,
+        def: 6,
+        res: 2,
+        mov: 5,
+      });
+      const defenderStats = createStats({
+        hp: 30,
+        maxHp: 30,
+        str: 8,
+        mag: 2,
+        skl: 7,
+        spd: 5,
+        luk: 70,
+        def: 6,
+        res: 2,
+        mov: 5,
+      });
+      const attacker = engine.addUnit(
+        'p1',
+        'Rowan',
+        Faction.PLAYER,
+        UnitClass.SWORDMASTER,
+        attackerStats,
+        5,
+        5,
+      );
+      const defender = engine.addUnit(
+        'e1',
+        'Bandit',
+        Faction.ENEMY,
+        UnitClass.BRIGAND,
+        defenderStats,
+        5,
+        6,
+      );
 
       const preview = engine.getCombatPreview(attacker, defender);
       // critRate = floor(20/2) + 30 + 15 = 65; critAvoid = 70; displayCrit = max(0, 65-70) = 0
@@ -530,7 +942,17 @@ describe('GameEngine', () => {
   describe('applyCombatExp', () => {
     it('grants exp from combat result and returns progression result', () => {
       const engine = new GameEngine(10, 10);
-      const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+      const stats = createStats({
+        hp: 20,
+        str: 8,
+        mag: 2,
+        skl: 7,
+        spd: 8,
+        luk: 6,
+        def: 6,
+        res: 2,
+        mov: 5,
+      });
       const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
 
       const combatResult = { log: [], attackerDied: false, defenderDied: true, expAward: 30 };
@@ -543,7 +965,17 @@ describe('GameEngine', () => {
 
     it('returns null when expAward is 0', () => {
       const engine = new GameEngine(10, 10);
-      const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+      const stats = createStats({
+        hp: 20,
+        str: 8,
+        mag: 2,
+        skl: 7,
+        spd: 8,
+        luk: 6,
+        def: 6,
+        res: 2,
+        mov: 5,
+      });
       const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
 
       const combatResult = { log: [], attackerDied: false, defenderDied: false, expAward: 0 };
@@ -555,7 +987,17 @@ describe('GameEngine', () => {
 
     it('returns null when attacker is dead', () => {
       const engine = new GameEngine(10, 10);
-      const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+      const stats = createStats({
+        hp: 20,
+        str: 8,
+        mag: 2,
+        skl: 7,
+        spd: 8,
+        luk: 6,
+        def: 6,
+        res: 2,
+        mov: 5,
+      });
       const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
       unit.takeDamage(999);
 
@@ -567,7 +1009,17 @@ describe('GameEngine', () => {
 
     it('triggers level-up when exp reaches 100', () => {
       const engine = new GameEngine(10, 10);
-      const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+      const stats = createStats({
+        hp: 20,
+        str: 8,
+        mag: 2,
+        skl: 7,
+        spd: 8,
+        luk: 6,
+        def: 6,
+        res: 2,
+        mov: 5,
+      });
       const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
       unit.gainExp(80);
 

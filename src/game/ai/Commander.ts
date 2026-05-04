@@ -16,6 +16,7 @@ export class Commander {
 
   planEnemyTurn(enemies: Unit[], players: Unit[]): Action[] {
     const actions: Action[] = [];
+    const claimedTiles = new Set<string>();
 
     for (const enemy of enemies) {
       if (!enemy.isAlive) {
@@ -28,6 +29,11 @@ export class Commander {
       }
 
       const moveRange = computeMoveRange(enemy, this.grid);
+      // Prevent multiple enemies from being assigned the same destination tile
+      for (const key of claimedTiles) {
+        moveRange.delete(key);
+      }
+
       const reachable = this.findReachableTargets(enemy, players, moveRange, weapon);
 
       if (reachable.length === 0) {
@@ -47,6 +53,7 @@ export class Commander {
           x: movePos[0],
           y: movePos[1],
         });
+        claimedTiles.add(`${String(movePos[0])},${String(movePos[1])}`);
       }
 
       actions.push({

@@ -18,21 +18,25 @@ export class ExpPopup {
   }
 
   update(deltaMs: number): void {
-    if (this.isComplete()) return;
+    if (this.isComplete()) {
+      return;
+    }
     this.elapsed += deltaMs;
     this.progress = Math.min(1, this.elapsed / this.duration);
-    this.currentExp = Math.round(
-      this.startExp + this.progress * (this.targetExp - this.startExp),
-    );
+    this.currentExp = Math.round(this.startExp + this.progress * (this.targetExp - this.startExp));
   }
 
   isComplete(): boolean {
-    if (this.startExp === this.targetExp) return true;
+    if (this.startExp === this.targetExp) {
+      return true;
+    }
     return this.progress >= 1;
   }
 
   getFillRatio(): number {
-    if (this.startExp === this.targetExp) return 0;
+    if (this.startExp === this.targetExp) {
+      return 0;
+    }
     return this.progress;
   }
 }

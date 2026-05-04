@@ -176,7 +176,17 @@ describe('MoveRange', () => {
   it('flying unit can traverse cliffs at reduced cost', () => {
     const grid = new Grid(5, 5);
     grid.setTerrain(2, 2, TerrainType.CLIFF);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 3 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 3,
+    });
     const pegasus = new Unit('u1', 'Peg', Faction.PLAYER, UnitClass.PEGASUS_KNIGHT, stats, 1, 2);
     const range = computeMoveRange(pegasus, grid);
     expect(range.has('2,2')).toBe(true);
@@ -185,7 +195,17 @@ describe('MoveRange', () => {
   it('non-flying unit cannot traverse cliffs within normal movement', () => {
     const grid = new Grid(5, 5);
     grid.setTerrain(2, 2, TerrainType.CLIFF);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 3 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 3,
+    });
     const lord = new Unit('u1', 'Lord', Faction.PLAYER, UnitClass.LORD, stats, 1, 2);
     const range = computeMoveRange(lord, grid);
     expect(range.has('2,2')).toBe(false);
@@ -194,7 +214,17 @@ describe('MoveRange', () => {
   it('non-flying unit can traverse cliffs with enough movement', () => {
     const grid = new Grid(5, 5);
     grid.setTerrain(2, 2, TerrainType.CLIFF);
-    const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 4 });
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 4,
+    });
     const lord = new Unit('u1', 'Lord', Faction.PLAYER, UnitClass.LORD, stats, 1, 2);
     const range = computeMoveRange(lord, grid);
     expect(range.has('2,2')).toBe(true);

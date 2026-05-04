@@ -21,12 +21,24 @@ export class BattleMenu {
   private _selectedAction: MenuAction | null = null;
   private _selectedTarget: Unit | null = null;
 
-  get state(): MenuState { return this._state; }
-  get isVisible(): boolean { return this._state !== MenuState.HIDDEN; }
-  get unit(): Unit | null { return this._unit; }
-  get adjacentEnemies(): readonly Unit[] { return this._enemies; }
-  get selectedAction(): MenuAction | null { return this._selectedAction; }
-  get selectedTarget(): Unit | null { return this._selectedTarget; }
+  get state(): MenuState {
+    return this._state;
+  }
+  get isVisible(): boolean {
+    return this._state !== MenuState.HIDDEN;
+  }
+  get unit(): Unit | null {
+    return this._unit;
+  }
+  get adjacentEnemies(): readonly Unit[] {
+    return this._enemies;
+  }
+  get selectedAction(): MenuAction | null {
+    return this._selectedAction;
+  }
+  get selectedTarget(): Unit | null {
+    return this._selectedTarget;
+  }
 
   show(unit: Unit, enemies: Unit[]): void {
     this._unit = unit;

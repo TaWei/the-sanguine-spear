@@ -12,10 +12,7 @@ function makeScript(id: string): CutsceneScript {
   return {
     id,
     title: `Cutscene: ${id}`,
-    frames: [
-      { type: 'speak', speakerId: 'rowan', text: 'Hello.' },
-      { type: 'end' },
-    ],
+    frames: [{ type: 'speak', speakerId: 'rowan', text: 'Hello.' }, { type: 'end' }],
   };
 }
 
