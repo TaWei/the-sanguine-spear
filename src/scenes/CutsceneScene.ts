@@ -55,7 +55,7 @@ export class CutsceneScene extends Phaser.Scene {
 
   init(data: { cutsceneId: string; onComplete?: () => void }): void {
     this.cutsceneId = data.cutsceneId;
-    this.onComplete = data.onComplete ?? (() => {});
+    this.onComplete = data.onComplete ?? (() => undefined);
   }
 
   create(): void {
@@ -139,12 +139,15 @@ export class CutsceneScene extends Phaser.Scene {
   }
 
   private setupInput(): void {
-    this.input.keyboard!.on('keydown-SPACE', () => {
-      this.handleAdvance();
-    });
-    this.input.keyboard!.on('keydown-ENTER', () => {
-      this.handleAdvance();
-    });
+    const keyboard = this.input.keyboard;
+    if (keyboard) {
+      keyboard.on('keydown-SPACE', () => {
+        this.handleAdvance();
+      });
+      keyboard.on('keydown-ENTER', () => {
+        this.handleAdvance();
+      });
+    }
     this.input.on('pointerdown', () => {
       this.handleAdvance();
     });

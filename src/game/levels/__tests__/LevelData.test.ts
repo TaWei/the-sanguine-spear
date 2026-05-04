@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LEVELS, getLevel, getNextLevelId } from '../LevelData';
+import { getLevel, getNextLevelId } from '../LevelData';
 
 describe('LevelData', () => {
   it('has level 1 defined', () => {

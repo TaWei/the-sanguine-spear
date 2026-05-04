@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { levelUp, LevelUpResult } from '../LevelUpEngine';
-import { UnitStats, createStats } from '../../units/Stats';
-import { GrowthRates, createGrowthRates } from '../GrowthRates';
+import { levelUp } from '../LevelUpEngine';
+import { createStats } from '../../units/Stats';
+import { createGrowthRates } from '../GrowthRates';
 import { StatCaps } from '../StatCaps';
 
 function makeRng(sequence: number[]): () => number {

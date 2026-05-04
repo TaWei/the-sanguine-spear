@@ -169,7 +169,7 @@ describe('Grid', () => {
   it('getNeighbors returns only in-bounds cardinal neighbors', () => {
     const grid = new Grid(5, 5);
     const neighbors = grid.getNeighbors(0, 0);
-    const keys = neighbors.map((n) => `${n.x},${n.y}`);
+    const keys = neighbors.map((n) => `${n.x.toString()},${n.y.toString()}`);
     expect(keys).toContain('1,0');
     expect(keys).toContain('0,1');
     expect(keys).not.toContain('-1,0');
@@ -181,7 +181,7 @@ describe('Grid', () => {
     const grid = new Grid(5, 5);
     const neighbors = grid.getNeighbors(2, 2);
     expect(neighbors).toHaveLength(4);
-    const keys = neighbors.map((n) => `${n.x},${n.y}`);
+    const keys = neighbors.map((n) => `${n.x.toString()},${n.y.toString()}`);
     expect(keys).toContain('2,1');
     expect(keys).toContain('2,3');
     expect(keys).toContain('1,2');

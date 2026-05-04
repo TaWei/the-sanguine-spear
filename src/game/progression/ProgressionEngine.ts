@@ -25,15 +25,12 @@ export class ProgressionEngine {
     // Level up occurs
     const overflow = totalExp - 100;
     const caps = CLASS_CAPS[unit.unitClass];
-    if (!caps) {
-      throw new Error(`No stat caps defined for class: ${unit.unitClass}`);
-    }
 
     const result = levelUp(unit.stats, unit.growthRates, caps, rng);
     unit.applyLevelUp(result.newStats);
 
     // After level-up, absorb overflow exp (but cap at 99 unless another level-up is desired)
-    if (!unit.isAtMaxLevel && overflow > 0) {
+    if (overflow > 0) {
       unit.gainExp(overflow);
     }
 

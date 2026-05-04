@@ -74,7 +74,7 @@ export function findPath(
     const [x, y] = current.split(',').map(Number);
     path.push({ x, y });
     const prev = predecessor.get(current);
-    if (!prev) {
+    if (prev === undefined) {
       return null;
     } // should never happen if visited has destKey
     current = prev;

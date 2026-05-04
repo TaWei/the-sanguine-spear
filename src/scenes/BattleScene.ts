@@ -290,7 +290,7 @@ export class BattleScene extends Phaser.Scene {
 
   private drawPathPreview(path: import('../game/map/Grid').GridNeighbor[]): void {
     this.pathGraphics.clear();
-    if (!path || path.length === 0 || !this.selectedUnit) {
+    if (path.length === 0 || !this.selectedUnit) {
       return;
     }
 
@@ -398,14 +398,12 @@ export class BattleScene extends Phaser.Scene {
     if (playerUnits.length > 0) {
       const target = playerUnits[0];
       const preview = this.engine.getCombatPreview(unit, target);
-      if (preview.attacker) {
-        threat = {
-          hit: preview.attacker.hit,
-          crit: preview.attacker.crit,
-          damage: preview.attacker.damage,
-          doubleAttack: preview.attacker.doubleAttack,
-        };
-      }
+      threat = {
+        hit: preview.attacker.hit,
+        crit: preview.attacker.crit,
+        damage: preview.attacker.damage,
+        doubleAttack: preview.attacker.doubleAttack,
+      };
     }
     this.enemyPreview.show(unit, threat ?? undefined);
 
@@ -675,6 +673,7 @@ export class BattleScene extends Phaser.Scene {
       fightText.on(
         'pointerdown',
         (_pointer, _localX, _localY, event: Phaser.Types.Input.EventData) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           event.stopPropagation();
           this.battleMenu.selectAction(MenuAction.FIGHT);
           this.clearMenuTexts();
@@ -684,6 +683,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     endText.on('pointerdown', (_pointer, _localX, _localY, event: Phaser.Types.Input.EventData) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       event.stopPropagation();
       this.battleMenu.reset();
       unit.state.transition(UNIT_STATE.EXHAUSTED);

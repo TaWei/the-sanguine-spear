@@ -18,7 +18,7 @@ import { TerrainHazardEngine, HazardReport } from './hazards/TerrainHazardEngine
 import { LevelDefinition } from './levels/LevelDefinition';
 
 export class GameEngine {
-  readonly grid: Grid;
+  grid: Grid;
   readonly turnManager: TurnManager;
   private units: Unit[] = [];
   private actionQueue: ActionQueue;
@@ -55,7 +55,7 @@ export class GameEngine {
     this.units = [];
     // Re-initialize grid with new dimensions if needed
     if (this.grid.cols !== def.cols || this.grid.rows !== def.rows) {
-      (this as any).grid = new Grid(def.cols, def.rows);
+      this.grid = new Grid(def.cols, def.rows);
     } else {
       // Clear existing grid
       for (let y = 0; y < this.grid.rows; y++) {

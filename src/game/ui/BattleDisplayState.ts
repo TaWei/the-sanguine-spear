@@ -61,7 +61,7 @@ export class BattleDisplayState {
 
     // Skip counter phases if there is no counterattack log entry
     const next = PHASE_ORDER[this.index + 1];
-    if (next === BattlePhase.DEFENDER_COUNTER && !this.log[1]) {
+    if (next === BattlePhase.DEFENDER_COUNTER && this.log.length < 2) {
       this.index = PHASE_ORDER.length - 1; // jump to DONE
       return;
     }

@@ -44,6 +44,7 @@ export class MainMenuScene extends Phaser.Scene {
         _localY: number,
         event: Phaser.Types.Input.EventData,
       ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         event.stopPropagation();
         this.cameras.main.fadeOut(500, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -72,6 +73,7 @@ export class MainMenuScene extends Phaser.Scene {
         _localY: number,
         event: Phaser.Types.Input.EventData,
       ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         event.stopPropagation();
         this.cameras.main.fadeOut(500, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -100,6 +102,7 @@ export class MainMenuScene extends Phaser.Scene {
         _localY: number,
         event: Phaser.Types.Input.EventData,
       ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         event.stopPropagation();
         this.scene.launch('CutsceneScene', {
           cutsceneId: 'prologue_intro',
