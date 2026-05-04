@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { BattleMenu, MenuState, MenuAction } from '../BattleMenu';
 import { Unit, Faction, UnitClass } from '../../units/Unit';
 import { createStats } from '../../units/Stats';
+import { createWeaponItem } from '../../items/ItemTypes';
 
 describe('BattleMenu', () => {
   const stats = createStats({
@@ -140,5 +141,52 @@ describe('BattleMenu', () => {
     menu.cancelItemUse();
     expect(menu.state).toBe(MenuState.CHOOSE_ACTION);
     expect(menu.selectedItemIndex).toBe(-1);
+  });
+
+  it('FIGHT with multiple weapons transitions to CHOOSE_WEAPON', () => {
+    const armedPlayer = new Unit('p2', 'Armed', Faction.PLAYER, UnitClass.MERCENARY, stats, 5, 5);
+    armedPlayer.inventory.add(createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false));
+    armedPlayer.inventory.add(createWeaponItem('Iron Axe', 'axe', 8, 70, 0, 1, 1, false));
+    const menu = new BattleMenu();
+    menu.show(armedPlayer, [enemy]);
+    menu.selectAction(MenuAction.FIGHT);
+    expect(menu.state).toBe(MenuState.CHOOSE_WEAPON);
+    expect(menu.selectedWeaponIndex).toBe(-1);
+  });
+
+  it('FIGHT with 1 weapon transitions directly to CHOOSE_TARGET', () => {
+    const armedPlayer = new Unit('p3', 'Armed', Faction.PLAYER, UnitClass.MERCENARY, stats, 5, 5);
+    armedPlayer.inventory.add(createWeaponItem('Iron Lance', 'lance', 6, 80, 0, 1, 1, false));
+    const menu = new BattleMenu();
+    menu.show(armedPlayer, [enemy]);
+    menu.selectAction(MenuAction.FIGHT);
+    expect(menu.state).toBe(MenuState.CHOOSE_TARGET);
+    expect(menu.selectedWeaponIndex).toBe(0);
+  });
+
+  it('selectWeapon transitions to CHOOSE_TARGET with correct index', () => {
+    const armedPlayer = new Unit('p4', 'Armed', Faction.PLAYER, UnitClass.MERCENARY, stats, 5, 5);
+    armedPlayer.inventory.add(createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false));
+    armedPlayer.inventory.add(createWeaponItem('Iron Axe', 'axe', 8, 70, 0, 1, 1, false));
+    const menu = new BattleMenu();
+    menu.show(armedPlayer, [enemy]);
+    menu.selectAction(MenuAction.FIGHT);
+    expect(menu.state).toBe(MenuState.CHOOSE_WEAPON);
+    menu.selectWeapon(1);
+    expect(menu.state).toBe(MenuState.CHOOSE_TARGET);
+    expect(menu.selectedWeaponIndex).toBe(1);
+  });
+
+  it('cancelWeaponSelection returns to CHOOSE_ACTION', () => {
+    const armedPlayer = new Unit('p5', 'Armed', Faction.PLAYER, UnitClass.MERCENARY, stats, 5, 5);
+    armedPlayer.inventory.add(createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false));
+    armedPlayer.inventory.add(createWeaponItem('Iron Axe', 'axe', 8, 70, 0, 1, 1, false));
+    const menu = new BattleMenu();
+    menu.show(armedPlayer, [enemy]);
+    menu.selectAction(MenuAction.FIGHT);
+    expect(menu.state).toBe(MenuState.CHOOSE_WEAPON);
+    menu.cancelWeaponSelection();
+    expect(menu.state).toBe(MenuState.CHOOSE_ACTION);
+    expect(menu.selectedWeaponIndex).toBe(-1);
   });
 });

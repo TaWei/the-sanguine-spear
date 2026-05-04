@@ -3,6 +3,7 @@ import { Unit } from '../units/Unit';
 export const MenuState = {
   HIDDEN: 'hidden',
   CHOOSE_ACTION: 'choose_action',
+  CHOOSE_WEAPON: 'choose_weapon',
   CHOOSE_TARGET: 'choose_target',
   CHOOSE_STATUS: 'choose_status',
   CHOOSE_ITEM: 'choose_item',
@@ -24,6 +25,7 @@ export class BattleMenu {
   private _enemies: Unit[] = [];
   private _selectedAction: MenuAction | null = null;
   private _selectedTarget: Unit | null = null;
+  private _selectedWeaponIndex: number = -1;
   private _selectedItemIndex: number = -1;
 
   get state(): MenuState {
@@ -44,6 +46,9 @@ export class BattleMenu {
   get selectedTarget(): Unit | null {
     return this._selectedTarget;
   }
+  get selectedWeaponIndex(): number {
+    return this._selectedWeaponIndex;
+  }
   get selectedItemIndex(): number {
     return this._selectedItemIndex;
   }
@@ -53,6 +58,7 @@ export class BattleMenu {
     this._enemies = enemies;
     this._selectedAction = null;
     this._selectedTarget = null;
+    this._selectedWeaponIndex = -1;
     this._selectedItemIndex = -1;
     this._state = MenuState.CHOOSE_ACTION;
   }
@@ -68,9 +74,35 @@ export class BattleMenu {
       this._state = MenuState.CHOOSE_STATUS;
     } else if (action === MenuAction.ITEMS) {
       this._state = MenuState.CHOOSE_ITEM;
+    } else if (action === MenuAction.FIGHT) {
+      const weapons = this._unit!.inventory.items.filter((i) => i.kind === 'weapon');
+      if (weapons.length > 1) {
+        this._state = MenuState.CHOOSE_WEAPON;
+      } else if (weapons.length === 1) {
+        this._selectedWeaponIndex = this._unit!.inventory.items.findIndex((i) => i.kind === 'weapon');
+        this._state = MenuState.CHOOSE_TARGET;
+      } else {
+        this._state = MenuState.CHOOSE_TARGET;
+      }
     } else {
       this._state = MenuState.CHOOSE_TARGET;
     }
+  }
+
+  selectWeapon(index: number): void {
+    if (this._state !== MenuState.CHOOSE_WEAPON) {
+      throw new Error(`Cannot select weapon in state ${this._state}`);
+    }
+    this._selectedWeaponIndex = index;
+    this._state = MenuState.CHOOSE_TARGET;
+  }
+
+  cancelWeaponSelection(): void {
+    if (this._state !== MenuState.CHOOSE_WEAPON) {
+      throw new Error(`Cannot cancel weapon selection in state ${this._state}`);
+    }
+    this._selectedWeaponIndex = -1;
+    this._state = MenuState.CHOOSE_ACTION;
   }
 
   selectTarget(target: Unit): void {
@@ -103,6 +135,7 @@ export class BattleMenu {
     this._enemies = [];
     this._selectedAction = null;
     this._selectedTarget = null;
+    this._selectedWeaponIndex = -1;
     this._selectedItemIndex = -1;
   }
 }
