@@ -11,6 +11,8 @@ import { ExpPopup } from '../game/ui/ExpPopup';
 import { StatusWindow } from '../game/ui/StatusWindow';
 import { ItemMenu } from '../game/ui/ItemMenu';
 import { LevelUpDisplay, LEVEL_UP_PHASE } from '../game/ui/LevelUpDisplay';
+import { PromotionDisplay, PROMOTION_PHASE } from '../game/ui/PromotionDisplay';
+import { getPromotedClass } from '../game/promotion/PromotionData';
 import type { Item, WeaponItem } from '../game/items/ItemTypes';
 import type { CombatResult } from '../game/combat/Engine';
 import { getHealTargets } from '../game/staves/getHealTargets';
@@ -59,6 +61,11 @@ export class BattleScene extends Phaser.Scene {
   private levelUpBanner: Phaser.GameObjects.Container | null = null;
   private levelUpSequence: {
     display: LevelUpDisplay;
+    container: Phaser.GameObjects.Container;
+    timer: Phaser.Time.TimerEvent;
+  } | null = null;
+  private promotionSequence: {
+    display: PromotionDisplay;
     container: Phaser.GameObjects.Container;
     timer: Phaser.Time.TimerEvent;
   } | null = null;
@@ -1886,7 +1893,7 @@ export class BattleScene extends Phaser.Scene {
           if (popup.leveledUp) {
             this.showLevelUpSequence(unit, progression, () => {
               this.hideExpPopup();
-              onComplete();
+              this.handlePostLevelUp(unit, onComplete);
             });
           } else {
             this.time.delayedCall(600, () => {
@@ -2084,6 +2091,245 @@ export class BattleScene extends Phaser.Scene {
     this.levelUpSequence?.container.destroy();
     this.levelUpSequence = null;
     this.levelUpBanner = null;
+  }
+
+  private handlePostLevelUp(unit: Unit, onComplete: () => void): void {
+    if (!this.engine.canPromote(unit)) {
+      onComplete();
+      return;
+    }
+    this.showPromotionPrompt(unit, (accepted) => {
+      if (accepted) {
+        const result = this.engine.promote(unit);
+        if (result.success) {
+          this.showPromotionSequence(result, () => {
+            onComplete();
+          });
+          return;
+        }
+      }
+      onComplete();
+    });
+  }
+
+  private showPromotionPrompt(unit: Unit, callback: (accepted: boolean) => void): void {
+    this.inputEnabled = false;
+    const container = this.add.container(0, 0);
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+
+    const bg = this.add.rectangle(cx, cy, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6);
+    container.add(bg);
+
+    const panel = this.add.rectangle(cx, cy, 340, 180, 0x1a1a2e, 0.95);
+    panel.setStrokeStyle(2, 0xf1c40f);
+    container.add(panel);
+
+    const promotedClass = getPromotedClass(unit.unitClass);
+    const classTitle = promotedClass ?? 'promoted class';
+    const title = this.add
+      .text(cx, cy - 40, `Promote ${unit.name} to ${classTitle}?`, {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    container.add(title);
+
+    const yesBtn = this.add
+      .text(cx - 60, cy + 30, 'YES', {
+        fontSize: '16px',
+        color: '#2ecc71',
+        fontStyle: 'bold',
+        backgroundColor: '#1a1a2e',
+        padding: { x: 16, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    container.add(yesBtn);
+
+    const noBtn = this.add
+      .text(cx + 60, cy + 30, 'NO', {
+        fontSize: '16px',
+        color: '#e74c3c',
+        fontStyle: 'bold',
+        backgroundColor: '#1a1a2e',
+        padding: { x: 16, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    container.add(noBtn);
+
+    const cleanup = (accepted: boolean) => {
+      container.destroy();
+      this.inputEnabled = true;
+      callback(accepted);
+    };
+
+    yesBtn.on('pointerdown', () => cleanup(true));
+    noBtn.on('pointerdown', () => cleanup(false));
+  }
+
+  private showPromotionSequence(
+    result: import('../game/promotion/PromotionEngine').PromotionResult,
+    onComplete: () => void,
+  ): void {
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+    const display = new PromotionDisplay(result);
+
+    const container = this.add.container(cx, cy);
+    container.setDepth(100);
+
+    const bannerBg = this.add.rectangle(0, -120, 320, 56, 0x8e44ad, 0.95);
+    bannerBg.setStrokeStyle(3, 0xf1c40f);
+    container.add(bannerBg);
+
+    const bannerText = this.add
+      .text(0, -120, `PROMOTION!  ${result.unitName} \u2192 ${result.newClass}`, {
+        fontSize: '20px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    container.add(bannerText);
+
+    const classText = this.add
+      .text(0, -60, `${result.oldClass} \u2192 ${result.newClass}`, {
+        fontSize: '16px',
+        color: '#f1c40f',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setAlpha(0);
+    container.add(classText);
+
+    const statKeys: (keyof import('../game/units/Stats').UnitStats)[] = [
+      'hp', 'str', 'mag', 'skl', 'spd', 'luk', 'def', 'res', 'mov',
+    ];
+    const statLabels: Record<string, string> = {
+      hp: 'HP', str: 'Str', mag: 'Mag', skl: 'Skl', spd: 'Spd',
+      luk: 'Luk', def: 'Def', res: 'Res', mov: 'Mov',
+    };
+
+    const statTexts: Phaser.GameObjects.Text[] = [];
+    const startY = -20;
+    const rowHeight = 28;
+
+    for (let i = 0; i < statKeys.length; i++) {
+      const key = statKeys[i];
+      const y = startY + i * rowHeight;
+
+      const nameText = this.add
+        .text(-80, y, statLabels[key as string] ?? key, {
+          fontSize: '14px',
+          color: '#bdc3c7',
+        })
+        .setOrigin(0, 0.5)
+        .setAlpha(0);
+      container.add(nameText);
+
+      const diff = result.diff[key] ?? 0;
+      const diffStr = diff > 0 ? `+${diff.toString()}` : diff.toString();
+      const color = diff > 0 ? '#2ecc71' : '#bdc3c7';
+
+      const valueText = this.add
+        .text(60, y, diffStr, {
+          fontSize: '14px',
+          color,
+          fontStyle: diff > 0 ? 'bold' : 'normal',
+        })
+        .setOrigin(1, 0.5)
+        .setAlpha(0);
+      container.add(valueText);
+
+      statTexts.push(nameText, valueText);
+    }
+
+    const hintText = this.add
+      .text(0, 200, '', {
+        fontSize: '12px',
+        color: '#7f8c8d',
+        fontStyle: 'italic',
+      })
+      .setOrigin(0.5)
+      .setAlpha(0);
+    container.add(hintText);
+
+    const timer = this.time.addEvent({
+      delay: 16,
+      callback: () => {
+        display.update(16);
+
+        if (display.phase === PROMOTION_PHASE.BANNER_IN) {
+          const t = Math.min(1, display.elapsed / 300);
+          bannerBg.setAlpha(t * 0.95);
+          bannerText.setAlpha(t);
+          bannerBg.setPosition(0, -120 + (1 - t) * -40);
+          bannerText.setPosition(0, -120 + (1 - t) * -40);
+        } else {
+          bannerBg.setAlpha(0.95);
+          bannerText.setAlpha(1);
+          bannerBg.setPosition(0, -120);
+          bannerText.setPosition(0, -120);
+        }
+
+        if (
+          display.phase === PROMOTION_PHASE.CLASS_REVEAL ||
+          display.phase === PROMOTION_PHASE.STATS_IN ||
+          display.phase === PROMOTION_PHASE.STAT_REVEAL ||
+          display.phase === PROMOTION_PHASE.WAIT_FOR_INPUT ||
+          display.phase === PROMOTION_PHASE.DONE
+        ) {
+          const classT = Math.min(1, (display.elapsed - 600) / 400);
+          classText.setAlpha(classT);
+        }
+
+        if (
+          display.phase === PROMOTION_PHASE.STATS_IN ||
+          display.phase === PROMOTION_PHASE.STAT_REVEAL ||
+          display.phase === PROMOTION_PHASE.WAIT_FOR_INPUT ||
+          display.phase === PROMOTION_PHASE.DONE
+        ) {
+          for (let i = 0; i < statKeys.length; i++) {
+            const progress = display.getRevealProgress(statKeys[i]);
+            const nameText = statTexts[i * 2];
+            const valueText = statTexts[i * 2 + 1];
+            nameText.setAlpha(progress);
+            valueText.setAlpha(progress);
+          }
+        }
+
+        if (display.phase === PROMOTION_PHASE.WAIT_FOR_INPUT) {
+          hintText.setText('Click or press SPACE to continue');
+          hintText.setAlpha(1);
+        }
+
+        if (display.isComplete()) {
+          timer.remove();
+          this.hidePromotionSequence();
+          onComplete();
+        }
+      },
+      loop: true,
+    });
+
+    this.promotionSequence = { display, container, timer };
+
+    const dismissHandler = () => {
+      if (this.promotionSequence?.display.phase === PROMOTION_PHASE.WAIT_FOR_INPUT) {
+        this.promotionSequence.display.dismiss();
+      }
+    };
+
+    this.input.once('pointerdown', dismissHandler);
+    this.input.keyboard?.once('keydown-SPACE', dismissHandler);
+  }
+
+  private hidePromotionSequence(): void {
+    this.promotionSequence?.timer.remove();
+    this.promotionSequence?.container.destroy();
+    this.promotionSequence = null;
   }
 
   private showItemMenu(unit: Unit): void {

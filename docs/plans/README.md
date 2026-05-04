@@ -66,6 +66,7 @@ src/
 | 8 | [08-character-progression.md](./08-character-progression.md) | ⬜ | Leveling, EXP, growth rates, stat caps |
 | 9 | [09-player-battle-mode.md](./09-player-battle-mode.md) | ⬜ | Fight menu, target selection, combat animation |
 | 10 | [10-level-objectives.md](./10-level-objectives.md) | ✅ | Victory/defeat conditions, level completion |
+| 11 | [11-promotion-system.md](./11-promotion-system.md) | ⬜ | Fire Emblem-style class promotion |
 
 ---
 
