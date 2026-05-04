@@ -604,18 +604,46 @@ export class BattleScene extends Phaser.Scene {
         const moveX = action.x;
         const moveY = action.y;
         if (sprite) {
-          const targetX = this.offsetX + moveX * TILE_SIZE + TILE_SIZE / 2;
-          const targetY = this.offsetY + moveY * TILE_SIZE + TILE_SIZE / 2;
-          this.tweens.add({
-            targets: sprite,
-            x: targetX,
-            y: targetY,
-            duration: 300,
-            onComplete: () => {
-              this.engine.moveUnit(action.actor, moveX, moveY);
-              processNext(index + 1);
-            },
-          });
+          this.isAnimatingMovement = true;
+          const onMoveComplete = () => {
+            this.isAnimatingMovement = false;
+            this.engine.moveUnit(action.actor, moveX, moveY);
+            processNext(index + 1);
+          };
+          if (action.path && action.path.length > 0) {
+            let stepIndex = 0;
+            const processStep = () => {
+              if (stepIndex >= action.path!.length) {
+                onMoveComplete();
+                return;
+              }
+              const step = action.path![stepIndex];
+              const targetX = this.offsetX + step.x * TILE_SIZE + TILE_SIZE / 2;
+              const targetY = this.offsetY + step.y * TILE_SIZE + TILE_SIZE / 2;
+              this.tweens.add({
+                targets: sprite,
+                x: targetX,
+                y: targetY,
+                duration: 150,
+                ease: 'Linear',
+                onComplete: () => {
+                  stepIndex++;
+                  processStep();
+                },
+              });
+            };
+            processStep();
+          } else {
+            const targetX = this.offsetX + moveX * TILE_SIZE + TILE_SIZE / 2;
+            const targetY = this.offsetY + moveY * TILE_SIZE + TILE_SIZE / 2;
+            this.tweens.add({
+              targets: sprite,
+              x: targetX,
+              y: targetY,
+              duration: 300,
+              onComplete: onMoveComplete,
+            });
+          }
         } else {
           processNext(index + 1);
         }
