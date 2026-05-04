@@ -8,6 +8,7 @@ import { UNIT_STATE } from '../game/state/UnitState';
 import { EnemyPreview } from '../game/ui/EnemyPreview';
 import { getLevel, getNextLevelId } from '../game/levels/LevelData';
 import { ExpPopup } from '../game/ui/ExpPopup';
+import { StatusWindow } from '../game/ui/StatusWindow';
 import type { CombatResult } from '../game/combat/Engine';
 
 const TERRAIN_COLORS: Record<string, number> = {
@@ -52,6 +53,8 @@ export class BattleScene extends Phaser.Scene {
   private combatResult: CombatResult | null = null;
   private expPopupContainer: Phaser.GameObjects.Container | null = null;
   private levelUpBanner: Phaser.GameObjects.Container | null = null;
+  private statusWindow: StatusWindow = new StatusWindow();
+  private statusOverlay: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -735,7 +738,130 @@ export class BattleScene extends Phaser.Scene {
       },
     );
 
-    this.menuTexts.push(fightText, endText);
+    const statusText = this.add
+      .text(px, py + 48, '[ Status ]', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#27ae60',
+        padding: { x: 8, y: 4 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    statusText.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        this.battleMenu.selectAction(MenuAction.STATUS);
+        this.clearMenuTexts();
+        this.showStatusWindow(unit);
+      },
+    );
+
+    this.menuTexts.push(fightText, endText, statusText);
+  }
+
+  private showStatusWindow(unit: Unit): void {
+    this.statusWindow.open(unit);
+    this.inputEnabled = false;
+
+    const overlay = this.add.container(0, 0);
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7,
+    );
+    overlay.add(bg);
+
+    const stats = this.statusWindow.displayStats;
+    if (stats) {
+      const cx = this.cameras.main.width / 2;
+      const cy = this.cameras.main.height / 2;
+
+      const panel = this.add.rectangle(cx, cy, 260, 320, 0x2c3e50, 0.95);
+      panel.setStrokeStyle(2, 0x3498db);
+      overlay.add(panel);
+
+      const lines = [
+        `${stats.name}`,
+        `Class: ${stats.unitClass}`,
+        `Level: ${stats.level}`,
+        ``,
+        `HP:  ${stats.hp} / ${stats.maxHp}`,
+        `Str: ${stats.str}`,
+        `Mag: ${stats.mag}`,
+        `Skl: ${stats.skl}`,
+        `Spd: ${stats.spd}`,
+        `Luk: ${stats.luk}`,
+        `Def: ${stats.def}`,
+        `Res: ${stats.res}`,
+        `Mov: ${stats.mov}`,
+      ];
+
+      const text = this.add
+        .text(cx, cy - 20, lines.join('\n'), {
+          fontSize: '14px',
+          color: '#ecf0f1',
+          align: 'center',
+          lineSpacing: 4,
+        })
+        .setOrigin(0.5);
+
+      overlay.add(text);
+    }
+
+    const closeBtn = this.add
+      .text(
+        this.cameras.main.width / 2,
+        this.cameras.main.height / 2 + 140,
+        '[ Close ]',
+        {
+          fontSize: '16px',
+          color: '#ffffff',
+          backgroundColor: '#c0392b',
+          padding: { x: 12, y: 6 },
+        },
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    closeBtn.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        this.hideStatusWindow();
+      },
+    );
+
+    overlay.add(closeBtn);
+    this.statusOverlay = overlay;
+  }
+
+  private hideStatusWindow(): void {
+    this.statusOverlay?.destroy();
+    this.statusOverlay = null;
+    this.statusWindow.close();
+    this.inputEnabled = true;
+    const unit = this.battleMenu.unit;
+    if (unit) {
+      this.battleMenu.show(unit, this.engine.getAdjacentEnemies(unit));
+      this.showPostMoveMenu(unit);
+    }
   }
 
   private clearMenuTexts(): void {
@@ -755,6 +881,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private undoMove(): void {
+    if (this.statusOverlay) {
+      this.hideStatusWindow();
+      return;
+    }
     const unit = this.battleMenu.unit;
     if (!unit) {
       return;
@@ -784,6 +914,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private handleOutsideMenuClick(): void {
+    if (this.statusOverlay) {
+      this.hideStatusWindow();
+      return;
+    }
     if (this.battleMenu.state === MenuState.CHOOSE_TARGET) {
       this.moveGraphics.clear();
       this.pathGraphics.clear();
