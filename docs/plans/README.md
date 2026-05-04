@@ -63,10 +63,10 @@ src/
 | 5 | [05-enemy-ai.md](./05-enemy-ai.md) | ⬜ | Aggro range, decision matrix, automated enemy phase |
 | 6 | [06-polish-and-deployment.md](./06-polish-and-deployment.md) | ⬜ | Animations, juice, hosting |
 | 7 | [07-cutscene-system.md](./07-cutscene-system.md) | ✅ | Fire Emblem dialog boxes, portraits, typewriter |
-| 8 | [08-character-progression.md](./08-character-progression.md) | ⬜ | Leveling, EXP, growth rates, stat caps |
+| 8 | [08-character-progression.md](./08-character-progression.md) | ✅ | Leveling, EXP, growth rates, stat caps |
 | 9 | [09-player-battle-mode.md](./09-player-battle-mode.md) | ⬜ | Fight menu, target selection, combat animation |
 | 10 | [10-level-objectives.md](./10-level-objectives.md) | ✅ | Victory/defeat conditions, level completion |
-| 11 | [11-promotion-system.md](./11-promotion-system.md) | ⬜ | Fire Emblem-style class promotion |
+| 11 | [11-promotion-system.md](./11-promotion-system.md) | ✅ | Fire Emblem-style class promotion |
 
 ---
 
