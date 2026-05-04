@@ -138,6 +138,13 @@ export class Unit {
     };
   }
 
+  heal(amount: number): void {
+    this._stats = {
+      ...this._stats,
+      hp: Math.min(this._stats.maxHp, this._stats.hp + amount),
+    };
+  }
+
   resetState(): void {
     this.state.reset();
   }

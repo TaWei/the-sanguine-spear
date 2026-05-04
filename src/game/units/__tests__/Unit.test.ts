@@ -290,4 +290,22 @@ describe('Unit', () => {
     expect(unit.hasActed).toBe(true);
     expect(unit.state.current).toBe(UNIT_STATE.EXHAUSTED);
   });
+
+  it('heal restores HP up to maxHp', () => {
+    const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, createStats({
+      hp: 10, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5,
+    }), 0, 0);
+    unit.takeDamage(5);
+    expect(unit.stats.hp).toBe(5);
+    unit.heal(8);
+    expect(unit.stats.hp).toBe(13);
+  });
+
+  it('heal does not exceed maxHp', () => {
+    const unit = new Unit('u2', 'Test', Faction.PLAYER, UnitClass.LORD, createStats({
+      hp: 18, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5,
+    }), 0, 0);
+    unit.heal(10);
+    expect(unit.stats.hp).toBe(20);
+  });
 });
