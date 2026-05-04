@@ -142,7 +142,27 @@ export class GameEngine {
     return this.progressionEngine.grantExp(unit, combatResult.expAward);
   }
 
-  getWeaponForUnit(unit: Unit): WeaponData {
+  getWeaponForUnit(unit: Unit, weaponIndex?: number): WeaponData {
+    if (
+      weaponIndex !== undefined &&
+      weaponIndex >= 0 &&
+      weaponIndex < unit.inventory.items.length
+    ) {
+      const item = unit.inventory.items[weaponIndex];
+      if (item && item.kind === 'weapon') {
+        const w = item as WeaponItem;
+        return {
+          name: w.name,
+          type: w.weaponType,
+          mt: w.mt,
+          hit: w.hit,
+          crit: w.crit,
+          minRange: w.minRange,
+          maxRange: w.maxRange,
+          usesMagic: w.usesMagic,
+        };
+      }
+    }
     const invWeapon = unit.inventory.items.find((i) => i.kind === 'weapon') as WeaponItem | undefined;
     if (invWeapon) {
       return {
@@ -182,16 +202,21 @@ export class GameEngine {
     attacker: Unit,
     defender: Unit,
     rng?: () => number,
+    attackerWeaponIndex?: number,
   ): import('./combat/Engine').CombatResult {
     const combat = new CombatEngine(this.grid);
-    const attWeapon = this.getWeaponForUnit(attacker);
+    const attWeapon = this.getWeaponForUnit(attacker, attackerWeaponIndex);
     const defWeapon = this.getWeaponForUnit(defender);
     return combat.resolveCombat(attacker, defender, attWeapon, defWeapon, rng);
   }
 
-  getCombatPreview(attacker: Unit, defender: Unit): import('./combat/Engine').CombatPreview {
+  getCombatPreview(
+    attacker: Unit,
+    defender: Unit,
+    attackerWeaponIndex?: number,
+  ): import('./combat/Engine').CombatPreview {
     const combat = new CombatEngine(this.grid);
-    const attWeapon = this.getWeaponForUnit(attacker);
+    const attWeapon = this.getWeaponForUnit(attacker, attackerWeaponIndex);
     const defWeapon = this.getWeaponForUnit(defender);
     return combat.previewCombat(attacker, defender, attWeapon, defWeapon);
   }

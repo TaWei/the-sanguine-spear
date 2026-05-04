@@ -5,6 +5,7 @@ import { createStats } from '../units/Stats';
 import { TerrainType } from '../map/Terrain';
 import { UNIT_STATE } from '../state/UnitState';
 import { getLevel } from '../levels/LevelData';
+import { createWeaponItem, createRecoveryItem } from '../items/ItemTypes';
 
 describe('GameEngine', () => {
   it('initializes with a grid of specified size', () => {
@@ -462,6 +463,78 @@ describe('GameEngine', () => {
 
     const preview = engine.getCombatPreview(player, enemy);
     expect(preview.defender).toBeNull();
+  });
+
+  it('resolvePlayerCombat with attackerWeaponIndex uses the weapon at that inventory index', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const enemyStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+
+    player.inventory.add(createWeaponItem('Iron Axe', 'axe', 15, 70, 0, 1, 1, false));
+
+    const enemyHpBefore = enemy.stats.hp;
+    engine.resolvePlayerCombat(player, enemy, () => 0, 1);
+    const damageWithIndex = enemyHpBefore - enemy.stats.hp;
+
+    expect(damageWithIndex).toBe(18);
+  });
+
+  it('getCombatPreview reflects selected inventory weapon stats', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const enemyStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+
+    player.inventory.add(createWeaponItem('Iron Axe', 'axe', 15, 70, 0, 1, 1, false));
+
+    const previewDefault = engine.getCombatPreview(player, enemy);
+    const previewIndexed = engine.getCombatPreview(player, enemy, 1);
+
+    expect(previewDefault.attacker.damage).toBe(9);
+    expect(previewIndexed.attacker.damage).toBe(18);
   });
 
   it('reports victory when all enemies are dead', () => {
