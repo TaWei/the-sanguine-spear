@@ -4,6 +4,7 @@ export const MenuState = {
   HIDDEN: 'hidden',
   CHOOSE_ACTION: 'choose_action',
   CHOOSE_TARGET: 'choose_target',
+  CHOOSE_STATUS: 'choose_status',
   RESOLVED: 'resolved',
 } as const;
 export type MenuState = (typeof MenuState)[keyof typeof MenuState];
@@ -11,6 +12,7 @@ export type MenuState = (typeof MenuState)[keyof typeof MenuState];
 export const MenuAction = {
   FIGHT: 'fight',
   END_TURN: 'end_turn',
+  STATUS: 'status',
 } as const;
 export type MenuAction = (typeof MenuAction)[keyof typeof MenuAction];
 
@@ -55,6 +57,8 @@ export class BattleMenu {
     this._selectedAction = action;
     if (action === MenuAction.END_TURN) {
       this._state = MenuState.RESOLVED;
+    } else if (action === MenuAction.STATUS) {
+      this._state = MenuState.CHOOSE_STATUS;
     } else {
       this._state = MenuState.CHOOSE_TARGET;
     }

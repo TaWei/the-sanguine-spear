@@ -95,4 +95,23 @@ describe('BattleMenu', () => {
     expect(menu.state).toBe(MenuState.HIDDEN);
     expect(menu.unit).toBeNull();
   });
+
+  it('selecting STATUS transitions to CHOOSE_STATUS', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.STATUS);
+    expect(menu.state).toBe(MenuState.CHOOSE_STATUS);
+    expect(menu.selectedAction).toBe(MenuAction.STATUS);
+  });
+
+  it('reset from CHOOSE_STATUS returns to hidden', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.STATUS);
+    expect(menu.state).toBe(MenuState.CHOOSE_STATUS);
+    menu.reset();
+    expect(menu.state).toBe(MenuState.HIDDEN);
+    expect(menu.unit).toBeNull();
+    expect(menu.selectedAction).toBeNull();
+  });
 });
