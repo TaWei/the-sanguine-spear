@@ -249,6 +249,37 @@ describe('GameEngine', () => {
     expect(enemy.stats.hp).toBeLessThan(enemyHpBefore);
   });
 
+  it('getCombatPreview returns hit/crit/damage without applying damage', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+
+    const preview = engine.getCombatPreview(player, enemy);
+
+    expect(preview.attacker.hit).toBeGreaterThan(0);
+    expect(preview.attacker.damage).toBe(9); // str(8)+mt(5)+tri(1)-def(5)=9
+    expect(preview.attacker.doubleAttack).toBe(false); // spd 8 vs 5 (diff 3)
+    expect(preview.defender).not.toBeNull();
+    expect(preview.defender!.hit).toBeGreaterThan(0);
+
+    // No damage applied
+    expect(enemy.stats.hp).toBe(enemyStats.hp);
+    expect(player.stats.hp).toBe(stats.hp);
+  });
+
+  it('getCombatPreview defender is null when out of range', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 7, 5);
+
+    const preview = engine.getCombatPreview(player, enemy);
+    expect(preview.defender).toBeNull();
+  });
+
   it('reports victory when all enemies are dead', () => {
     const engine = new GameEngine(10, 8);
     const stats = createStats({ hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5 });
@@ -427,6 +458,24 @@ describe('GameEngine', () => {
     expect(path).toBeNull();
   });
 
+  it('moveUnit throws when destination is occupied by another unit', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 6, 5);
+    expect(() => engine.moveUnit(player, 6, 5)).toThrow('occupied');
+  });
+
+  it('moveUnit is a no-op when moving to the current tile', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    expect(() => engine.moveUnit(player, 5, 5)).not.toThrow();
+    expect(player.gridX).toBe(5);
+    expect(player.gridY).toBe(5);
+    expect(engine.getUnit(5, 5)).toBe(player);
+  });
+
   it('can load a level definition', () => {
     const level = getLevel('level-1')!;
     const engine = new GameEngine(level.cols, level.rows);
@@ -447,5 +496,88 @@ describe('GameEngine', () => {
     const sylvie = engine.getUnit(3, 4);
     expect(sylvie).not.toBeNull();
     expect(sylvie!.unitClass).toBe(UnitClass.PEGASUS_KNIGHT);
+  });
+
+  describe('critical attack integration', () => {
+    it('killer weapon + high skill yields lethal crit preview', () => {
+      const engine = new GameEngine(10, 10);
+      const attackerStats = createStats({ hp: 30, str: 12, mag: 2, skl: 20, spd: 10, luk: 5, def: 6, res: 2, mov: 5 });
+      const defenderStats = createStats({ hp: 18, maxHp: 18, str: 8, mag: 2, skl: 7, spd: 5, luk: 0, def: 4, res: 2, mov: 5 });
+      const attacker = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.SWORDMASTER, attackerStats, 5, 5);
+      const defender = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, defenderStats, 5, 6);
+
+      const preview = engine.getCombatPreview(attacker, defender);
+      expect(preview.attacker.crit).toBeGreaterThan(0);
+      // critRate = floor(20/2) + 30 + 15 = 55; critAvoid = 0; displayCrit = 55
+      expect(preview.attacker.crit).toBe(55);
+      // base damage = 12 + 9 - 4 = 17; crit damage = 51 which exceeds defender HP
+      expect(preview.attacker.damage * 3).toBeGreaterThanOrEqual(defender.stats.hp);
+    });
+
+    it('high luck nullifies enemy crit entirely', () => {
+      const engine = new GameEngine(10, 10);
+      const attackerStats = createStats({ hp: 30, str: 12, mag: 2, skl: 20, spd: 10, luk: 5, def: 6, res: 2, mov: 5 });
+      const defenderStats = createStats({ hp: 30, maxHp: 30, str: 8, mag: 2, skl: 7, spd: 5, luk: 70, def: 6, res: 2, mov: 5 });
+      const attacker = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.SWORDMASTER, attackerStats, 5, 5);
+      const defender = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, defenderStats, 5, 6);
+
+      const preview = engine.getCombatPreview(attacker, defender);
+      // critRate = floor(20/2) + 30 + 15 = 65; critAvoid = 70; displayCrit = max(0, 65-70) = 0
+      expect(preview.attacker.crit).toBe(0);
+    });
+  });
+
+  describe('applyCombatExp', () => {
+    it('grants exp from combat result and returns progression result', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+      const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+
+      const combatResult = { log: [], attackerDied: false, defenderDied: true, expAward: 30 };
+      const progression = engine.applyCombatExp(unit, combatResult);
+
+      expect(progression).not.toBeNull();
+      expect(progression!.expGained).toBe(30);
+      expect(unit.exp).toBe(30);
+    });
+
+    it('returns null when expAward is 0', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+      const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+
+      const combatResult = { log: [], attackerDied: false, defenderDied: false, expAward: 0 };
+      const progression = engine.applyCombatExp(unit, combatResult);
+
+      expect(progression).toBeNull();
+      expect(unit.exp).toBe(0);
+    });
+
+    it('returns null when attacker is dead', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+      const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+      unit.takeDamage(999);
+
+      const combatResult = { log: [], attackerDied: true, defenderDied: true, expAward: 30 };
+      const progression = engine.applyCombatExp(unit, combatResult);
+
+      expect(progression).toBeNull();
+    });
+
+    it('triggers level-up when exp reaches 100', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({ hp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+      const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+      unit.gainExp(80);
+
+      const combatResult = { log: [], attackerDied: false, defenderDied: true, expAward: 30 };
+      const progression = engine.applyCombatExp(unit, combatResult);
+
+      expect(progression).not.toBeNull();
+      expect(progression!.leveledUp).toBe(true);
+      expect(unit.level).toBe(2);
+      expect(unit.exp).toBe(10); // 80 + 30 = 110, overflow 10
+    });
   });
 });

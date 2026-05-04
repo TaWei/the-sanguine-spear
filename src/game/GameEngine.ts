@@ -104,6 +104,15 @@ export class GameEngine {
   moveUnit(unit: Unit, x: number, y: number): void {
     const oldX = unit.gridX;
     const oldY = unit.gridY;
+    if (oldX === x && oldY === y) return;
+
+    const target = this.grid.getUnit(x, y);
+    if (target && target !== unit) {
+      throw new Error(
+        `Cannot move ${unit.name} to (${String(x)},${String(y)}): occupied by ${target.name}`,
+      );
+    }
+
     this.grid.removeUnit(oldX, oldY);
     unit.moveTo(x, y);
     this.grid.placeUnit(unit, x, y);
@@ -113,16 +122,27 @@ export class GameEngine {
     this.grid.setTerrain(x, y, type);
   }
 
-  awardCombatExp(unit: Unit, damageDealt: number, killed: boolean): void {
-    const base = damageDealt > 0 ? 10 : 0;
-    const killBonus = killed ? 30 : 0;
-    this.progressionEngine.grantExp(unit, base + killBonus);
+  awardCombatExp(unit: Unit, _damageDealt: number, killed: boolean): void {
+    const amount = killed ? 40 : 10;
+    this.progressionEngine.grantExp(unit, amount);
+  }
+
+  applyCombatExp(
+    unit: Unit,
+    combatResult: import('./combat/Engine').CombatResult,
+  ): import('./progression/ProgressionEngine').ProgressionResult | null {
+    if (!unit.isAlive || combatResult.expAward <= 0) {
+      return null;
+    }
+    return this.progressionEngine.grantExp(unit, combatResult.expAward);
   }
 
   getWeaponForUnit(unit: Unit): WeaponData {
     if (unit.unitClass === 'mage') return WEAPON_DB.Fire;
     if (unit.unitClass === 'brigand') return WEAPON_DB['Iron Axe'];
+    if (unit.unitClass === 'berserker') return WEAPON_DB['Killer Axe'];
     if (unit.unitClass === 'soldier') return WEAPON_DB['Iron Lance'];
+    if (unit.unitClass === 'swordmaster') return WEAPON_DB['Killer Sword'];
     return WEAPON_DB['Iron Sword'];
   }
 
@@ -139,6 +159,16 @@ export class GameEngine {
     const attWeapon = this.getWeaponForUnit(attacker);
     const defWeapon = this.getWeaponForUnit(defender);
     return combat.resolveCombat(attacker, defender, attWeapon, defWeapon, rng);
+  }
+
+  getCombatPreview(
+    attacker: Unit,
+    defender: Unit,
+  ): import('./combat/Engine').CombatPreview {
+    const combat = new CombatEngine(this.grid);
+    const attWeapon = this.getWeaponForUnit(attacker);
+    const defWeapon = this.getWeaponForUnit(defender);
+    return combat.previewCombat(attacker, defender, attWeapon, defWeapon);
   }
 
   checkObjectives(): ObjectiveResult {
