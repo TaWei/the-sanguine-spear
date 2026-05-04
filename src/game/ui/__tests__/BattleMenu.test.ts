@@ -114,4 +114,31 @@ describe('BattleMenu', () => {
     expect(menu.unit).toBeNull();
     expect(menu.selectedAction).toBeNull();
   });
+
+  it('selecting ITEMS transitions to CHOOSE_ITEM', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.ITEMS);
+    expect(menu.state).toBe(MenuState.CHOOSE_ITEM);
+    expect(menu.selectedAction).toBe(MenuAction.ITEMS);
+  });
+
+  it('confirmItemUse transitions to RESOLVED', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.ITEMS);
+    menu.confirmItemUse(0);
+    expect(menu.state).toBe(MenuState.RESOLVED);
+    expect(menu.selectedItemIndex).toBe(0);
+  });
+
+  it('cancelItemUse returns to CHOOSE_ACTION', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.ITEMS);
+    expect(menu.state).toBe(MenuState.CHOOSE_ITEM);
+    menu.cancelItemUse();
+    expect(menu.state).toBe(MenuState.CHOOSE_ACTION);
+    expect(menu.selectedItemIndex).toBe(-1);
+  });
 });

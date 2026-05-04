@@ -5,12 +5,14 @@ export const MenuState = {
   CHOOSE_ACTION: 'choose_action',
   CHOOSE_TARGET: 'choose_target',
   CHOOSE_STATUS: 'choose_status',
+  CHOOSE_ITEM: 'choose_item',
   RESOLVED: 'resolved',
 } as const;
 export type MenuState = (typeof MenuState)[keyof typeof MenuState];
 
 export const MenuAction = {
   FIGHT: 'fight',
+  ITEMS: 'items',
   END_TURN: 'end_turn',
   STATUS: 'status',
 } as const;
@@ -22,6 +24,7 @@ export class BattleMenu {
   private _enemies: Unit[] = [];
   private _selectedAction: MenuAction | null = null;
   private _selectedTarget: Unit | null = null;
+  private _selectedItemIndex: number = -1;
 
   get state(): MenuState {
     return this._state;
@@ -41,12 +44,16 @@ export class BattleMenu {
   get selectedTarget(): Unit | null {
     return this._selectedTarget;
   }
+  get selectedItemIndex(): number {
+    return this._selectedItemIndex;
+  }
 
   show(unit: Unit, enemies: Unit[]): void {
     this._unit = unit;
     this._enemies = enemies;
     this._selectedAction = null;
     this._selectedTarget = null;
+    this._selectedItemIndex = -1;
     this._state = MenuState.CHOOSE_ACTION;
   }
 
@@ -59,6 +66,8 @@ export class BattleMenu {
       this._state = MenuState.RESOLVED;
     } else if (action === MenuAction.STATUS) {
       this._state = MenuState.CHOOSE_STATUS;
+    } else if (action === MenuAction.ITEMS) {
+      this._state = MenuState.CHOOSE_ITEM;
     } else {
       this._state = MenuState.CHOOSE_TARGET;
     }
@@ -72,11 +81,28 @@ export class BattleMenu {
     this._state = MenuState.RESOLVED;
   }
 
+  confirmItemUse(index: number): void {
+    if (this._state !== MenuState.CHOOSE_ITEM) {
+      throw new Error(`Cannot confirm item use in state ${this._state}`);
+    }
+    this._selectedItemIndex = index;
+    this._state = MenuState.RESOLVED;
+  }
+
+  cancelItemUse(): void {
+    if (this._state !== MenuState.CHOOSE_ITEM) {
+      throw new Error(`Cannot cancel item use in state ${this._state}`);
+    }
+    this._selectedItemIndex = -1;
+    this._state = MenuState.CHOOSE_ACTION;
+  }
+
   reset(): void {
     this._state = MenuState.HIDDEN;
     this._unit = null;
     this._enemies = [];
     this._selectedAction = null;
     this._selectedTarget = null;
+    this._selectedItemIndex = -1;
   }
 }
