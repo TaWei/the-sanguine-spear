@@ -25,7 +25,7 @@ export class MainMenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const startBtn = this.add
-      .text(cx, cy + 60, '[ Level 1: The Ruins ]', {
+      .text(cx, cy + 60, '[ New Campaign ]', {
         fontSize: '24px',
         color: '#ecf0f1',
         backgroundColor: '#2c3e50',
@@ -65,11 +65,11 @@ export class MainMenuScene extends Phaser.Scene {
     });
 
     const prologueBtn = this.add
-      .text(cx, cy + 140, '[ Watch Prologue ]', {
-        fontSize: '20px',
+      .text(cx, cy + 180, '[ Watch Prologue ]', {
+        fontSize: '24px',
         color: '#bdc3c7',
         backgroundColor: '#1a1a2e',
-        padding: { x: 16, y: 8 },
+        padding: { x: 20, y: 10 },
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });

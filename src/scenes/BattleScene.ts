@@ -9,7 +9,9 @@ import { BattleMenu, MenuState, MenuAction } from '../game/ui/BattleMenu';
 import { BattleDisplayState, BattlePhase } from '../game/ui/BattleDisplayState';
 import { UNIT_STATE } from '../game/state/UnitState';
 import { EnemyPreview } from '../game/ui/EnemyPreview';
-import { getLevel } from '../game/levels/LevelData';
+import { getLevel, getNextLevelId } from '../game/levels/LevelData';
+import { ExpPopup } from '../game/ui/ExpPopup';
+import type { CombatResult } from '../game/combat/Engine';
 
 const TERRAIN_COLORS: Record<string, number> = {
   plains: 0x8fbc8f,
@@ -51,6 +53,7 @@ export class BattleScene extends Phaser.Scene {
   private battleMenu!: BattleMenu;
   private enemyPreview: EnemyPreview;
   private menuTexts: Phaser.GameObjects.Text[] = [];
+  private enemyPreviewTexts: Phaser.GameObjects.Text[] = [];
   private battleOverlay: Phaser.GameObjects.Container | null = null;
   private battleDisplayState: BattleDisplayState | null = null;
   private inBattleMode = false;
@@ -61,6 +64,10 @@ export class BattleScene extends Phaser.Scene {
   private preMovePosition: { x: number; y: number } | null = null;
   private pathGraphics!: Phaser.GameObjects.Graphics;
   private isAnimatingMovement = false;
+  private currentLevelId = 'level-1';
+  private combatResult: CombatResult | null = null;
+  private expPopupContainer: Phaser.GameObjects.Container | null = null;
+  private levelUpBanner: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -71,6 +78,7 @@ export class BattleScene extends Phaser.Scene {
     this.cameras.main.fadeIn(500, 0, 0, 0);
 
     const levelId = data?.levelId ?? 'level-1';
+    this.currentLevelId = levelId;
     const level = getLevel(levelId);
     if (!level) {
       throw new Error(`Unknown level: ${levelId}`);
@@ -375,8 +383,25 @@ export class BattleScene extends Phaser.Scene {
 
   private showEnemyPreview(unit: Unit): void {
     this.moveGraphics.clear();
-    this.enemyPreview.show(unit);
+    this.clearEnemyPreviewTexts();
     this.selectedUnit = null;
+
+    // Compute threat against currently selected player unit if any
+    const playerUnits = this.engine.getUnitsByFaction(Faction.PLAYER).filter((u) => u.isAlive && !u.hasActed);
+    let threat = null;
+    if (playerUnits.length > 0) {
+      const target = playerUnits[0];
+      const preview = this.engine.getCombatPreview(unit, target);
+      if (preview.attacker) {
+        threat = {
+          hit: preview.attacker.hit,
+          crit: preview.attacker.crit,
+          damage: preview.attacker.damage,
+          doubleAttack: preview.attacker.doubleAttack,
+        };
+      }
+    }
+    this.enemyPreview.show(unit, threat ?? undefined);
 
     const range = this.engine.getMoveRange(unit);
     const threatened = this.engine.getThreatenedTiles(unit);
@@ -403,12 +428,40 @@ export class BattleScene extends Phaser.Scene {
         TILE_SIZE,
       );
     });
+
+    // Render threat stats tooltip near the enemy
+    if (threat) {
+      const px = this.offsetX + unit.gridX * TILE_SIZE + TILE_SIZE / 2;
+      const py = this.offsetY + unit.gridY * TILE_SIZE - TILE_SIZE;
+      const lines = [
+        `${unit.name} | ${unit.unitClass}`,
+        `Hit ${threat.hit}%  Crit ${threat.crit}%  Dmg ${threat.damage}${threat.doubleAttack ? ' (2x)' : ''}`,
+      ];
+      const bg = this.add.rectangle(px, py - 10, 220, 44, 0x000000, 0.8);
+      bg.setOrigin(0.5);
+      this.enemyPreviewTexts.push(bg);
+
+      const text = this.add.text(px, py - 10, lines.join('\n'), {
+        fontSize: '12px',
+        color: '#ecf0f1',
+        align: 'center',
+      }).setOrigin(0.5);
+      this.enemyPreviewTexts.push(text);
+    }
+  }
+
+  private clearEnemyPreviewTexts(): void {
+    for (const text of this.enemyPreviewTexts) {
+      text.destroy();
+    }
+    this.enemyPreviewTexts = [];
   }
 
   private clearEnemyPreview(): void {
     this.enemyPreview.clear();
     this.moveGraphics.clear();
     this.pathGraphics.clear();
+    this.clearEnemyPreviewTexts();
   }
 
   private createUI(): void {
@@ -720,7 +773,11 @@ export class BattleScene extends Phaser.Scene {
     this.inBattleMode = true;
     this.pendingBattleCallback = onComplete ?? null;
     const result = this.engine.resolvePlayerCombat(attacker, defender);
+    this.combatResult = result;
     this.battleDisplayState = new BattleDisplayState(attacker, defender, result.log);
+
+    // Get combat preview for display stats
+    const preview = this.engine.getCombatPreview(attacker, defender);
 
     // Create overlay container
     const overlay = this.add.container(0, 0);
@@ -737,13 +794,13 @@ export class BattleScene extends Phaser.Scene {
     // Attacker panel (left)
     const attX = this.cameras.main.width * 0.25;
     const attY = this.cameras.main.height * 0.5;
-    const attPanel = this.createUnitBattlePanel(attacker, attX, attY, 0x3498db);
+    const attPanel = this.createUnitBattlePanel(attacker, attX, attY, 0x3498db, preview.attacker);
     overlay.add(attPanel);
 
     // Defender panel (right)
     const defX = this.cameras.main.width * 0.75;
     const defY = this.cameras.main.height * 0.5;
-    const defPanel = this.createUnitBattlePanel(defender, defX, defY, 0xe74c3c);
+    const defPanel = this.createUnitBattlePanel(defender, defX, defY, 0xe74c3c, preview.defender);
     overlay.add(defPanel);
 
     // VS label
@@ -767,16 +824,17 @@ export class BattleScene extends Phaser.Scene {
     x: number,
     y: number,
     color: number,
+    preview: import('../game/combat/Engine').AttackPreview | null,
   ): Phaser.GameObjects.Container {
     const panel = this.add.container(x, y);
 
     // Background box
-    const box = this.add.rectangle(0, 0, 200, 140, 0x2c3e50, 0.9);
+    const box = this.add.rectangle(0, 0, 200, 180, 0x2c3e50, 0.9);
     box.setStrokeStyle(2, color);
     panel.add(box);
 
     // Name
-    const nameText = this.add.text(0, -50, unit.name, {
+    const nameText = this.add.text(0, -70, unit.name, {
       fontSize: '18px',
       color: '#ecf0f1',
       fontStyle: 'bold',
@@ -784,11 +842,41 @@ export class BattleScene extends Phaser.Scene {
     panel.add(nameText);
 
     // Class
-    const classText = this.add.text(0, -30, unit.unitClass, {
+    const classText = this.add.text(0, -50, unit.unitClass, {
       fontSize: '12px',
       color: '#bdc3c7',
     }).setOrigin(0.5);
     panel.add(classText);
+
+    // Combat stats row
+    if (preview) {
+      const hitText = this.add.text(-60, -30, `Hit ${preview.hit}%`, {
+        fontSize: '12px',
+        color: '#ecf0f1',
+      }).setOrigin(0, 0.5);
+      panel.add(hitText);
+
+      const critText = this.add.text(-60, -14, `Crit ${preview.crit}%`, {
+        fontSize: '12px',
+        color: preview.crit > 0 ? '#e74c3c' : '#95a5a6',
+      }).setOrigin(0, 0.5);
+      panel.add(critText);
+
+      const dmgText = this.add.text(20, -30, `Dmg ${preview.damage}`, {
+        fontSize: '12px',
+        color: '#ecf0f1',
+      }).setOrigin(0, 0.5);
+      panel.add(dmgText);
+
+      if (preview.doubleAttack) {
+        const doubleText = this.add.text(20, -14, '2x', {
+          fontSize: '12px',
+          color: '#f1c40f',
+          fontStyle: 'bold',
+        }).setOrigin(0, 0.5);
+        panel.add(doubleText);
+      }
+    }
 
     // HP label
     const hpLabel = this.add.text(-70, 10, 'HP', {
@@ -952,28 +1040,28 @@ export class BattleScene extends Phaser.Scene {
     const afterFade = () => {
       this.battleOverlay?.destroy();
       this.battleOverlay = null;
-      this.engine.removeDeadUnits();
-      this.syncUnitSprites();
 
-      // Exhaust the player unit
-      if (this.battleDisplayState?.attacker.isPlayer) {
-        this.battleDisplayState.attacker.hasActed = true;
+      // Apply combat EXP
+      const attacker = this.battleDisplayState?.attacker;
+      let progression = null;
+      if (attacker && this.combatResult) {
+        progression = this.engine.applyCombatExp(attacker, this.combatResult);
       }
 
-      // Check win/loss after combat resolves
-      const objectives = this.engine.checkObjectives();
-      if (objectives.victory) {
-        this.showVictoryScreen();
-      } else if (objectives.defeat) {
-        this.showDefeatScreen();
-      } else {
-        this.checkAutoEndTurn();
+      // Show EXP popup for player-initiated attacks with EXP > 0
+      if (
+        attacker?.isPlayer &&
+        progression &&
+        this.combatResult &&
+        this.combatResult.expAward > 0
+      ) {
+        this.showExpPopup(attacker, progression, () => {
+          this.finishBattleMode();
+        });
+        return;
       }
 
-      this.battleDisplayState = null;
-      this.battleMenu.reset();
-      this.pendingBattleCallback?.();
-      this.pendingBattleCallback = null;
+      this.finishBattleMode();
     };
 
     if (this.battleOverlay) {
@@ -986,6 +1074,32 @@ export class BattleScene extends Phaser.Scene {
     } else {
       afterFade();
     }
+  }
+
+  private finishBattleMode(): void {
+    this.engine.removeDeadUnits();
+    this.syncUnitSprites();
+
+    // Exhaust the player unit
+    if (this.battleDisplayState?.attacker.isPlayer) {
+      this.battleDisplayState.attacker.hasActed = true;
+    }
+
+    // Check win/loss after combat resolves
+    const objectives = this.engine.checkObjectives();
+    if (objectives.victory) {
+      this.showVictoryScreen();
+    } else if (objectives.defeat) {
+      this.showDefeatScreen();
+    } else {
+      this.checkAutoEndTurn();
+    }
+
+    this.battleDisplayState = null;
+    this.combatResult = null;
+    this.battleMenu.reset();
+    this.pendingBattleCallback?.();
+    this.pendingBattleCallback = null;
   }
 
   private showVictoryScreen(): void {
@@ -1010,27 +1124,26 @@ export class BattleScene extends Phaser.Scene {
       .setOrigin(0.5);
     overlay.add(title);
 
+    const nextLevelId = getNextLevelId(this.currentLevelId);
+    const subtitleText = nextLevelId ? 'All enemies defeated' : 'Campaign Complete!';
     const subtitle = this.add
-      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.55, 'All enemies defeated', {
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.55, subtitleText, {
         fontSize: '18px',
         color: '#bdc3c7',
       })
       .setOrigin(0.5);
     overlay.add(subtitle);
 
-    const restart = this.add
-      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.7, '[ Play Again ]', {
-        fontSize: '20px',
-        color: '#ffffff',
-        backgroundColor: '#27ae60',
-        padding: { x: 16, y: 8 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-    overlay.add(restart);
-
-    restart.on('pointerdown', () => {
-      this.scene.restart();
+    // Auto-advance after 2s delay
+    this.time.delayedCall(2000, () => {
+      this.cameras.main.fadeOut(1000, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        if (nextLevelId) {
+          this.scene.start('BattleScene', { levelId: nextLevelId });
+        } else {
+          this.scene.start('MainMenuScene');
+        }
+      });
     });
   }
 
@@ -1076,7 +1189,7 @@ export class BattleScene extends Phaser.Scene {
     overlay.add(restart);
 
     restart.on('pointerdown', () => {
-      this.scene.restart();
+      this.scene.restart({ levelId: this.currentLevelId });
     });
   }
 
@@ -1132,5 +1245,138 @@ export class BattleScene extends Phaser.Scene {
       this.inputEnabled = true;
     });
     this.bannerShownForTurn = this.engine.turnManager.turnNumber;
+  }
+
+  private showExpPopup(
+    unit: Unit,
+    progression: import('../game/progression/ProgressionEngine').ProgressionResult,
+    onComplete: () => void,
+  ): void {
+    const startExp = unit.exp - progression.expGained;
+    const popup = new ExpPopup(startExp, unit.exp, progression.leveledUp);
+
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+
+    const container = this.add.container(cx, cy);
+    this.expPopupContainer = container;
+
+    // Background panel
+    const panel = this.add.rectangle(0, 0, 280, 120, 0x1a1a2e, 0.95);
+    panel.setStrokeStyle(2, 0xf1c40f);
+    container.add(panel);
+
+    // Title
+    const title = this.add
+      .text(0, -36, `${unit.name} +${progression.expGained} EXP`, {
+        fontSize: '18px',
+        color: '#f1c40f',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    container.add(title);
+
+    // Bar background
+    const barBg = this.add.rectangle(0, -4, 200, 16, 0x000000);
+    barBg.setStrokeStyle(1, 0xffffff);
+    container.add(barBg);
+
+    // Bar fill (initially at startExp width)
+    const startRatio = startExp / 100;
+    const barFill = this.add.rectangle(
+      -100 + 100 * startRatio,
+      -4,
+      200 * startRatio,
+      14,
+      0x3498db,
+    );
+    barFill.setName('barFill');
+    container.add(barFill);
+
+    // EXP text
+    const expText = this.add
+      .text(0, 22, `EXP: ${startExp} / 100`, {
+        fontSize: '14px',
+        color: '#ecf0f1',
+      })
+      .setOrigin(0.5)
+      .setName('expText');
+    container.add(expText);
+
+    // Level text
+    const levelText = this.add
+      .text(0, 42, `Lv ${unit.level}`, {
+        fontSize: '14px',
+        color: '#bdc3c7',
+      })
+      .setOrigin(0.5);
+    container.add(levelText);
+
+    // Animate bar fill using a repeating timer
+    const timer = this.time.addEvent({
+      delay: 16,
+      callback: () => {
+        popup.update(16);
+        const ratio = popup.getFillRatio();
+        const currentWidth = 200 * ratio;
+        barFill.setSize(currentWidth, 14);
+        barFill.setPosition(-100 + currentWidth / 2, -4);
+        expText.setText(`EXP: ${popup.currentExp} / 100`);
+
+        if (popup.isComplete()) {
+          timer.remove();
+          if (popup.leveledUp) {
+            this.showLevelUpBanner(unit, () => {
+              this.hideExpPopup();
+              onComplete();
+            });
+          } else {
+            this.time.delayedCall(600, () => {
+              this.hideExpPopup();
+              onComplete();
+            });
+          }
+        }
+      },
+      loop: true,
+    });
+  }
+
+  private hideExpPopup(): void {
+    this.expPopupContainer?.destroy();
+    this.expPopupContainer = null;
+  }
+
+  private showLevelUpBanner(unit: Unit, onComplete: () => void): void {
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+
+    const container = this.add.container(cx, cy - 80);
+    this.levelUpBanner = container;
+
+    const bg = this.add.rectangle(0, 0, 260, 50, 0x27ae60, 0.95);
+    bg.setStrokeStyle(2, 0xf1c40f);
+    container.add(bg);
+
+    const text = this.add
+      .text(0, 0, `LEVEL UP! ${unit.name} is now Lv ${unit.level}`, {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    container.add(text);
+
+    this.tweens.add({
+      targets: container,
+      alpha: 0,
+      delay: 1500,
+      duration: 400,
+      onComplete: () => {
+        this.levelUpBanner?.destroy();
+        this.levelUpBanner = null;
+        onComplete();
+      },
+    });
   }
 }
