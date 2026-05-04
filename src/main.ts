@@ -19,4 +19,4 @@ const config: Phaser.Types.Core.GameConfig = {
   pixelArt: true,
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
