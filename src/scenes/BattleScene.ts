@@ -13,6 +13,7 @@ import { ItemMenu } from '../game/ui/ItemMenu';
 import { LevelUpDisplay, LEVEL_UP_PHASE } from '../game/ui/LevelUpDisplay';
 import type { Item, WeaponItem } from '../game/items/ItemTypes';
 import type { CombatResult } from '../game/combat/Engine';
+import { getHealTargets } from '../game/staves/getHealTargets';
 
 const TERRAIN_COLORS: Record<string, number> = {
   plains: 0x8fbc8f,
@@ -222,7 +223,7 @@ export class BattleScene extends Phaser.Scene {
 
     // If menu is open, handle menu/target selection or outside clicks
     if (this.battleMenu.isVisible) {
-      if (this.battleMenu.state === MenuState.CHOOSE_TARGET) {
+      if (this.battleMenu.state === MenuState.CHOOSE_TARGET || this.battleMenu.state === MenuState.CHOOSE_HEAL_TARGET) {
         this.handleMenuInput(gx, gy, clickedUnit);
       } else if (this.battleMenu.state === MenuState.CHOOSE_ACTION) {
         if (!this.isPointerOverMenuText(pointerX, pointerY)) {
@@ -693,6 +694,10 @@ export class BattleScene extends Phaser.Scene {
     const px = this.offsetX + unit.gridX * TILE_SIZE + TILE_SIZE / 2;
     const py = this.offsetY + unit.gridY * TILE_SIZE - TILE_SIZE;
 
+    const staff = this.engine.getStaffForUnit(unit);
+    const healTargets = staff ? this.engine.getHealTargets(unit, staff) : [];
+    const hasStaff = staff !== null && healTargets.length > 0;
+
     const fightText = this.add
       .text(px, py, '[ Fight ]', {
         fontSize: '14px',
@@ -702,16 +707,6 @@ export class BattleScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: enemies.length > 0 });
-
-    const endText = this.add
-      .text(px, py + 72, '[ End Turn ]', {
-        fontSize: '14px',
-        color: '#ffffff',
-        backgroundColor: '#2c3e50',
-        padding: { x: 8, y: 4 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
 
     if (enemies.length > 0) {
       fightText.on(
@@ -735,26 +730,38 @@ export class BattleScene extends Phaser.Scene {
       );
     }
 
-    endText.on(
-      'pointerdown',
-      (
-        _pointer: Phaser.Input.Pointer,
-        _localX: number,
-        _localY: number,
-        event: Phaser.Types.Input.EventData,
-      ) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        event.stopPropagation();
-        this.battleMenu.reset();
-        unit.state.transition(UNIT_STATE.EXHAUSTED);
-        this.clearMenuTexts();
-        this.syncUnitSprites();
-        this.checkAutoEndTurn();
-      },
-    );
+    const baseY = hasStaff ? 24 : 0;
+
+    let staffText: Phaser.GameObjects.Text | null = null;
+    if (hasStaff) {
+      staffText = this.add
+        .text(px, py + 24, '[ Staff ]', {
+          fontSize: '14px',
+          color: '#ffffff',
+          backgroundColor: '#27ae60',
+          padding: { x: 8, y: 4 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      staffText.on(
+        'pointerdown',
+        (
+          _pointer: Phaser.Input.Pointer,
+          _localX: number,
+          _localY: number,
+          event: Phaser.Types.Input.EventData,
+        ) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          event.stopPropagation();
+          this.battleMenu.selectAction(MenuAction.STAFF);
+          this.clearMenuTexts();
+          this.highlightHealTargets(healTargets);
+        },
+      );
+    }
 
     const statusText = this.add
-      .text(px, py + 24, '[ Status ]', {
+      .text(px, py + 24 + baseY, '[ Status ]', {
         fontSize: '14px',
         color: '#ffffff',
         backgroundColor: '#27ae60',
@@ -780,7 +787,7 @@ export class BattleScene extends Phaser.Scene {
     );
 
     const itemsText = this.add
-      .text(px, py + 48, '[ Items ]', {
+      .text(px, py + 48 + baseY, '[ Items ]', {
         fontSize: '14px',
         color: '#ffffff',
         backgroundColor: '#8e44ad',
@@ -805,7 +812,40 @@ export class BattleScene extends Phaser.Scene {
       },
     );
 
-    this.menuTexts.push(fightText, endText, statusText, itemsText);
+    const endText = this.add
+      .text(px, py + 72 + baseY, '[ End Turn ]', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#2c3e50',
+        padding: { x: 8, y: 4 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    endText.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        this.battleMenu.reset();
+        unit.state.transition(UNIT_STATE.EXHAUSTED);
+        this.clearMenuTexts();
+        this.syncUnitSprites();
+        this.checkAutoEndTurn();
+      },
+    );
+
+    const texts: Phaser.GameObjects.Text[] = [fightText, endText, statusText, itemsText];
+    if (staffText) {
+      texts.splice(1, 0, staffText);
+    }
+    this.menuTexts.push(...texts);
+  }
   }
 
   private showWeaponSelection(unit: Unit): void {
@@ -1133,6 +1173,26 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  private highlightHealTargets(targets: Unit[]): void {
+    this.moveGraphics.clear();
+    for (const target of targets) {
+      this.moveGraphics.fillStyle(0x2ecc71, 0.5);
+      this.moveGraphics.fillRect(
+        this.offsetX + target.gridX * TILE_SIZE,
+        this.offsetY + target.gridY * TILE_SIZE,
+        TILE_SIZE,
+        TILE_SIZE,
+      );
+      this.moveGraphics.lineStyle(2, 0x00ff00);
+      this.moveGraphics.strokeRect(
+        this.offsetX + target.gridX * TILE_SIZE,
+        this.offsetY + target.gridY * TILE_SIZE,
+        TILE_SIZE,
+        TILE_SIZE,
+      );
+    }
+  }
+
   private handleMenuInput(_gx: number, _gy: number, clickedUnit: Unit | null): void {
     if (this.battleMenu.state === MenuState.CHOOSE_TARGET) {
       const validTarget = this.battleMenu.adjacentEnemies.find((e) => e.id === clickedUnit?.id);
@@ -1148,6 +1208,23 @@ export class BattleScene extends Phaser.Scene {
         this.startBattleMode(unit, validTarget);
       } else {
         // Cancel target selection, return to action menu
+        this.moveGraphics.clear();
+        this.pathGraphics.clear();
+        const enemies = this.engine.getAdjacentEnemies(unit);
+        this.battleMenu.show(unit, enemies);
+        this.showPostMoveMenu(unit);
+      }
+    } else if (this.battleMenu.state === MenuState.CHOOSE_HEAL_TARGET) {
+      const unit = this.battleMenu.unit;
+      if (!unit) {
+        return;
+      }
+      const staff = this.engine.getStaffForUnit(unit);
+      const healTargets = staff ? this.engine.getHealTargets(unit, staff) : [];
+      const validTarget = healTargets.find((e) => e.id === clickedUnit?.id);
+      if (validTarget) {
+        this.resolveStaffHeal(unit, validTarget);
+      } else {
         this.moveGraphics.clear();
         this.pathGraphics.clear();
         const enemies = this.engine.getAdjacentEnemies(unit);
@@ -1461,6 +1538,54 @@ export class BattleScene extends Phaser.Scene {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     const hpText = panel.getByName('hpText') as Phaser.GameObjects.Text;
     hpText.setText(`${unit.stats.hp.toString()} / ${unit.stats.maxHp.toString()}`);
+  }
+
+  private resolveStaffHeal(healer: Unit, target: Unit): void {
+    const result = this.engine.resolveStaffHeal(healer, target);
+    this.moveGraphics.clear();
+    this.pathGraphics.clear();
+    this.showHealNumber(target, result.healedAmount);
+    this.syncUnitSprites();
+
+    this.time.delayedCall(600, () => {
+      if (result.progression && result.progression.expGained > 0) {
+        this.showExpPopup(healer, result.progression, () => {
+          this.finishStaffUse(healer);
+        });
+      } else {
+        this.finishStaffUse(healer);
+      }
+    });
+  }
+
+  private showHealNumber(target: Unit, amount: number): void {
+    const px = this.offsetX + target.gridX * TILE_SIZE + TILE_SIZE / 2;
+    const py = this.offsetY + target.gridY * TILE_SIZE + TILE_SIZE / 2;
+    const text = this.add
+      .text(px, py - 10, `+${amount.toString()}`, {
+        fontSize: '20px',
+        color: '#2ecc71',
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5);
+
+    this.tweens.add({
+      targets: text,
+      y: py - 40,
+      alpha: 0,
+      duration: 1200,
+      ease: 'Power2',
+      onComplete: () => {
+        text.destroy();
+      },
+    });
+  }
+
+  private finishStaffUse(healer: Unit): void {
+    healer.state.transition(UNIT_STATE.EXHAUSTED);
+    this.syncUnitSprites();
+    this.checkAutoEndTurn();
   }
 
   private endBattleMode(): void {
