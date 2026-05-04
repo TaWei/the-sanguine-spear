@@ -190,6 +190,7 @@ export class GameEngine {
         this.grid.removeUnit(unit.gridX, unit.gridY);
       }
     }
+    this.units = this.units.filter((u) => u.isAlive);
   }
 
   allPlayerUnitsExhausted(): boolean {

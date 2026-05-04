@@ -572,7 +572,7 @@ describe('GameEngine', () => {
     expect(unit.stats.hp).toBe(hpBefore);
   });
 
-  it('removes dead units from the grid', () => {
+  it('removes dead units from the grid and units array', () => {
     const engine = new GameEngine(10, 8);
     const stats = createStats({
       hp: 20,
@@ -590,6 +590,39 @@ describe('GameEngine', () => {
 
     engine.removeDeadUnits();
     expect(engine.getUnit(3, 3)).toBeNull();
+    expect(engine.getAllUnits()).toHaveLength(0);
+    expect(engine.getUnitsByFaction(Faction.ENEMY)).toHaveLength(0);
+  });
+
+  it('cycles through all phases correctly after removeDeadUnits', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({
+      hp: 20,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 7, 5);
+
+    enemy.takeDamage(999);
+    engine.removeDeadUnits();
+
+    // Should still cycle Player → Enemy → Ally → Player
+    engine.endTurn();
+    expect(engine.turnManager.isEnemyPhase()).toBe(true);
+
+    engine.endTurn();
+    expect(engine.turnManager.isAllyPhase()).toBe(true);
+
+    engine.endTurn();
+    expect(engine.turnManager.isPlayerPhase()).toBe(true);
+    expect(engine.turnManager.turnNumber).toBe(2);
   });
 
   it('returns true when all live player units are exhausted', () => {

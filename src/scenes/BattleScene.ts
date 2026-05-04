@@ -515,6 +515,7 @@ export class BattleScene extends Phaser.Scene {
     this.clearMenuTexts();
     const report = this.engine.endTurn();
     this.showHazardDamage(report);
+    this.engine.removeDeadUnits();
     this.syncUnitSprites();
     this.updatePhaseText();
 
@@ -535,6 +536,7 @@ export class BattleScene extends Phaser.Scene {
         this.showHazardDamage(report1);
         const report2 = this.engine.endTurn(); // Ally → Player
         this.showHazardDamage(report2);
+        this.engine.removeDeadUnits();
         this.syncUnitSprites();
         this.updatePhaseText();
         this.beginPlayerPhase();
@@ -1109,6 +1111,11 @@ export class BattleScene extends Phaser.Scene {
   private endBattleMode(): void {
     this.inBattleMode = false;
 
+    // Clean up dead units from the grid and sync sprites immediately,
+    // before the overlay fade / exp popup, so 0-HP enemies don't linger.
+    this.engine.removeDeadUnits();
+    this.syncUnitSprites();
+
     const afterFade = () => {
       this.battleOverlay?.destroy();
       this.battleOverlay = null;
@@ -1149,13 +1156,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private finishBattleMode(): void {
-    this.engine.removeDeadUnits();
-    this.syncUnitSprites();
-
     // Exhaust the player unit
     if (this.battleDisplayState?.attacker.isPlayer) {
       this.battleDisplayState.attacker.hasActed = true;
     }
+
+    // Re-sync sprites so the attacker dims immediately after being exhausted
+    this.syncUnitSprites();
 
     // Check win/loss after combat resolves
     const objectives = this.engine.checkObjectives();
