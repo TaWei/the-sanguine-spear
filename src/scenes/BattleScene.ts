@@ -10,7 +10,7 @@ import { getLevel, getNextLevelId } from '../game/levels/LevelData';
 import { ExpPopup } from '../game/ui/ExpPopup';
 import { StatusWindow } from '../game/ui/StatusWindow';
 import { ItemMenu } from '../game/ui/ItemMenu';
-import type { Item } from '../game/items/ItemTypes';
+import type { Item, WeaponItem } from '../game/items/ItemTypes';
 import type { CombatResult } from '../game/combat/Engine';
 
 const TERRAIN_COLORS: Record<string, number> = {
@@ -59,6 +59,7 @@ export class BattleScene extends Phaser.Scene {
   private statusOverlay: Phaser.GameObjects.Container | null = null;
   private itemMenu: ItemMenu = new ItemMenu();
   private itemOverlay: Phaser.GameObjects.Container | null = null;
+  private weaponOverlay: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -719,7 +720,11 @@ export class BattleScene extends Phaser.Scene {
           event.stopPropagation();
           this.battleMenu.selectAction(MenuAction.FIGHT);
           this.clearMenuTexts();
-          this.highlightEnemyTargets(enemies);
+          if (this.battleMenu.state === MenuState.CHOOSE_WEAPON) {
+            this.showWeaponSelection(unit);
+          } else {
+            this.highlightEnemyTargets(enemies);
+          }
         },
       );
     }
@@ -795,6 +800,122 @@ export class BattleScene extends Phaser.Scene {
     );
 
     this.menuTexts.push(fightText, endText, statusText, itemsText);
+  }
+
+  private showWeaponSelection(unit: Unit): void {
+    this.inputEnabled = false;
+    const overlay = this.add.container(0, 0);
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7,
+    );
+    overlay.add(bg);
+
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+
+    const panel = this.add.rectangle(cx, cy, 360, 300, 0x2c3e50, 0.95);
+    panel.setStrokeStyle(2, 0xc0392b);
+    overlay.add(panel);
+
+    const title = this.add
+      .text(cx, cy - 120, 'Choose Weapon', {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    overlay.add(title);
+
+    const weapons = unit.inventory.items.filter((i): i is WeaponItem => i.kind === 'weapon');
+    if (weapons.length === 0) {
+      const noneText = this.add
+        .text(cx, cy, 'No weapons', {
+          fontSize: '14px',
+          color: '#bdc3c7',
+        })
+        .setOrigin(0.5);
+      overlay.add(noneText);
+    } else {
+      for (let i = 0; i < weapons.length; i++) {
+        const weapon = weapons[i];
+        const globalIndex = unit.inventory.items.indexOf(weapon);
+        const y = cy - 70 + i * 36;
+        const weaponText = this.add
+          .text(
+            cx,
+            y,
+            `${weapon.name}  MT:${weapon.mt} HIT:${weapon.hit} CRT:${weapon.crit} RNG:${weapon.minRange}-${weapon.maxRange}`,
+            {
+              fontSize: '13px',
+              color: '#ffffff',
+              backgroundColor: '#34495e',
+              padding: { x: 8, y: 4 },
+            },
+          )
+          .setOrigin(0.5)
+          .setInteractive({ useHandCursor: true });
+
+        weaponText.on(
+          'pointerdown',
+          (
+            _pointer: Phaser.Input.Pointer,
+            _localX: number,
+            _localY: number,
+            event: Phaser.Types.Input.EventData,
+          ) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+            event.stopPropagation();
+            this.battleMenu.selectWeapon(globalIndex);
+            this.hideWeaponSelection();
+            this.highlightEnemyTargets(this.engine.getAdjacentEnemies(unit));
+          },
+        );
+
+        overlay.add(weaponText);
+      }
+    }
+
+    const cancelBtn = this.add
+      .text(cx, cy + 110, '[ Cancel ]', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: '#c0392b',
+        padding: { x: 8, y: 4 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    cancelBtn.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        this.battleMenu.cancelWeaponSelection();
+        this.hideWeaponSelection();
+        const enemies = this.engine.getAdjacentEnemies(unit);
+        this.battleMenu.show(unit, enemies);
+        this.showPostMoveMenu(unit);
+      },
+    );
+
+    overlay.add(cancelBtn);
+    this.weaponOverlay = overlay;
+  }
+
+  private hideWeaponSelection(): void {
+    this.weaponOverlay?.destroy();
+    this.weaponOverlay = null;
+    this.inputEnabled = true;
   }
 
   private showStatusWindow(unit: Unit): void {
@@ -911,6 +1032,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private undoMove(): void {
+    if (this.weaponOverlay) {
+      this.hideWeaponSelection();
+      return;
+    }
     if (this.itemOverlay) {
       this.hideItemMenu(false);
       return;
@@ -948,6 +1073,17 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private handleOutsideMenuClick(): void {
+    if (this.weaponOverlay) {
+      this.battleMenu.cancelWeaponSelection();
+      this.hideWeaponSelection();
+      const unit = this.battleMenu.unit;
+      if (unit) {
+        const enemies = this.engine.getAdjacentEnemies(unit);
+        this.battleMenu.show(unit, enemies);
+        this.showPostMoveMenu(unit);
+      }
+      return;
+    }
     if (this.itemOverlay) {
       this.hideItemMenu(false);
       return;
@@ -1018,7 +1154,7 @@ export class BattleScene extends Phaser.Scene {
   private startBattleMode(attacker: Unit, defender: Unit, onComplete?: () => void): void {
     this.inBattleMode = true;
     this.pendingBattleCallback = onComplete ?? null;
-    const result = this.engine.resolvePlayerCombat(attacker, defender);
+    const result = this.engine.resolvePlayerCombat(attacker, defender, undefined, this.battleMenu.selectedWeaponIndex ?? undefined);
     this.combatResult = result;
     this.battleDisplayState = new BattleDisplayState(attacker, defender, result.log);
 
