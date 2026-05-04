@@ -51,7 +51,16 @@ export interface StatBoosterItem {
   uses: number;
 }
 
-export type Item = WeaponItem | RecoveryItem | KeyItem | StatBoosterItem;
+export interface StaffItem {
+  kind: 'staff';
+  name: string;
+  healAmount: number;
+  minRange: number;
+  maxRange: number;
+  uses: number;
+}
+
+export type Item = WeaponItem | RecoveryItem | KeyItem | StatBoosterItem | StaffItem;
 
 export function createWeaponItem(
   name: string,
@@ -105,5 +114,21 @@ export function createStatBoosterItem(
     stat,
     bonus,
     uses: 1,
+  };
+}
+
+export function createStaffItem(
+  name: string,
+  healAmount: number,
+  minRange: number,
+  maxRange: number,
+): StaffItem {
+  return {
+    kind: 'staff',
+    name,
+    healAmount,
+    minRange,
+    maxRange,
+    uses: 20,
   };
 }
