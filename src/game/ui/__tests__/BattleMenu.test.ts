@@ -189,4 +189,40 @@ describe('BattleMenu', () => {
     expect(menu.state).toBe(MenuState.CHOOSE_ACTION);
     expect(menu.selectedWeaponIndex).toBe(-1);
   });
+
+  it('selecting STAFF transitions to CHOOSE_HEAL_TARGET', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.STAFF);
+    expect(menu.state).toBe(MenuState.CHOOSE_HEAL_TARGET);
+    expect(menu.selectedAction).toBe(MenuAction.STAFF);
+  });
+
+  it('stores heal targets when shown', () => {
+    const menu = new BattleMenu();
+    const ally = new Unit('a1', 'Ally', Faction.PLAYER, UnitClass.LORD, stats, 5, 4);
+    menu.show(player, [enemy], [ally]);
+    expect(menu.healTargets).toHaveLength(1);
+    expect(menu.healTargets[0].id).toBe('a1');
+  });
+
+  it('canceling from CHOOSE_HEAL_TARGET returns to CHOOSE_ACTION', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.STAFF);
+    expect(menu.state).toBe(MenuState.CHOOSE_HEAL_TARGET);
+    menu.cancelHealSelection();
+    expect(menu.state).toBe(MenuState.CHOOSE_ACTION);
+    expect(menu.selectedAction).toBeNull();
+  });
+
+  it('selecting a heal target transitions to RESOLVED', () => {
+    const menu = new BattleMenu();
+    const ally = new Unit('a1', 'Ally', Faction.PLAYER, UnitClass.LORD, stats, 5, 4);
+    menu.show(player, [enemy], [ally]);
+    menu.selectAction(MenuAction.STAFF);
+    menu.selectHealTarget(ally);
+    expect(menu.state).toBe(MenuState.RESOLVED);
+    expect(menu.selectedTarget).toBe(ally);
+  });
 });
