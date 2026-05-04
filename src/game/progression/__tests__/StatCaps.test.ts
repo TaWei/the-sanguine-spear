@@ -24,4 +24,24 @@ describe('StatCaps', () => {
       expect(CLASS_CAPS[cls]).toBeDefined();
     }
   });
+
+  it('every promoted class has caps defined', () => {
+    const promotedClasses = [
+      'paladin',
+      'swordmaster',
+      'sage',
+      'sniper',
+      'falcon_knight',
+      'general',
+      'berserker',
+    ];
+    for (const cls of promotedClasses) {
+      expect(CLASS_CAPS[cls]).toBeDefined();
+    }
+  });
+
+  it('promoted class caps are higher than base counterparts', () => {
+    expect(CLASS_CAPS.swordmaster.hp).toBeGreaterThan(CLASS_CAPS.mercenary.hp);
+    expect(CLASS_CAPS.swordmaster.str).toBeGreaterThan(CLASS_CAPS.mercenary.str);
+  });
 });
