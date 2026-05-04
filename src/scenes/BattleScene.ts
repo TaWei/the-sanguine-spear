@@ -10,6 +10,7 @@ import { getLevel, getNextLevelId } from '../game/levels/LevelData';
 import { ExpPopup } from '../game/ui/ExpPopup';
 import { StatusWindow } from '../game/ui/StatusWindow';
 import { ItemMenu } from '../game/ui/ItemMenu';
+import { LevelUpDisplay, LEVEL_UP_PHASE } from '../game/ui/LevelUpDisplay';
 import type { Item, WeaponItem } from '../game/items/ItemTypes';
 import type { CombatResult } from '../game/combat/Engine';
 
@@ -55,6 +56,11 @@ export class BattleScene extends Phaser.Scene {
   private combatResult: CombatResult | null = null;
   private expPopupContainer: Phaser.GameObjects.Container | null = null;
   private levelUpBanner: Phaser.GameObjects.Container | null = null;
+  private levelUpSequence: {
+    display: LevelUpDisplay;
+    container: Phaser.GameObjects.Container;
+    timer: Phaser.Time.TimerEvent;
+  } | null = null;
   private statusWindow: StatusWindow = new StatusWindow();
   private statusOverlay: Phaser.GameObjects.Container | null = null;
   private itemMenu: ItemMenu = new ItemMenu();
@@ -1753,7 +1759,7 @@ export class BattleScene extends Phaser.Scene {
         if (popup.isComplete()) {
           timer.remove();
           if (popup.leveledUp) {
-            this.showLevelUpBanner(unit, () => {
+            this.showLevelUpSequence(unit, progression, () => {
               this.hideExpPopup();
               onComplete();
             });
@@ -1774,37 +1780,185 @@ export class BattleScene extends Phaser.Scene {
     this.expPopupContainer = null;
   }
 
-  private showLevelUpBanner(unit: Unit, onComplete: () => void): void {
+  private showLevelUpSequence(
+    unit: Unit,
+    progression: import('../game/progression/ProgressionEngine').ProgressionResult,
+    onComplete: () => void,
+  ): void {
+    if (!progression.levelUpResult || !progression.oldStats) {
+      onComplete();
+      return;
+    }
+
+    const display = new LevelUpDisplay(
+      unit.name,
+      unit.level,
+      progression.oldStats,
+      progression.levelUpResult.newStats,
+      progression.levelUpResult.increases,
+    );
+
     const cx = this.cameras.main.width / 2;
     const cy = this.cameras.main.height / 2;
 
-    const container = this.add.container(cx, cy - 80);
+    const container = this.add.container(cx, cy);
+    container.setDepth(100);
     this.levelUpBanner = container;
 
-    const bg = this.add.rectangle(0, 0, 260, 50, 0x27ae60, 0.95);
-    bg.setStrokeStyle(2, 0xf1c40f);
-    container.add(bg);
+    // ---- BANNER ----
+    const bannerBg = this.add.rectangle(0, -120, 320, 56, 0x27ae60, 0.95);
+    bannerBg.setStrokeStyle(3, 0xf1c40f);
+    container.add(bannerBg);
 
-    const text = this.add
-      .text(0, 0, `LEVEL UP! ${unit.name} is now Lv ${unit.level.toString()}`, {
-        fontSize: '16px',
+    const bannerText = this.add
+      .text(0, -120, `LEVEL UP!  ${display.unitName} \u2192 Lv ${display.newLevel.toString()}`, {
+        fontSize: '20px',
         color: '#ffffff',
         fontStyle: 'bold',
       })
       .setOrigin(0.5);
-    container.add(text);
+    container.add(bannerText);
 
-    this.tweens.add({
-      targets: container,
-      alpha: 0,
-      delay: 1500,
-      duration: 400,
-      onComplete: () => {
-        this.levelUpBanner?.destroy();
-        this.levelUpBanner = null;
-        onComplete();
+    // ---- STATS PANEL ----
+    const panel = this.add.rectangle(0, 40, 280, 320, 0x1a1a2e, 0.95);
+    panel.setStrokeStyle(2, 0x34495e);
+    panel.setAlpha(0);
+    container.add(panel);
+
+    const panelTitle = this.add
+      .text(0, -100, 'Stat Growth', {
+        fontSize: '16px',
+        color: '#f1c40f',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setAlpha(0);
+    container.add(panelTitle);
+
+    const statKeys: (keyof import('../game/units/Stats').UnitStats)[] = [
+      'hp', 'str', 'mag', 'skl', 'spd', 'luk', 'def', 'res', 'mov',
+    ];
+    const statLabels: Record<string, string> = {
+      hp: 'HP', str: 'Str', mag: 'Mag', skl: 'Skl', spd: 'Spd',
+      luk: 'Luk', def: 'Def', res: 'Res', mov: 'Mov',
+    };
+
+    const statTexts: Phaser.GameObjects.Text[] = [];
+    const startY = -70;
+    const rowHeight = 28;
+
+    for (let i = 0; i < statKeys.length; i++) {
+      const key = statKeys[i];
+      const y = startY + i * rowHeight;
+
+      const nameText = this.add
+        .text(-80, y, statLabels[key as string] ?? key, {
+          fontSize: '14px',
+          color: '#bdc3c7',
+        })
+        .setOrigin(0, 0.5)
+        .setAlpha(0);
+      container.add(nameText);
+
+      const oldVal = (progression.oldStats![key] ?? 0).toString();
+      const newVal = (progression.levelUpResult!.newStats[key] ?? 0).toString();
+      const increased = display.isIncreased(key);
+
+      const valueText = this.add
+        .text(60, y, `${oldVal} \u2192 ${newVal}${increased ? ' \u25b2' : ''}`, {
+          fontSize: '14px',
+          color: increased ? '#f1c40f' : '#bdc3c7',
+          fontStyle: increased ? 'bold' : 'normal',
+        })
+        .setOrigin(1, 0.5)
+        .setAlpha(0);
+      container.add(valueText);
+
+      statTexts.push(nameText, valueText);
+    }
+
+    const hintText = this.add
+      .text(0, 200, '', {
+        fontSize: '12px',
+        color: '#7f8c8d',
+        fontStyle: 'italic',
+      })
+      .setOrigin(0.5)
+      .setAlpha(0);
+    container.add(hintText);
+
+    // ---- ANIMATION LOOP ----
+    const timer = this.time.addEvent({
+      delay: 16,
+      callback: () => {
+        display.update(16);
+
+        // Banner entrance
+        if (display.phase === LEVEL_UP_PHASE.BANNER_IN) {
+          const t = Math.min(1, display.elapsed / 300);
+          bannerBg.setAlpha(t * 0.95);
+          bannerText.setAlpha(t);
+          bannerBg.setPosition(0, -120 + (1 - t) * -40);
+          bannerText.setPosition(0, -120 + (1 - t) * -40);
+        } else {
+          bannerBg.setAlpha(0.95);
+          bannerText.setAlpha(1);
+          bannerBg.setPosition(0, -120);
+          bannerText.setPosition(0, -120);
+        }
+
+        // Stats panel entrance
+        if (display.phase === LEVEL_UP_PHASE.STATS_IN || display.phase === LEVEL_UP_PHASE.STAT_REVEAL) {
+          const panelT = Math.min(1, (display.elapsed - 1100) / 400);
+          panel.setAlpha(panelT * 0.95);
+          panelTitle.setAlpha(panelT);
+        }
+
+        // Per-stat reveal
+        if (display.phase === LEVEL_UP_PHASE.STAT_REVEAL || display.phase === LEVEL_UP_PHASE.WAIT_FOR_INPUT || display.phase === LEVEL_UP_PHASE.DONE) {
+          for (let i = 0; i < statKeys.length; i++) {
+            const progress = display.getRevealProgress(statKeys[i]);
+            const nameText = statTexts[i * 2];
+            const valueText = statTexts[i * 2 + 1];
+            nameText.setAlpha(progress);
+            valueText.setAlpha(progress);
+          }
+        }
+
+        // Show dismiss hint
+        if (display.phase === LEVEL_UP_PHASE.WAIT_FOR_INPUT) {
+          hintText.setText('Click or press SPACE to continue');
+          hintText.setAlpha(1);
+        }
+
+        // Done
+        if (display.isComplete()) {
+          timer.remove();
+          this.hideLevelUpSequence();
+          onComplete();
+        }
       },
+      loop: true,
     });
+
+    this.levelUpSequence = { display, container, timer };
+
+    // Input handlers for dismissal
+    const dismissHandler = () => {
+      if (this.levelUpSequence?.display.phase === LEVEL_UP_PHASE.WAIT_FOR_INPUT) {
+        this.levelUpSequence.display.dismiss();
+      }
+    };
+
+    this.input.once('pointerdown', dismissHandler);
+    this.input.keyboard?.once('keydown-SPACE', dismissHandler);
+  }
+
+  private hideLevelUpSequence(): void {
+    this.levelUpSequence?.timer.remove();
+    this.levelUpSequence?.container.destroy();
+    this.levelUpSequence = null;
+    this.levelUpBanner = null;
   }
 
   private showItemMenu(unit: Unit): void {
