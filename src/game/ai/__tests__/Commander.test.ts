@@ -127,6 +127,63 @@ describe('Commander', () => {
     expect(attackAction).toBeDefined();
   });
 
+  it('MOVE action includes a cardinal path when enemy moves', () => {
+    const grid = new Grid(10, 10);
+
+    const enemyStats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 3,
+    });
+    const enemy = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 5, 5);
+    grid.placeUnit(enemy, 5, 5);
+
+    const playerStats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const player = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, playerStats, 5, 9);
+    grid.placeUnit(player, 5, 9);
+
+    const commander = new Commander(grid, WEAPON_DB);
+    const actions = commander.planEnemyTurn([enemy], [player]);
+
+    const moveAction = actions.find((a) => a.type === ActionType.MOVE);
+    expect(moveAction).toBeDefined();
+    expect(moveAction!.path).toBeDefined();
+    expect(moveAction!.path!.length).toBeGreaterThan(0);
+
+    // Each step must be cardinal (Manhattan distance === 1)
+    const path = moveAction!.path!;
+    for (let i = 1; i < path.length; i++) {
+      const prev = path[i - 1];
+      const curr = path[i];
+      const manhattan = Math.abs(curr.x - prev.x) + Math.abs(curr.y - prev.y);
+      expect(manhattan).toBe(1);
+    }
+
+    // Path must end at destination
+    expect(path[path.length - 1]).toEqual({ x: moveAction!.x, y: moveAction!.y });
+
+    // First step must be adjacent to the enemy's starting tile
+    const first = path[0];
+    const startDist = Math.abs(first.x - enemy.gridX) + Math.abs(first.y - enemy.gridY);
+    expect(startDist).toBe(1);
+  });
+
   it('dead enemies are skipped', () => {
     const grid = new Grid(10, 10);
 

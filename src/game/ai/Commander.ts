@@ -2,8 +2,9 @@ import { Unit } from '../units/Unit';
 import { Grid } from '../map/Grid';
 import { WeaponData } from '../combat/Weapons';
 import { computeMoveRange } from '../movement/MoveRange';
+import { findPath } from '../movement/Pathfinder';
 import { pickBestTarget } from './Targeting';
-import { Action, ActionType } from '../state/ActionQueue';
+import { Action, ActionType, GridPoint } from '../state/ActionQueue';
 
 export class Commander {
   private grid: Grid;
@@ -47,11 +48,16 @@ export class Commander {
 
       const movePos = this.findBestApproach(enemy, target, moveRange, weapon);
       if (movePos && (movePos[0] !== enemy.gridX || movePos[1] !== enemy.gridY)) {
+        const rawPath = findPath(enemy, this.grid, movePos[0], movePos[1]);
+        const path: GridPoint[] | undefined = rawPath
+          ? rawPath.map((p) => ({ x: p.x, y: p.y }))
+          : undefined;
         actions.push({
           type: ActionType.MOVE,
           actor: enemy,
           x: movePos[0],
           y: movePos[1],
+          path,
         });
         claimedTiles.add(`${String(movePos[0])},${String(movePos[1])}`);
       }

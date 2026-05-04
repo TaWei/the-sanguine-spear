@@ -8,6 +8,11 @@ export const ActionType = {
 
 export type ActionType = (typeof ActionType)[keyof typeof ActionType];
 
+export interface GridPoint {
+  x: number;
+  y: number;
+}
+
 export interface Action {
   type: ActionType;
   actor: Unit;
@@ -15,6 +20,7 @@ export interface Action {
   y?: number;
   targetX?: number;
   targetY?: number;
+  path?: GridPoint[];
 }
 
 export class ActionQueue {
