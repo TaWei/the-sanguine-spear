@@ -244,6 +244,28 @@ describe('GameEngine', () => {
     expect(engine.getWeaponForUnit(brigand).name).toBe('Iron Axe');
   });
 
+  it('addUnit creates unit with inventory containing default weapon', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const mage = engine.addUnit('m1', 'Mage', Faction.ENEMY, UnitClass.MAGE, stats, 0, 0);
+    const lord = engine.addUnit('l1', 'Lord', Faction.PLAYER, UnitClass.LORD, stats, 1, 1);
+    expect(mage.inventory.size).toBe(1);
+    expect(mage.inventory.items[0].kind).toBe('weapon');
+    expect(mage.inventory.items[0].name).toBe('Fire');
+    expect(lord.inventory.size).toBe(1);
+    expect(lord.inventory.items[0].name).toBe('Iron Sword');
+  });
+
   it('getAdjacentEnemies returns adjacent enemies after move', () => {
     const engine = new GameEngine(10, 10);
     const stats = createStats({

@@ -1,6 +1,7 @@
 import { UnitStats } from './Stats';
 import { UnitState, UNIT_STATE } from '../state/UnitState';
 import { GrowthRates, createGrowthRates } from '../progression/GrowthRates';
+import { Inventory } from '../items/Inventory';
 
 export const Faction = {
   PLAYER: 'player',
@@ -35,6 +36,7 @@ export class Unit {
   readonly name: string;
   readonly faction: Faction;
   readonly unitClass: UnitClass;
+  readonly inventory: Inventory;
   private _stats: UnitStats;
   readonly state: UnitState = new UnitState();
   private _gridX: number;
@@ -57,6 +59,7 @@ export class Unit {
     this.name = name;
     this.faction = faction;
     this.unitClass = unitClass;
+    this.inventory = new Inventory();
     this._stats = stats;
     this._gridX = gridX;
     this._gridY = gridY;

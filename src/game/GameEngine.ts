@@ -11,6 +11,7 @@ import { ProgressionEngine } from './progression/ProgressionEngine';
 import { getAdjacentEnemies } from './combat/Adjacency';
 import { CombatEngine } from './combat/Engine';
 import { WeaponData } from './combat/Weapons';
+import { createWeaponItem, WeaponItem } from './items/ItemTypes';
 import { LevelObjectives, ObjectiveResult } from './objectives/LevelObjectives';
 import { findPath } from './movement/Pathfinder';
 import { GridNeighbor } from './map/Grid';
@@ -45,6 +46,8 @@ export class GameEngine {
     gridY: number,
   ): Unit {
     const unit = new Unit(id, name, faction, unitClass, stats, gridX, gridY);
+    const defaultWeapon = getDefaultWeaponItem(unitClass);
+    unit.inventory.add(defaultWeapon);
     this.units.push(unit);
     this.grid.placeUnit(unit, gridX, gridY);
     return unit;
@@ -140,6 +143,19 @@ export class GameEngine {
   }
 
   getWeaponForUnit(unit: Unit): WeaponData {
+    const invWeapon = unit.inventory.items.find((i) => i.kind === 'weapon') as WeaponItem | undefined;
+    if (invWeapon) {
+      return {
+        name: invWeapon.name,
+        type: invWeapon.weaponType,
+        mt: invWeapon.mt,
+        hit: invWeapon.hit,
+        crit: invWeapon.crit,
+        minRange: invWeapon.minRange,
+        maxRange: invWeapon.maxRange,
+        usesMagic: invWeapon.usesMagic,
+      };
+    }
     if (unit.unitClass === 'mage') {
       return WEAPON_DB.Fire;
     }
@@ -261,4 +277,26 @@ export class GameEngine {
     }
     return actions;
   }
+}
+
+function getDefaultWeaponItem(unitClass: UnitClass): WeaponItem {
+  if (unitClass === 'mage') {
+    return createWeaponItem('Fire', 'magic', 5, 90, 0, 1, 2, true);
+  }
+  if (unitClass === 'brigand') {
+    return createWeaponItem('Iron Axe', 'axe', 8, 70, 0, 1, 1, false);
+  }
+  if (unitClass === 'berserker') {
+    return createWeaponItem('Killer Axe', 'axe', 9, 70, 30, 1, 1, false);
+  }
+  if (unitClass === 'soldier') {
+    return createWeaponItem('Iron Lance', 'lance', 6, 80, 0, 1, 1, false);
+  }
+  if (unitClass === 'swordmaster') {
+    return createWeaponItem('Killer Sword', 'sword', 7, 85, 30, 1, 1, false);
+  }
+  if (unitClass === 'archer') {
+    return createWeaponItem('Iron Bow', 'bow', 6, 85, 0, 2, 2, false);
+  }
+  return createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false);
 }

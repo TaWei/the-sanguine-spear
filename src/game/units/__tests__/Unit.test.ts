@@ -3,6 +3,8 @@ import { Unit, Faction, UnitClass } from '../Unit';
 import { createStats } from '../Stats';
 import { UNIT_STATE } from '../../state/UnitState';
 import { createGrowthRates } from '../../progression/GrowthRates';
+import { Inventory } from '../../items/Inventory';
+import { createWeaponItem } from '../../items/ItemTypes';
 
 describe('Unit', () => {
   const stats = createStats({
@@ -236,6 +238,21 @@ describe('Unit', () => {
     });
     const unit = new Unit('u1', 'Rowan', Faction.PLAYER, UnitClass.LORD, lordStats, 0, 0);
     expect(unit.isFlying).toBe(false);
+  });
+
+  it('has an inventory', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    expect(unit.inventory).toBeInstanceOf(Inventory);
+    expect(unit.inventory.size).toBe(0);
+  });
+
+  it('can add items to unit.inventory', () => {
+    const unit = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 5);
+    const item = createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false);
+    const added = unit.inventory.add(item);
+    expect(added).toBe(true);
+    expect(unit.inventory.size).toBe(1);
+    expect(unit.inventory.items[0].name).toBe('Iron Sword');
   });
 
   it('hasActed setter works from IDLE state', () => {
