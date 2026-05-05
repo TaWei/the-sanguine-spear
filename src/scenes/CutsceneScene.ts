@@ -86,10 +86,11 @@ export class CutsceneScene extends Phaser.Scene {
       this.backdrop = this.add
         .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.6)
         .setDepth(0);
+    } else {
+      this.bgRect = this.add
+        .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0a0a1a)
+        .setDepth(0);
     }
-    this.bgRect = this.add
-      .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0a0a1a)
-      .setDepth(0);
   }
 
   private createDialogBox(): void {
@@ -155,6 +156,9 @@ export class CutsceneScene extends Phaser.Scene {
         this.handleAdvance();
       });
       keyboard.on('keydown-ENTER', () => {
+        this.handleAdvance();
+      });
+      keyboard.on('keydown-ESC', () => {
         this.handleAdvance();
       });
     }
@@ -409,6 +413,7 @@ export class CutsceneScene extends Phaser.Scene {
       return;
     }
     this.isFinishing = true;
+    this.input.enabled = false;
 
     if (this.isOverlay) {
       this.cleanupScene();
@@ -418,6 +423,7 @@ export class CutsceneScene extends Phaser.Scene {
 
     this.cameras.main.fadeOut(300, 0, 0, 0, (_camera: unknown, progress: number) => {
       if (progress === 1) {
+        this.cleanupScene();
         this.onComplete();
       }
     });
