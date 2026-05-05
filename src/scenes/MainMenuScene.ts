@@ -4,6 +4,7 @@ import { getLevel } from '../game/levels/LevelData';
 
 export class MainMenuScene extends Phaser.Scene {
   private saveListContainer: Phaser.GameObjects.Container | null = null;
+  private cutsceneActive = false;
 
   constructor() {
     super({ key: 'MainMenuScene' });
@@ -48,6 +49,7 @@ export class MainMenuScene extends Phaser.Scene {
         _localY: number,
         event: Phaser.Types.Input.EventData,
       ) => {
+        if (this.cutsceneActive) return;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         event.stopPropagation();
         this.cameras.main.fadeOut(500, 0, 0, 0);
@@ -77,6 +79,7 @@ export class MainMenuScene extends Phaser.Scene {
         _localY: number,
         event: Phaser.Types.Input.EventData,
       ) => {
+        if (this.cutsceneActive) return;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         event.stopPropagation();
         this.cameras.main.fadeOut(500, 0, 0, 0);
@@ -106,11 +109,14 @@ export class MainMenuScene extends Phaser.Scene {
         _localY: number,
         event: Phaser.Types.Input.EventData,
       ) => {
+        if (this.cutsceneActive) return;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         event.stopPropagation();
+        this.cutsceneActive = true;
         this.scene.launch('CutsceneScene', {
           cutsceneId: 'prologue_intro',
           onComplete: () => {
+            this.cutsceneActive = false;
             this.scene.stop('CutsceneScene');
           },
         });
@@ -137,6 +143,7 @@ export class MainMenuScene extends Phaser.Scene {
         _localY: number,
         event: Phaser.Types.Input.EventData,
       ) => {
+        if (this.cutsceneActive) return;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         event.stopPropagation();
         this.showLoadMenu();
@@ -206,6 +213,7 @@ export class MainMenuScene extends Phaser.Scene {
             _localY: number,
             event: Phaser.Types.Input.EventData,
           ) => {
+            if (this.cutsceneActive) return;
             // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             event.stopPropagation();
             this.cameras.main.fadeOut(500, 0, 0, 0);
@@ -242,6 +250,7 @@ export class MainMenuScene extends Phaser.Scene {
         _localY: number,
         event: Phaser.Types.Input.EventData,
       ) => {
+        if (this.cutsceneActive) return;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         event.stopPropagation();
         container.destroy();
