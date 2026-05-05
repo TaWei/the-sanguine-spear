@@ -25,9 +25,11 @@ export class CutsceneScene extends Phaser.Scene {
   private player!: ReturnType<typeof createCutscenePlayer>;
   private cutsceneId!: string;
   private onComplete!: () => void;
+  private isOverlay = false;
 
   // Visual elements
   private bgRect!: Phaser.GameObjects.Rectangle;
+  private backdrop!: Phaser.GameObjects.Rectangle;
   private nameLabel!: Phaser.GameObjects.Container;
   private nameText!: Phaser.GameObjects.Text;
   private dialogText!: Phaser.GameObjects.Text;
@@ -53,13 +55,16 @@ export class CutsceneScene extends Phaser.Scene {
     super({ key: 'CutsceneScene' });
   }
 
-  init(data: { cutsceneId: string; onComplete?: () => void }): void {
+  init(data: { cutsceneId: string; overlay?: boolean; onComplete?: () => void }): void {
     this.cutsceneId = data.cutsceneId;
+    this.isOverlay = data.overlay ?? false;
     this.onComplete = data.onComplete ?? (() => undefined);
   }
 
   create(): void {
-    this.cameras.main.fadeIn(300, 0, 0, 0);
+    if (!this.isOverlay) {
+      this.cameras.main.fadeIn(300, 0, 0, 0);
+    }
 
     const script = getCutscene(this.cutsceneId);
     if (!script) {
@@ -77,6 +82,11 @@ export class CutsceneScene extends Phaser.Scene {
   }
 
   private createBackground(): void {
+    if (this.isOverlay) {
+      this.backdrop = this.add
+        .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.6)
+        .setDepth(0);
+    }
     this.bgRect = this.add
       .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x0a0a1a)
       .setDepth(0);
@@ -400,10 +410,31 @@ export class CutsceneScene extends Phaser.Scene {
     }
     this.isFinishing = true;
 
+    if (this.isOverlay) {
+      this.cleanupScene();
+      this.onComplete();
+      return;
+    }
+
     this.cameras.main.fadeOut(300, 0, 0, 0, (_camera: unknown, progress: number) => {
       if (progress === 1) {
         this.onComplete();
       }
     });
+  }
+
+  private cleanupScene(): void {
+    if (this.typewriterTimer) {
+      this.typewriterTimer.destroy();
+      this.typewriterTimer = null;
+    }
+    if (this.waitTimer) {
+      this.waitTimer.destroy();
+      this.waitTimer = null;
+    }
+    for (const container of this.portraits.values()) {
+      container.destroy();
+    }
+    this.portraits.clear();
   }
 }

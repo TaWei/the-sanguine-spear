@@ -2483,10 +2483,22 @@ export class BattleScene extends Phaser.Scene {
       ) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         event.stopPropagation();
-        unit.inventory.useAt(index);
-        this.applyItemEffect(unit, item);
-        this.itemMenu.confirmUse();
-        this.hideItemMenu(true);
+        if (item.kind === 'promotion') {
+          const result = this.engine.useItem(unit, index);
+          if (result.success) {
+            this.itemMenu.confirmUse();
+            this.hideItemMenu(true);
+            this.showPromotionSequence(unit);
+          } else {
+            this.itemMenu.cancel();
+            this.hideItemMenu(false);
+          }
+        } else {
+          unit.inventory.useAt(index);
+          this.applyItemEffect(unit, item);
+          this.itemMenu.confirmUse();
+          this.hideItemMenu(true);
+        }
       },
     );
 

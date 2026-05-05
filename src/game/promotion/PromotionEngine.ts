@@ -12,14 +12,14 @@ export interface PromotionResult {
 }
 
 export class PromotionEngine {
-  canPromote(unit: Unit): boolean {
+  canPromote(unit: Unit, bypassLevel = false): boolean {
     if (unit.tier !== 'base') return false;
-    if (unit.level < 10) return false;
+    if (!bypassLevel && unit.level < 10) return false;
     return getPromotedClass(unit.unitClass) !== null;
   }
 
-  promote(unit: Unit): PromotionResult {
-    if (!this.canPromote(unit)) {
+  promote(unit: Unit, bypassLevel = false): PromotionResult {
+    if (!this.canPromote(unit, bypassLevel)) {
       return { success: false, oldClass: unit.unitClass, newClass: null, newStats: unit.stats, diff: {} };
     }
 

@@ -11,7 +11,7 @@ import { ProgressionEngine } from './progression/ProgressionEngine';
 import { getAdjacentEnemies } from './combat/Adjacency';
 import { CombatEngine } from './combat/Engine';
 import { WeaponData } from './combat/Weapons';
-import { createWeaponItem, WeaponItem, Item, createStaffItem, StaffItem } from './items/ItemTypes';
+import { createWeaponItem, WeaponItem, Item, createStaffItem, StaffItem, PromotionItem } from './items/ItemTypes';
 import { StaffEngine, StaffResult } from './staves/StaffEngine';
 import { getHealTargets } from './staves/getHealTargets';
 import { StaffData, STAFF_DB } from './staves/Staves';
@@ -367,6 +367,30 @@ export class GameEngine {
 
   promote(unit: Unit): import('./promotion/PromotionEngine').PromotionResult {
     return this.promotionEngine.promote(unit);
+  }
+
+  useItem(unit: Unit, itemIndex: number): { success: boolean; reason?: string } {
+    const item = unit.inventory.items[itemIndex];
+    if (!item || item.kind !== 'promotion') {
+      return { success: false, reason: 'Item cannot be used this way' };
+    }
+
+    const promoItem = item as PromotionItem;
+    if (promoItem.targetClasses && promoItem.targetClasses.indexOf(unit.unitClass) === -1) {
+      return { success: false, reason: 'Seal does not support this class' };
+    }
+
+    if (unit.tier !== 'base') {
+      return { success: false, reason: 'Unit is already promoted' };
+    }
+
+    const result = this.promotionEngine.promote(unit, true);
+    if (result.success) {
+      unit.inventory.useAt(itemIndex);
+      return { success: true };
+    }
+
+    return { success: false, reason: 'Promotion conditions not met' };
   }
 }
 

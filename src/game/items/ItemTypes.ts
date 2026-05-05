@@ -60,7 +60,14 @@ export interface StaffItem {
   uses: number;
 }
 
-export type Item = WeaponItem | RecoveryItem | KeyItem | StatBoosterItem | StaffItem;
+export interface PromotionItem {
+  kind: 'promotion';
+  name: string;
+  targetClasses?: string[]; // null/undefined = any base class
+  uses: number;
+}
+
+export type Item = WeaponItem | RecoveryItem | KeyItem | StatBoosterItem | StaffItem | PromotionItem;
 
 export function createWeaponItem(
   name: string,
@@ -130,5 +137,14 @@ export function createStaffItem(
     minRange,
     maxRange,
     uses: 20,
+  };
+}
+
+export function createPromotionItem(name: string, targetClasses?: string[]): PromotionItem {
+  return {
+    kind: 'promotion',
+    name,
+    targetClasses,
+    uses: 1,
   };
 }

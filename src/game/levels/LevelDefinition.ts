@@ -1,6 +1,7 @@
 import { TerrainType } from '../map/Terrain';
 import { Faction, UnitClass } from '../units/Unit';
 import { UnitStats } from '../units/Stats';
+import { CutsceneTrigger } from '../cutscene/CutsceneTrigger';
 
 export interface UnitPlacement {
   id: string;
@@ -25,4 +26,5 @@ export interface LevelDefinition {
   rows: number;
   terrain: TerrainPlacement[];
   units: UnitPlacement[];
+  triggers?: CutsceneTrigger[];
 }

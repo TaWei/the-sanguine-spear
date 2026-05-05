@@ -19,5 +19,9 @@ export {
 
 export { getCharacter, isCharacterDefined, getAllCharacters } from './CutsceneCharacters';
 
+export type { CutsceneTrigger, TriggerCondition, TriggerContext } from './CutsceneTrigger';
+export { CutsceneTriggerEngine } from './TriggerEngine';
+
 // Example cutscenes
 export { prologueCutscene } from './examples';
+export { firstBattleWarningCutscene, bossDefeatedCutscene } from './gameplayTriggers';

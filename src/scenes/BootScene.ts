@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { registerCutscene, prologueCutscene } from '../game/cutscene';
+import { registerCutscene, prologueCutscene, firstBattleWarningCutscene, bossDefeatedCutscene } from '../game/cutscene';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -21,6 +21,8 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     registerCutscene(prologueCutscene);
+    registerCutscene(firstBattleWarningCutscene);
+    registerCutscene(bossDefeatedCutscene);
     this.scene.start('MainMenuScene');
   }
 }

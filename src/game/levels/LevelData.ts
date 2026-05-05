@@ -105,6 +105,20 @@ export const LEVEL_1: LevelDefinition = {
       y: 6,
     },
   ],
+  triggers: [
+    {
+      id: 'lvl1_first_combat',
+      cutsceneId: 'first_battle_warning',
+      condition: { type: 'on_first_combat' },
+      oneShot: true,
+    },
+    {
+      id: 'lvl1_boss_death',
+      cutsceneId: 'boss_defeated',
+      condition: { type: 'on_kill', victimId: 'e1' },
+      oneShot: true,
+    },
+  ],
 };
 
 export const LEVEL_2: LevelDefinition = {
