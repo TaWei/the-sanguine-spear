@@ -910,7 +910,7 @@ git commit -m "feat(scene): add promotion prompt and sequence in BattleScene"
 
 ---
 
-## Task 11.8: Add Promotion Item Support (Optional Extension)
+## Task 11.8: Add Promotion Item Support (Optional Extension) ✅
 
 **Objective:** Introduce a `Master Seal` item that enables promotion when used from the item menu.
 
