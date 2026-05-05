@@ -112,4 +112,22 @@ describe('GameEngine snapshot and restore', () => {
     expect(engine2.evaluateTrigger({ eventType: 'on_level_start' })).toBeNull();
     expect(engine2.evaluateTrigger({ eventType: 'on_first_combat' })).toBeNull();
   });
+
+  it('snapshot includes gold amount', () => {
+    const engine = new GameEngine(8, 8);
+    engine.gold.add(7500);
+    const save = engine.snapshot('level-test');
+    expect(save.gold).toBe(7500);
+  });
+
+  it('restore restores gold amount', () => {
+    const engine = new GameEngine(8, 8);
+    engine.gold.add(5000);
+    const save = engine.snapshot('level-test');
+
+    const engine2 = new GameEngine(1, 1);
+    engine2.restore(save);
+
+    expect(engine2.gold.amount).toBe(5000);
+  });
 });
