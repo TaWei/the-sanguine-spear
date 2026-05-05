@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { TILE_SIZE } from '../constants';
 import { GameEngine } from '../game/GameEngine';
+import { SaveManager } from '../game/save';
 import { Unit, Faction } from '../game/units/Unit';
 import { BattleMenu, MenuState, MenuAction } from '../game/ui/BattleMenu';
 import { BattleDisplayState, BattlePhase } from '../game/ui/BattleDisplayState';
@@ -74,13 +75,15 @@ export class BattleScene extends Phaser.Scene {
   private itemMenu: ItemMenu = new ItemMenu();
   private itemOverlay: Phaser.GameObjects.Container | null = null;
   private weaponOverlay: Phaser.GameObjects.Container | null = null;
+  private saveBtn: Phaser.GameObjects.Text | null = null;
+  private saveMenuContainer: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
     this.enemyPreview = new EnemyPreview();
   }
 
-  create(data?: { levelId?: string }): void {
+  create(data?: { levelId?: string; saveSlot?: string }): void {
     this.cameras.main.fadeIn(500, 0, 0, 0);
 
     const levelId = data?.levelId ?? 'level-1';
@@ -91,7 +94,16 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.engine = new GameEngine(level.cols, level.rows);
-    this.engine.loadLevel(level);
+    if (data?.saveSlot) {
+      const mgr = new SaveManager();
+      const saveData = mgr.load(data.saveSlot);
+      if (!saveData) {
+        throw new Error(`Save slot not found: ${data.saveSlot}`);
+      }
+      this.engine.restore(saveData);
+    } else {
+      this.engine.loadLevel(level);
+    }
 
     this.offsetX = (this.cameras.main.width - level.cols * TILE_SIZE) / 2;
     this.offsetY = (this.cameras.main.height - level.rows * TILE_SIZE) / 2;
@@ -289,6 +301,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.enemyPreview.isActive) {
       this.clearEnemyPreview();
     }
+    this.updateSaveBtnVisibility();
   }
 
   private handleTileHover(gx: number, gy: number): void {
@@ -355,6 +368,7 @@ export class BattleScene extends Phaser.Scene {
       if (stepIndex >= path.length) {
         this.isAnimatingMovement = false;
         onComplete();
+        this.updateSaveBtnVisibility();
         return;
       }
       const step = path[stepIndex];
@@ -516,12 +530,43 @@ export class BattleScene extends Phaser.Scene {
     endTurn.on('pointerdown', () => {
       this.triggerEndTurn();
     });
+
+    this.saveBtn = this.add.text(this.cameras.main.width - 20, 20, '[ Save ]', {
+      fontSize: '18px',
+      color: '#ecf0f1',
+      backgroundColor: '#2c3e50',
+      padding: { x: 12, y: 6 },
+    })
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(10);
+
+    this.saveBtn.on('pointerover', () => this.saveBtn!.setStyle({ color: '#f1c40f' }));
+    this.saveBtn.on('pointerout', () => this.saveBtn!.setStyle({ color: '#ecf0f1' }));
+    this.saveBtn.on('pointerdown', (_p, _lx, _ly, event: Phaser.Types.Input.EventData) => {
+      event.stopPropagation();
+      this.openSaveMenu();
+    });
   }
 
   private updatePhaseText(): void {
     this.phaseText.setText(
       `Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`,
     );
+  }
+
+  private updateSaveBtnVisibility(): void {
+    if (!this.saveBtn) return;
+    const canSave =
+      this.engine.turnManager.isPlayerPhase() &&
+      !this.inBattleMode &&
+      !this.battleMenu.isVisible &&
+      !this.isAnimatingMovement &&
+      !this.levelUpSequence &&
+      !this.promotionSequence &&
+      !this.statusOverlay &&
+      !this.itemOverlay;
+    this.saveBtn.setVisible(canSave);
   }
 
   private triggerEndTurn(): void {
@@ -566,6 +611,7 @@ export class BattleScene extends Phaser.Scene {
     } else if (this.engine.turnManager.isPlayerPhase()) {
       this.beginPlayerPhase();
     }
+    this.updateSaveBtnVisibility();
   }
 
   private showHazardDamage(
@@ -852,6 +898,7 @@ export class BattleScene extends Phaser.Scene {
       texts.splice(1, 0, staffText);
     }
     this.menuTexts.push(...texts);
+    this.updateSaveBtnVisibility();
   }
 
   private showWeaponSelection(unit: Unit): void {
@@ -1053,6 +1100,7 @@ export class BattleScene extends Phaser.Scene {
 
     overlay.add(closeBtn);
     this.statusOverlay = overlay;
+    this.updateSaveBtnVisibility();
   }
 
   private hideStatusWindow(): void {
@@ -1065,6 +1113,7 @@ export class BattleScene extends Phaser.Scene {
       this.battleMenu.show(unit, this.engine.getAdjacentEnemies(unit));
       this.showPostMoveMenu(unit);
     }
+    this.updateSaveBtnVisibility();
   }
 
   private clearMenuTexts(): void {
@@ -1122,6 +1171,7 @@ export class BattleScene extends Phaser.Scene {
     this.pathGraphics.clear();
     this.selectedUnit = unit;
     this.showMoveRange(unit);
+    this.updateSaveBtnVisibility();
   }
 
   private handleOutsideMenuClick(): void {
@@ -2073,6 +2123,7 @@ export class BattleScene extends Phaser.Scene {
     });
 
     this.levelUpSequence = { display, container, timer };
+    this.updateSaveBtnVisibility();
 
     // Input handlers for dismissal
     const dismissHandler = () => {
@@ -2090,6 +2141,7 @@ export class BattleScene extends Phaser.Scene {
     this.levelUpSequence?.container.destroy();
     this.levelUpSequence = null;
     this.levelUpBanner = null;
+    this.updateSaveBtnVisibility();
   }
 
   private handlePostLevelUp(unit: Unit, onComplete: () => void): void {
@@ -2314,6 +2366,7 @@ export class BattleScene extends Phaser.Scene {
     });
 
     this.promotionSequence = { display, container, timer };
+    this.updateSaveBtnVisibility();
 
     const dismissHandler = () => {
       if (this.promotionSequence?.display.phase === PROMOTION_PHASE.WAIT_FOR_INPUT) {
@@ -2329,6 +2382,7 @@ export class BattleScene extends Phaser.Scene {
     this.promotionSequence?.timer.remove();
     this.promotionSequence?.container.destroy();
     this.promotionSequence = null;
+    this.updateSaveBtnVisibility();
   }
 
   private showItemMenu(unit: Unit): void {
@@ -2429,6 +2483,7 @@ export class BattleScene extends Phaser.Scene {
 
     overlay.add(closeBtn);
     this.itemOverlay = overlay;
+    this.updateSaveBtnVisibility();
   }
 
   private showItemConfirm(unit: Unit, item: Item, index: number): void {
@@ -2562,4 +2617,126 @@ export class BattleScene extends Phaser.Scene {
       }
     }
   }
+
+  private openSaveMenu(): void {
+    if (this.saveMenuContainer) return;
+    this.inputEnabled = false;
+
+    const container = this.add.container(0, 0);
+    container.setDepth(100);
+    this.saveMenuContainer = container;
+
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+
+    const dim = this.add.rectangle(
+      cx,
+      cy,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7,
+    );
+    container.add(dim);
+
+    const panel = this.add.rectangle(cx, cy, 400, 320, 0x2c3e50, 0.95);
+    panel.setStrokeStyle(2, 0x3498db);
+    container.add(panel);
+
+    const title = this.add
+      .text(cx, cy - 130, 'Save Game', {
+        fontSize: '20px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    container.add(title);
+
+    const mgr = new SaveManager();
+    const saves = mgr.listSaves();
+    const saveMap = new Map<string, { levelId: string; turnNumber: number }>();
+    for (const save of saves) {
+      saveMap.set(save.slot, { levelId: save.levelId, turnNumber: save.turnNumber });
+    }
+
+    for (let i = 0; i < 5; i++) {
+      const slot = `slot_${i}`;
+      const existing = saveMap.get(slot);
+      const label = existing
+        ? `${i + 1}. ${existing.levelId} — Turn ${existing.turnNumber}`
+        : `${i + 1}. [ Empty ]`;
+      const y = cy - 60 + i * 45;
+
+      const slotText = this.add
+        .text(cx, y, label, {
+          fontSize: '14px',
+          color: '#ecf0f1',
+          backgroundColor: '#34495e',
+          padding: { x: 10, y: 5 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+
+      slotText.on('pointerover', () => slotText.setStyle({ color: '#f1c40f' }));
+      slotText.on('pointerout', () => slotText.setStyle({ color: '#ecf0f1' }));
+      slotText.on(
+        'pointerdown',
+        (
+          _pointer: Phaser.Input.Pointer,
+          _localX: number,
+          _localY: number,
+          event: Phaser.Types.Input.EventData,
+        ) => {
+          event.stopPropagation();
+          mgr.save(slot, this.engine.snapshot(this.currentLevelId));
+          this.closeSaveMenu();
+          const confirm = this.add
+            .text(cx, cy + 140, 'Game Saved!', {
+              fontSize: '16px',
+              color: '#2ecc71',
+              fontStyle: 'bold',
+            })
+            .setOrigin(0.5);
+          this.time.delayedCall(1200, () => confirm.destroy());
+        },
+      );
+
+      container.add(slotText);
+    }
+
+    const cancelBtn = this.add
+      .text(cx, cy + 140, '[ Cancel ]', {
+        fontSize: '14px',
+        color: '#e74c3c',
+        backgroundColor: '#1a1a2e',
+        padding: { x: 12, y: 6 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    cancelBtn.on('pointerover', () => cancelBtn.setStyle({ color: '#ff6b6b' }));
+    cancelBtn.on('pointerout', () => cancelBtn.setStyle({ color: '#e74c3c' }));
+    cancelBtn.on(
+      'pointerdown',
+      (
+        _pointer: Phaser.Input.Pointer,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        event.stopPropagation();
+        this.closeSaveMenu();
+      },
+    );
+
+    container.add(cancelBtn);
+  }
+
+  private closeSaveMenu(): void {
+    this.saveMenuContainer?.destroy();
+    this.saveMenuContainer = null;
+    this.inputEnabled = true;
+    this.updateSaveBtnVisibility();
+  }
+
 }
