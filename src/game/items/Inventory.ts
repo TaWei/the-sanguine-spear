@@ -25,6 +25,14 @@ export class Inventory {
     return removed;
   }
 
+  insertAt(index: number, item: Item): boolean {
+    if (this._items.length >= this._max) {
+      return false;
+    }
+    this._items.splice(index, 0, item);
+    return true;
+  }
+
   useAt(index: number): UseResult {
     if (index < 0 || index >= this._items.length) {
       throw new Error(`Invalid index: ${index}`);
