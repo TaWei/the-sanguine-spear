@@ -62,7 +62,7 @@ describe('Targeting', () => {
     expect(score).toBeGreaterThan(0);
   });
 
-  it('returns 0 if target is not an enemy', () => {
+  it('returns -Infinity if target is not an enemy', () => {
     const enemy = makeEnemy();
     const allyStats = createStats({
       hp: 16,
@@ -77,10 +77,10 @@ describe('Targeting', () => {
     });
     const ally = new Unit('a1', 'Ally', Faction.ALLY, UnitClass.LORD, allyStats, 6, 5);
     const score = scoreTarget(enemy, ally, WEAPON_DB['Iron Axe'], grid);
-    expect(score).toBe(0);
+    expect(score).toBe(-Infinity);
   });
 
-  it('returns 0 if target is same faction', () => {
+  it('returns -Infinity if target is same faction', () => {
     const enemy = makeEnemy();
     const otherEnemyStats = createStats({
       hp: 20,
@@ -103,15 +103,15 @@ describe('Targeting', () => {
       5,
     );
     const score = scoreTarget(enemy, otherEnemy, WEAPON_DB['Iron Axe'], grid);
-    expect(score).toBe(0);
+    expect(score).toBe(-Infinity);
   });
 
-  it('returns 0 if target is dead', () => {
+  it('returns -Infinity if target is dead', () => {
     const enemy = makeEnemy();
     const weak = makeWeak();
     weak.takeDamage(999);
     const score = scoreTarget(enemy, weak, WEAPON_DB['Iron Axe'], grid);
-    expect(score).toBe(0);
+    expect(score).toBe(-Infinity);
   });
 
   it('prefers a killable target over a tougher one', () => {

@@ -90,7 +90,10 @@ export class GameEngine {
     }
     // Place units
     for (const u of def.units) {
-      this.addUnit(u.id, u.name, u.faction, u.unitClass, u.stats, u.x, u.y);
+      this.addUnit(u.id, u.name, u.faction, u.unitClass, u.stats, u.x, u.y, {
+        aiBehavior: u.aiBehavior,
+        aiPersonality: u.aiPersonality,
+      });
     }
     // Register triggers
     this.triggerEngine.register(def.triggers ?? []);

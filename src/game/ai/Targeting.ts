@@ -34,13 +34,13 @@ export function scoreTarget(
   targetWeapon?: WeaponData,
 ): number {
   if (!target.isAlive) {
-    return 0;
+    return -Infinity;
   }
   if (target.faction === attacker.faction) {
-    return 0;
+    return -Infinity;
   }
   if (target.faction === Faction.ALLY) {
-    return 0;
+    return -Infinity;
   }
 
   const combat = evaluateCombat(attacker, target, weapon, grid, targetWeapon);
