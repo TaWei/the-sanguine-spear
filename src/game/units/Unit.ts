@@ -2,6 +2,8 @@ import { UnitStats } from './Stats';
 import { UnitState, UNIT_STATE } from '../state/UnitState';
 import { GrowthRates, createGrowthRates } from '../progression/GrowthRates';
 import { Inventory } from '../items/Inventory';
+import type { AiBehavior } from '../ai/Behavior';
+import type { AiPersonality } from '../ai/Personality';
 
 export const Faction = {
   PLAYER: 'player',
@@ -36,6 +38,8 @@ export interface UnitOptions {
   level?: number;
   exp?: number;
   growthRates?: GrowthRates;
+  aiBehavior?: AiBehavior;
+  aiPersonality?: AiPersonality;
 }
 
 export class Unit {
@@ -52,6 +56,8 @@ export class Unit {
   private _exp: number;
   private _growthRates: GrowthRates;
   private _tier: UnitTier = 'base';
+  aiBehavior?: AiBehavior;
+  aiPersonality?: AiPersonality;
 
   constructor(
     id: string,
@@ -74,6 +80,8 @@ export class Unit {
     this._level = Math.max(1, Math.min(20, options.level ?? 1));
     this._exp = Math.max(0, Math.min(99, options.exp ?? 0));
     this._growthRates = options.growthRates ?? createGrowthRates();
+    this.aiBehavior = options.aiBehavior;
+    this.aiPersonality = options.aiPersonality;
   }
 
   get unitClass(): UnitClass {
