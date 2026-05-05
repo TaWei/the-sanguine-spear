@@ -6,6 +6,9 @@ import { TerrainType } from '../map/Terrain';
 import { UNIT_STATE } from '../state/UnitState';
 import { getLevel } from '../levels/LevelData';
 import { createWeaponItem, createRecoveryItem } from '../items/ItemTypes';
+import { ArmyGold } from '../shop/ArmyGold';
+import { ShopItem } from '../shop/ShopEngine';
+import { createItemByName } from '../items/ItemFactory';
 
 describe('GameEngine', () => {
   it('initializes with a grid of specified size', () => {
@@ -1182,6 +1185,87 @@ describe('GameEngine', () => {
       const result = engine.promote(unit);
       expect(result.success).toBe(true);
       expect(unit.unitClass).toBe('paladin');
+    });
+  });
+
+  describe('gold, shop, trade, and allies integration', () => {
+    it('has starting gold of 0 by default', () => {
+      const engine = new GameEngine(10, 8);
+      expect(engine.gold.amount).toBe(0);
+    });
+
+    it('can add gold to army purse', () => {
+      const engine = new GameEngine(10, 8);
+      engine.gold.add(100);
+      expect(engine.gold.amount).toBe(100);
+    });
+
+    it('can create a shop from level definition', () => {
+      const engine = new GameEngine(10, 8);
+      const stats = createStats({
+        hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5,
+      });
+      const unit = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
+      engine.gold.add(500);
+
+      const shop = engine.createShop([{ name: 'Iron Sword', price: 100 }]);
+      expect(shop.stock.length).toBe(1);
+      expect(shop.stock[0].item.name).toBe('Iron Sword');
+
+      const result = shop.buy(unit, shop.stock[0]);
+      expect(result.success).toBe(true);
+      expect(engine.gold.amount).toBe(400);
+    });
+
+    it('canTrade returns true for adjacent allies', () => {
+      const engine = new GameEngine(10, 8);
+      const stats = createStats({
+        hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5,
+      });
+      const a = engine.addUnit('p1', 'A', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+      const b = engine.addUnit('p2', 'B', Faction.PLAYER, UnitClass.MERCENARY, stats, 3, 2);
+      expect(engine.canTrade(a, b)).toBe(true);
+    });
+
+    it('canTrade returns false for non-adjacent units', () => {
+      const engine = new GameEngine(10, 8);
+      const stats = createStats({
+        hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5,
+      });
+      const a = engine.addUnit('p1', 'A', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+      const b = engine.addUnit('p2', 'B', Faction.PLAYER, UnitClass.MERCENARY, stats, 5, 5);
+      expect(engine.canTrade(a, b)).toBe(false);
+    });
+
+    it('executeTrade swaps items between units', () => {
+      const engine = new GameEngine(10, 8);
+      const stats = createStats({
+        hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5,
+      });
+      const a = engine.addUnit('p1', 'A', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+      const b = engine.addUnit('p2', 'B', Faction.PLAYER, UnitClass.MERCENARY, stats, 3, 2);
+
+      a.inventory.add(createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false));
+      b.inventory.add(createRecoveryItem('Vulnerary', 10));
+
+      const result = engine.executeTrade(a, 1, b, 1);
+      expect(result.success).toBe(true);
+      expect(a.inventory.items[1].name).toBe('Vulnerary');
+      expect(b.inventory.items[1].name).toBe('Iron Sword');
+    });
+
+    it('getAdjacentAllies returns player units next to a unit', () => {
+      const engine = new GameEngine(10, 8);
+      const stats = createStats({
+        hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5,
+      });
+      const target = engine.addUnit('p1', 'Target', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+      const ally = engine.addUnit('p2', 'Ally', Faction.PLAYER, UnitClass.MERCENARY, stats, 3, 2);
+      engine.addUnit('e1', 'Enemy', Faction.ENEMY, UnitClass.BRIGAND, stats, 2, 3);
+
+      const adjacent = engine.getAdjacentAllies(target);
+      expect(adjacent).toHaveLength(1);
+      expect(adjacent[0].id).toBe('p2');
     });
   });
 });

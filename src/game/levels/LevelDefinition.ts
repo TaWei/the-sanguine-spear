@@ -31,4 +31,5 @@ export interface LevelDefinition {
   terrain: TerrainPlacement[];
   units: UnitPlacement[];
   triggers?: CutsceneTrigger[];
+  startingGold?: number;
 }

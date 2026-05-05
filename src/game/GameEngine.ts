@@ -27,10 +27,15 @@ import { AiBehavior } from './ai/Behavior';
 import { AiPersonality } from './ai/Personality';
 import { SaveData, SAVE_VERSION, TerrainSnapshot } from './save/SaveData';
 import { serializeUnit, deserializeUnit } from './save/UnitSerializer';
+import { ArmyGold } from './shop/ArmyGold';
+import { ShopEngine, ShopItem } from './shop/ShopEngine';
+import { TradeEngine } from './trade/TradeEngine';
+import { createItemByName } from './items/ItemFactory';
 
 export class GameEngine {
   grid: Grid;
   readonly turnManager: TurnManager;
+  readonly gold: ArmyGold;
   private units: Unit[] = [];
   private actionQueue: ActionQueue;
   private commander: Commander;
@@ -38,10 +43,12 @@ export class GameEngine {
   private hazardEngine: TerrainHazardEngine;
   private triggerEngine = new CutsceneTriggerEngine();
   private promotionEngine = new PromotionEngine();
+  private tradeEngine = new TradeEngine();
 
   constructor(cols: number, rows: number) {
     this.grid = new Grid(cols, rows);
     this.turnManager = new TurnManager();
+    this.gold = new ArmyGold();
     this.actionQueue = new ActionQueue();
     this.commander = new Commander(this.grid, WEAPON_DB);
     this.progressionEngine = new ProgressionEngine();
@@ -99,6 +106,11 @@ export class GameEngine {
     }
     // Register triggers
     this.triggerEngine.register(def.triggers ?? []);
+    if (def.startingGold !== undefined) {
+      (this as any).gold = new ArmyGold(def.startingGold);
+    } else {
+      (this as any).gold = new ArmyGold();
+    }
   }
 
   snapshot(levelId: string): SaveData {
@@ -120,6 +132,7 @@ export class GameEngine {
       units: this.units.map(serializeUnit),
       consumedTriggers: Array.from(this.triggerEngine.getConsumed()),
       firstCombatOccurred: this.triggerEngine.getFirstCombatOccurred(),
+      gold: this.gold.amount,
     };
   }
 
@@ -138,6 +151,7 @@ export class GameEngine {
     this.turnManager.currentPhase = data.currentPhase;
     this.triggerEngine.setConsumed(new Set(data.consumedTriggers));
     this.triggerEngine.setFirstCombatOccurred(data.firstCombatOccurred);
+    (this as any).gold = new ArmyGold(data.gold ?? 0);
   }
 
   getUnit(x: number, y: number): Unit | null {
@@ -154,6 +168,46 @@ export class GameEngine {
 
   getLiveUnits(): Unit[] {
     return this.units.filter((u) => u.isAlive);
+  }
+
+  createShop(stockDefs: Array<{ name: string; price: number; stock?: number }>): ShopEngine {
+    const stock: ShopItem[] = stockDefs.map((def) => {
+      const item = createItemByName(def.name);
+      if (!item) {
+        throw new Error(`Unknown item: ${def.name}`);
+      }
+      return { item, price: def.price, stock: def.stock };
+    });
+    return new ShopEngine(this.gold, stock);
+  }
+
+  canTrade(unitA: Unit, unitB: Unit): boolean {
+    return this.tradeEngine.canTrade(unitA, unitB, this.grid);
+  }
+
+  executeTrade(unitA: Unit, itemIndexA: number, unitB: Unit, itemIndexB: number): import('./trade/TradeEngine').TradeResult {
+    return this.tradeEngine.trade(unitA, itemIndexA, unitB, itemIndexB);
+  }
+
+  getAdjacentAllies(unit: Unit): Unit[] {
+    const allies: Unit[] = [];
+    const directions = [
+      { dx: 0, dy: -1 },
+      { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 },
+    ];
+    for (const { dx, dy } of directions) {
+      const x = unit.gridX + dx;
+      const y = unit.gridY + dy;
+      if (this.grid.isInBounds(x, y)) {
+        const other = this.grid.getUnit(x, y);
+        if (other && other !== unit && !other.isEnemy) {
+          allies.push(other);
+        }
+      }
+    }
+    return allies;
   }
 
   getMoveRange(unit: Unit): Map<string, number> {

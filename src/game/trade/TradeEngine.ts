@@ -7,6 +7,14 @@ export interface TradeResult {
 }
 
 export class TradeEngine {
+  canTrade(unitA: Unit, unitB: Unit, grid: Grid): boolean {
+    return TradeEngine.canTrade(unitA, unitB, grid);
+  }
+
+  trade(unitA: Unit, itemIndexA: number, unitB: Unit, itemIndexB: number): TradeResult {
+    return TradeEngine.trade(unitA, itemIndexA, unitB, itemIndexB);
+  }
+
   static canTrade(unitA: Unit, unitB: Unit, grid: Grid): boolean {
     if (unitA.faction === Faction.ENEMY || unitB.faction === Faction.ENEMY) {
       return false;

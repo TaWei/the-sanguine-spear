@@ -47,4 +47,5 @@ export interface SaveData {
   units: UnitSnapshot[];
   consumedTriggers: string[];
   firstCombatOccurred: boolean;
+  gold: number;
 }
