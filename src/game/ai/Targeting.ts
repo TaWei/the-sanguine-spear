@@ -1,18 +1,38 @@
 import { Unit, Faction } from '../units/Unit';
 import { Grid } from '../map/Grid';
 import { WeaponData } from '../combat/Weapons';
-import { calcDamage } from '../combat/Formulas';
+import { evaluateCombat } from './CombatEvaluator';
+import { scoreAction, AiPersonality } from './Personality';
+
+export { AiPersonality } from './Personality';
+
+export interface TargetScore {
+  target: Unit;
+  actionScore: number;
+}
 
 /**
  * Score a potential target for the attacker.
  * Higher score = better target.
  *
- * Factors:
- * - Damage dealt
- * - Kill bonus (50) if damage >= target HP
- * - Damage already taken bonus: (maxHp - hp) * 2
+ * Replacement for the old damage-only scoring.
+ * Now simulates full combat (attack + counter) and applies personality weighting.
+ *
+ * @param attacker       The enemy unit evaluating targets
+ * @param target         A candidate target
+ * @param weapon         Attacker's weapon
+ * @param grid           Game grid
+ * @param personality    AI personality driving decision weights
+ * @param targetWeapon   Optional: weapon the target would counter with
  */
-export function scoreTarget(attacker: Unit, target: Unit, weapon: WeaponData, grid: Grid): number {
+export function scoreTarget(
+  attacker: Unit,
+  target: Unit,
+  weapon: WeaponData,
+  grid: Grid,
+  personality: AiPersonality = AiPersonality.BALANCED,
+  targetWeapon?: WeaponData,
+): number {
   if (!target.isAlive) {
     return 0;
   }
@@ -23,22 +43,13 @@ export function scoreTarget(attacker: Unit, target: Unit, weapon: WeaponData, gr
     return 0;
   }
 
-  const atkStat = weapon.usesMagic ? attacker.stats.mag : attacker.stats.str;
-  const defStat = weapon.usesMagic ? target.stats.res : target.stats.def;
-  const targetTerrain = grid.getTerrainData(target.gridX, target.gridY);
-  const effectiveDef = defStat + targetTerrain.defenseBonus;
+  const combat = evaluateCombat(attacker, target, weapon, grid, targetWeapon);
 
-  const damage = calcDamage(atkStat, weapon.mt, effectiveDef, weapon.usesMagic);
+  // Bonus for already-damaged targets (finish them off)
+  const woundedBonus = (target.stats.maxHp - target.stats.hp) * 2;
 
-  let score = damage;
-
-  if (damage >= target.stats.hp) {
-    score += 50;
-  }
-
-  score += (target.stats.maxHp - target.stats.hp) * 2;
-
-  return score;
+  const actionScore = scoreAction(combat, personality);
+  return actionScore + woundedBonus;
 }
 
 /**
@@ -49,12 +60,15 @@ export function pickBestTarget(
   targets: Unit[],
   weapon: WeaponData,
   grid: Grid,
+  personality: AiPersonality = AiPersonality.BALANCED,
+  targetWeaponResolver?: (unit: Unit) => WeaponData | undefined,
 ): Unit | null {
   let best: Unit | null = null;
   let bestScore = 0;
 
   for (const target of targets) {
-    const score = scoreTarget(attacker, target, weapon, grid);
+    const targetWeapon = targetWeaponResolver ? targetWeaponResolver(target) : undefined;
+    const score = scoreTarget(attacker, target, weapon, grid, personality, targetWeapon);
     if (score > bestScore) {
       bestScore = score;
       best = target;

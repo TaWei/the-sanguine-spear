@@ -5,6 +5,7 @@ import { createStats } from '../../units/Stats';
 import { WEAPON_DB } from '../../combat/Weapons';
 import { Grid } from '../../map/Grid';
 import { TerrainType } from '../../map/Terrain';
+import { AiPersonality } from '../Personality';
 
 describe('Targeting', () => {
   const grid = new Grid(10, 10);
@@ -159,12 +160,14 @@ describe('Targeting', () => {
     const weak = makeWeak();
     // Iron Axe: 9 str + 8 mt = 17 - 2 def = 15 damage, hp=16 -> not a kill
     const axeScore = scoreTarget(enemy, weak, WEAPON_DB['Iron Axe'], grid);
-    expect(axeScore).toBe(15);
+    // BALANCED: damage(15) + net(15) = 30
+    expect(axeScore).toBe(30);
 
     // Hypothetical weapon with mt=10: 9+10=19-2=17 damage, hp=16 -> kill
     const killWeapon = { ...WEAPON_DB['Iron Axe'], mt: 10 };
     const killScore = scoreTarget(enemy, weak, killWeapon, grid);
-    expect(killScore).toBe(17 + 50);
+    // BALANCED: damage(17) + kill(50) + net(17) = 84
+    expect(killScore).toBe(84);
   });
 
   it('includes damageAlreadyTaken bonus', () => {
@@ -173,7 +176,8 @@ describe('Targeting', () => {
     weak.takeDamage(6); // hp now 10, maxHp 16 -> bonus = (16-10)*2 = 12
     // Damage is 15, which now exceeds current HP of 10, so kill bonus (+50) also applies
     const score = scoreTarget(enemy, weak, WEAPON_DB['Iron Axe'], grid);
-    expect(score).toBe(15 + 50 + 12);
+    // BALANCED: damage(15) + kill(50) + net(15) + wounded(12) = 92
+    expect(score).toBe(92);
   });
 
   it('uses terrain defense bonus in damage calc', () => {
@@ -183,6 +187,72 @@ describe('Targeting', () => {
     forestGrid.setTerrain(weak.gridX, weak.gridY, TerrainType.FOREST);
     const score = scoreTarget(enemy, weak, WEAPON_DB['Iron Axe'], forestGrid);
     // def 2 + terrain 1 = 3; damage = 9 + 8 - 3 = 14
-    expect(score).toBe(14);
+    // BALANCED: damage(14) + net(14) = 28
+    expect(score).toBe(28);
+  });
+});
+
+describe('Targeting with personality', () => {
+  const grid = new Grid(10, 10);
+
+  const makeEnemy = () => {
+    const stats = createStats({
+      hp: 26,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
+    return new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 5, 5);
+  };
+
+  const makeWeak = () => {
+    const stats = createStats({
+      hp: 16,
+      str: 1,
+      mag: 9,
+      skl: 6,
+      spd: 7,
+      luk: 5,
+      def: 2,
+      res: 7,
+      mov: 5,
+    });
+    return new Unit('p1', 'Elara', Faction.PLAYER, UnitClass.MAGE, stats, 6, 5);
+  };
+
+  it('AGGRESSIVE prefers a kill even with counter risk', () => {
+    const enemy = makeEnemy();
+    const weak = makeWeak();
+    const killWeapon = { ...WEAPON_DB['Iron Axe'], mt: 10 };
+    const scoreAgg = scoreTarget(enemy, weak, killWeapon, grid, AiPersonality.AGGRESSIVE);
+    const scoreCaut = scoreTarget(enemy, weak, killWeapon, grid, AiPersonality.CAUTIOUS);
+    expect(scoreAgg).toBeGreaterThanOrEqual(scoreCaut);
+  });
+
+  it('CAUTIOUS avoids high-risk targets', () => {
+    const enemy = makeEnemy();
+    const toughStats = createStats({
+      hp: 25,
+      str: 10,
+      mag: 0,
+      skl: 8,
+      spd: 8,
+      luk: 6,
+      def: 8,
+      res: 2,
+      mov: 5,
+    });
+    const tough = new Unit('p2', 'Knight', Faction.PLAYER, UnitClass.SOLDIER, toughStats, 6, 5);
+    grid.setTerrain(tough.gridX, tough.gridY, TerrainType.FOREST);
+
+    // Pass defender weapon so counter damage is simulated
+    const scoreCaut = scoreTarget(enemy, tough, WEAPON_DB['Iron Axe'], grid, AiPersonality.CAUTIOUS, WEAPON_DB['Iron Sword']);
+    const scoreBers = scoreTarget(enemy, tough, WEAPON_DB['Iron Axe'], grid, AiPersonality.BERSERKER, WEAPON_DB['Iron Sword']);
+    expect(scoreBers).toBeGreaterThan(scoreCaut);
   });
 });
