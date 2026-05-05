@@ -11,6 +11,7 @@ import { getLevel, getNextLevelId } from '../game/levels/LevelData';
 import { ExpPopup } from '../game/ui/ExpPopup';
 import { StatusWindow } from '../game/ui/StatusWindow';
 import { ItemMenu } from '../game/ui/ItemMenu';
+import { TradeMenu, TradeMenuState } from '../game/ui/TradeMenu';
 import { LevelUpDisplay, LEVEL_UP_PHASE } from '../game/ui/LevelUpDisplay';
 import { PromotionDisplay, PROMOTION_PHASE } from '../game/ui/PromotionDisplay';
 import { getPromotedClass } from '../game/promotion/PromotionData';
@@ -77,6 +78,9 @@ export class BattleScene extends Phaser.Scene {
   private weaponOverlay: Phaser.GameObjects.Container | null = null;
   private saveBtn: Phaser.GameObjects.Text | null = null;
   private saveMenuContainer: Phaser.GameObjects.Container | null = null;
+  private tradeMenu: TradeMenu = new TradeMenu();
+  private tradeOverlay: Phaser.GameObjects.Container | null = null;
+  private goldText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -547,12 +551,27 @@ export class BattleScene extends Phaser.Scene {
       event.stopPropagation();
       this.openSaveMenu();
     });
+
+    this.goldText = this.add
+      .text(this.cameras.main.width - 16, 16, `G: ${this.engine.gold.amount}`, {
+        fontSize: '14px',
+        color: '#f1c40f',
+        fontStyle: 'bold',
+      })
+      .setOrigin(1, 0)
+      .setScrollFactor(0);
   }
 
   private updatePhaseText(): void {
     this.phaseText.setText(
       `Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`,
     );
+  }
+
+  private updateGoldDisplay(): void {
+    if (this.goldText) {
+      this.goldText.setText(`G: ${this.engine.gold.amount}`);
+    }
   }
 
   private updateSaveBtnVisibility(): void {
@@ -565,7 +584,8 @@ export class BattleScene extends Phaser.Scene {
       !this.levelUpSequence &&
       !this.promotionSequence &&
       !this.statusOverlay &&
-      !this.itemOverlay;
+      !this.itemOverlay &&
+      !this.tradeOverlay;
     this.saveBtn.setVisible(canSave);
   }
 
@@ -742,7 +762,7 @@ export class BattleScene extends Phaser.Scene {
     this.selectedUnit = null;
 
     const enemies = this.engine.getAdjacentEnemies(unit);
-    this.battleMenu.show(unit, enemies);
+    const allies = this.engine.getAdjacentAllies(unit);
 
     const px = this.offsetX + unit.gridX * TILE_SIZE + TILE_SIZE / 2;
     const py = this.offsetY + unit.gridY * TILE_SIZE - TILE_SIZE;
@@ -750,6 +770,8 @@ export class BattleScene extends Phaser.Scene {
     const staff = this.engine.getStaffForUnit(unit);
     const healTargets = staff ? this.engine.getHealTargets(unit, staff) : [];
     const hasStaff = staff !== null && healTargets.length > 0;
+
+    this.battleMenu.show(unit, enemies, healTargets, allies);
 
     const fightText = this.add
       .text(px, py, '[ Fight ]', {
@@ -865,8 +887,36 @@ export class BattleScene extends Phaser.Scene {
       },
     );
 
+    const tradeText = this.add
+      .text(px, py + 72 + baseY, '[ Trade ]', {
+        fontSize: '14px',
+        color: '#ffffff',
+        backgroundColor: allies.length > 0 ? '#f39c12' : '#7f8c8d',
+        padding: { x: 8, y: 4 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: allies.length > 0 });
+
+    if (allies.length > 0) {
+      tradeText.on(
+        'pointerdown',
+        (
+          _pointer: Phaser.Input.Pointer,
+          _localX: number,
+          _localY: number,
+          event: Phaser.Types.Input.EventData,
+        ) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          event.stopPropagation();
+          this.battleMenu.selectAction(MenuAction.TRADE);
+          this.clearMenuTexts();
+          this.showTradeTargetSelection(unit, allies);
+        },
+      );
+    }
+
     const endText = this.add
-      .text(px, py + 72 + baseY, '[ End Turn ]', {
+      .text(px, py + 72 + baseY + (allies.length > 0 ? 24 : 0), '[ End Turn ]', {
         fontSize: '14px',
         color: '#ffffff',
         backgroundColor: '#2c3e50',
@@ -897,8 +947,209 @@ export class BattleScene extends Phaser.Scene {
     if (staffText) {
       texts.splice(1, 0, staffText);
     }
+    if (allies.length > 0) {
+      texts.splice(texts.indexOf(endText), 0, tradeText);
+    }
     this.menuTexts.push(...texts);
     this.updateSaveBtnVisibility();
+  }
+
+  private showTradeTargetSelection(unit: Unit, allies: Unit[]): void {
+    this.inputEnabled = false;
+    const overlay = this.add.container(0, 0);
+    this.tradeOverlay = overlay;
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7,
+    );
+    overlay.add(bg);
+
+    const titleText = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.2, 'Trade with', {
+        fontSize: '24px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    overlay.add(titleText);
+
+    for (let i = 0; i < allies.length; i++) {
+      const ally = allies[i];
+      const y = this.cameras.main.height * 0.35 + i * 48;
+      const allyText = this.add
+        .text(this.cameras.main.width / 2, y, ally.name, {
+          fontSize: '18px',
+          color: '#ffffff',
+          backgroundColor: '#f39c12',
+          padding: { x: 12, y: 6 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      allyText.on('pointerdown', () => {
+        this.battleMenu.selectTradeTarget(ally);
+        this.tradeOverlay?.destroy();
+        this.tradeOverlay = null;
+        this.showTradeMenu(unit, ally);
+      });
+      overlay.add(allyText);
+    }
+
+    const cancelText = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.8, '[ Cancel ]', {
+        fontSize: '16px',
+        color: '#ffffff',
+        backgroundColor: '#e74c3c',
+        padding: { x: 12, y: 6 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    cancelText.on('pointerdown', () => {
+      this.battleMenu.cancelTradeSelection();
+      this.tradeOverlay?.destroy();
+      this.tradeOverlay = null;
+      this.showPostMoveMenu(unit);
+    });
+    overlay.add(cancelText);
+  }
+
+  private showTradeMenu(leftUnit: Unit, rightUnit: Unit): void {
+    this.tradeMenu.open(leftUnit, rightUnit);
+    this.inputEnabled = false;
+    const overlay = this.add.container(0, 0);
+    this.tradeOverlay = overlay;
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7,
+    );
+    overlay.add(bg);
+
+    const leftPanelX = this.cameras.main.width * 0.25;
+    const rightPanelX = this.cameras.main.width * 0.75;
+    const panelY = this.cameras.main.height * 0.5;
+
+    const leftTitle = this.add
+      .text(leftPanelX, panelY - 140, leftUnit.name, {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    overlay.add(leftTitle);
+
+    const rightTitle = this.add
+      .text(rightPanelX, panelY - 140, rightUnit.name, {
+        fontSize: '18px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    overlay.add(rightTitle);
+
+    const refreshTradeOverlay = (): void => {
+      // Remove existing item texts and buttons from overlay (keep bg, titles)
+      const toRemove = overlay.list.filter(
+        (obj) => obj !== bg && obj !== leftTitle && obj !== rightTitle,
+      );
+      for (const obj of toRemove) {
+        obj.destroy();
+      }
+
+      for (let i = 0; i < leftUnit.inventory.items.length; i++) {
+        const item = leftUnit.inventory.items[i];
+        const y = panelY - 100 + i * 36;
+        const isSelected = this.tradeMenu.leftSelectedIndex === i;
+        const itemText = this.add
+          .text(leftPanelX, y, item.name, {
+            fontSize: '14px',
+            color: isSelected ? '#f1c40f' : '#ffffff',
+            backgroundColor: isSelected ? '#f39c12' : '#2c3e50',
+            padding: { x: 8, y: 4 },
+          })
+          .setOrigin(0.5)
+          .setInteractive({ useHandCursor: true });
+        itemText.on('pointerdown', () => {
+          this.tradeMenu.selectLeftItem(i);
+          refreshTradeOverlay();
+        });
+        overlay.add(itemText);
+      }
+
+      for (let i = 0; i < rightUnit.inventory.items.length; i++) {
+        const item = rightUnit.inventory.items[i];
+        const y = panelY - 100 + i * 36;
+        const isSelected = this.tradeMenu.rightSelectedIndex === i;
+        const itemText = this.add
+          .text(rightPanelX, y, item.name, {
+            fontSize: '14px',
+            color: isSelected ? '#f1c40f' : '#ffffff',
+            backgroundColor: isSelected ? '#f39c12' : '#2c3e50',
+            padding: { x: 8, y: 4 },
+          })
+          .setOrigin(0.5)
+          .setInteractive({ useHandCursor: true });
+        itemText.on('pointerdown', () => {
+          this.tradeMenu.selectRightItem(i);
+          this.executeTradeAndClose(leftUnit, rightUnit);
+        });
+        overlay.add(itemText);
+      }
+
+      const giveText = this.add
+        .text(rightPanelX, panelY + 80, '[ Give ]', {
+          fontSize: '14px',
+          color: '#ffffff',
+          backgroundColor: '#27ae60',
+          padding: { x: 8, y: 4 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      giveText.on('pointerdown', () => {
+        this.tradeMenu.selectRightItem(-1);
+        this.executeTradeAndClose(leftUnit, rightUnit);
+      });
+      overlay.add(giveText);
+
+      const cancelText = this.add
+        .text(this.cameras.main.width / 2, this.cameras.main.height * 0.85, '[ Cancel ]', {
+          fontSize: '16px',
+          color: '#ffffff',
+          backgroundColor: '#e74c3c',
+          padding: { x: 12, y: 6 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      cancelText.on('pointerdown', () => {
+        this.tradeMenu.close();
+        this.tradeOverlay?.destroy();
+        this.tradeOverlay = null;
+        this.showPostMoveMenu(leftUnit);
+      });
+      overlay.add(cancelText);
+    };
+
+    refreshTradeOverlay();
+  }
+
+  private executeTradeAndClose(leftUnit: Unit, rightUnit: Unit): void {
+    this.engine.executeTrade(
+      leftUnit,
+      this.tradeMenu.leftSelectedIndex,
+      rightUnit,
+      this.tradeMenu.rightSelectedIndex,
+    );
+    this.tradeMenu.close();
+    this.tradeOverlay?.destroy();
+    this.tradeOverlay = null;
+    this.updateGoldDisplay();
+    this.showPostMoveMenu(leftUnit);
   }
 
   private showWeaponSelection(unit: Unit): void {
