@@ -18,6 +18,9 @@ import { getPromotedClass } from '../game/promotion/PromotionData';
 import type { Item, WeaponItem } from '../game/items/ItemTypes';
 import type { CombatResult } from '../game/combat/Engine';
 import { getHealTargets } from '../game/staves/getHealTargets';
+import { CutsceneQueue } from '../game/cutscene/CutsceneQueue';
+import { hasCutscene } from '../game/cutscene';
+import { TriggerContext } from '../game/cutscene/CutsceneTrigger';
 
 const TERRAIN_COLORS: Record<string, number> = {
   plains: 0x8fbc8f,
@@ -81,6 +84,8 @@ export class BattleScene extends Phaser.Scene {
   private tradeMenu: TradeMenu = new TradeMenu();
   private tradeOverlay: Phaser.GameObjects.Container | null = null;
   private goldText: Phaser.GameObjects.Text | null = null;
+  private cutsceneQueue = new CutsceneQueue();
+  private preCutsceneInputEnabled = true;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -120,10 +125,13 @@ export class BattleScene extends Phaser.Scene {
     this.createGridVisuals();
     this.syncTileColors();
     this.syncUnitSprites();
-    this.setupInput();
-    this.createUI();
-    this.battleMenu = new BattleMenu();
-    this.beginPlayerPhase();
+
+    this.playCutsceneIfTriggered({ eventType: 'on_level_start' }, () => {
+      this.setupInput();
+      this.createUI();
+      this.battleMenu = new BattleMenu();
+      this.beginPlayerPhase();
+    });
   }
 
   private createGridVisuals(): void {
@@ -606,32 +614,40 @@ export class BattleScene extends Phaser.Scene {
     this.syncUnitSprites();
     this.updatePhaseText();
 
-    if (this.engine.turnManager.isEnemyPhase()) {
-      this.inputEnabled = false;
-      this.executeEnemyActions(() => {
-        const objectives = this.engine.checkObjectives();
-        if (objectives.victory) {
-          this.showVictoryScreen();
-          return;
-        }
-        if (objectives.defeat) {
-          this.showDefeatScreen();
-          return;
-        }
+    this.playCutsceneIfTriggered({ eventType: 'on_turn_end', faction: 'player' }, () => {
+      if (this.engine.turnManager.isEnemyPhase()) {
+        this.inputEnabled = false;
+        this.executeEnemyActions(() => {
+          const objectives = this.engine.checkObjectives();
+          if (objectives.victory) {
+            this.showVictoryScreen();
+            return;
+          }
+          if (objectives.defeat) {
+            this.showDefeatScreen();
+            return;
+          }
 
-        const report1 = this.engine.endTurn(); // Enemy → Ally
-        this.showHazardDamage(report1);
-        const report2 = this.engine.endTurn(); // Ally → Player
-        this.showHazardDamage(report2);
-        this.engine.removeDeadUnits();
-        this.syncUnitSprites();
-        this.updatePhaseText();
+          const report1 = this.engine.endTurn(); // Enemy → Ally
+          this.showHazardDamage(report1);
+          this.engine.removeDeadUnits();
+          this.syncUnitSprites();
+          this.playCutsceneIfTriggered({ eventType: 'on_turn_end', faction: 'enemy' }, () => {
+            const report2 = this.engine.endTurn(); // Ally → Player
+            this.showHazardDamage(report2);
+            this.engine.removeDeadUnits();
+            this.syncUnitSprites();
+            this.updatePhaseText();
+            this.playCutsceneIfTriggered({ eventType: 'on_turn_end', faction: 'ally' }, () => {
+              this.beginPlayerPhase();
+            });
+          });
+        });
+      } else if (this.engine.turnManager.isPlayerPhase()) {
         this.beginPlayerPhase();
-      });
-    } else if (this.engine.turnManager.isPlayerPhase()) {
-      this.beginPlayerPhase();
-    }
-    this.updateSaveBtnVisibility();
+      }
+      this.updateSaveBtnVisibility();
+    });
   }
 
   private showHazardDamage(
@@ -674,13 +690,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private executeEnemyActions(onComplete: () => void): void {
-    const actions = this.engine.getPendingActions();
-    if (actions.length === 0) {
-      onComplete();
-      return;
-    }
+    this.playCutsceneIfTriggered({ eventType: 'on_turn_start', faction: 'enemy' }, () => {
+      const actions = this.engine.getPendingActions();
+      if (actions.length === 0) {
+        onComplete();
+        return;
+      }
 
-    const processNext = (index: number) => {
+      const processNext = (index: number) => {
       if (index >= actions.length) {
         onComplete();
         return;
@@ -742,8 +759,10 @@ export class BattleScene extends Phaser.Scene {
       ) {
         const target = this.engine.getUnit(action.targetX, action.targetY);
         if (target?.isAlive) {
-          this.startBattleMode(action.actor, target, () => {
-            processNext(index + 1);
+          this.playCutsceneIfTriggered({ eventType: 'on_attack', attackerId: action.actor.id, defenderId: target.id }, () => {
+            this.startBattleMode(action.actor, target, () => {
+              processNext(index + 1);
+            });
           });
         } else {
           processNext(index + 1);
@@ -754,6 +773,7 @@ export class BattleScene extends Phaser.Scene {
     };
 
     processNext(0);
+    });
   }
 
   private showPostMoveMenu(unit: Unit): void {
@@ -1512,7 +1532,17 @@ export class BattleScene extends Phaser.Scene {
         this.clearMenuTexts();
         this.moveGraphics.clear();
         this.pathGraphics.clear();
-        this.startBattleMode(unit, validTarget);
+        const isFirstCombat = !this.engine.getFirstCombatOccurred();
+        this.playCutsceneIfTriggered({ eventType: 'on_attack', attackerId: unit.id, defenderId: validTarget.id }, () => {
+          if (isFirstCombat) {
+            this.playCutsceneIfTriggered({ eventType: 'on_first_combat' }, () => {
+              this.engine.markFirstCombat();
+              this.startBattleMode(unit, validTarget);
+            });
+          } else {
+            this.startBattleMode(unit, validTarget);
+          }
+        });
       } else {
         // Cancel target selection, return to action menu
         this.moveGraphics.clear();
@@ -1898,6 +1928,9 @@ export class BattleScene extends Phaser.Scene {
   private endBattleMode(): void {
     this.inBattleMode = false;
 
+    // Capture dead units before removal so we can evaluate kill/death triggers
+    const deadBeforeRemoval = this.engine.units.filter((u) => u.stats.hp <= 0);
+
     // Clean up dead units from the grid and sync sprites immediately,
     // before the overlay fade / exp popup, so 0-HP enemies don't linger.
     this.engine.removeDeadUnits();
@@ -1907,27 +1940,30 @@ export class BattleScene extends Phaser.Scene {
       this.battleOverlay?.destroy();
       this.battleOverlay = null;
 
-      // Apply combat EXP
-      const attacker = this.battleDisplayState?.attacker;
-      let progression = null;
-      if (attacker && this.combatResult) {
-        progression = this.engine.applyCombatExp(attacker, this.combatResult);
-      }
+      // Play kill/death triggers before applying EXP / checking objectives
+      this.playDeadUnitTriggers(deadBeforeRemoval, 0, () => {
+        // Apply combat EXP
+        const attacker = this.battleDisplayState?.attacker;
+        let progression = null;
+        if (attacker && this.combatResult) {
+          progression = this.engine.applyCombatExp(attacker, this.combatResult);
+        }
 
-      // Show EXP popup for player-initiated attacks with EXP > 0
-      if (
-        attacker?.isPlayer &&
-        progression &&
-        this.combatResult &&
-        this.combatResult.expAward > 0
-      ) {
-        this.showExpPopup(attacker, progression, () => {
-          this.finishBattleMode();
-        });
-        return;
-      }
+        // Show EXP popup for player-initiated attacks with EXP > 0
+        if (
+          attacker?.isPlayer &&
+          progression &&
+          this.combatResult &&
+          this.combatResult.expAward > 0
+        ) {
+          this.showExpPopup(attacker, progression, () => {
+            this.finishBattleMode();
+          });
+          return;
+        }
 
-      this.finishBattleMode();
+        this.finishBattleMode();
+      });
     };
 
     if (this.battleOverlay) {
@@ -2108,14 +2144,48 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private beginPlayerPhase(): void {
-    if (this.bannerShownForTurn === this.engine.turnManager.turnNumber) {
-      this.inputEnabled = true;
+    this.playCutsceneIfTriggered({ eventType: 'on_turn_start', faction: 'player' }, () => {
+      if (this.bannerShownForTurn === this.engine.turnManager.turnNumber) {
+        this.inputEnabled = true;
+        return;
+      }
+      this.showTurnBanner(this.engine.turnManager.turnNumber, () => {
+        this.inputEnabled = true;
+      });
+      this.bannerShownForTurn = this.engine.turnManager.turnNumber;
+    });
+  }
+
+  private playCutsceneIfTriggered(ctx: TriggerContext, onResume?: () => void): void {
+    const trigger = this.engine.evaluateTrigger(ctx);
+    if (!trigger || !hasCutscene(trigger.cutsceneId)) {
+      onResume?.();
       return;
     }
-    this.showTurnBanner(this.engine.turnManager.turnNumber, () => {
-      this.inputEnabled = true;
+    this.preCutsceneInputEnabled = this.inputEnabled;
+    this.inputEnabled = false;
+    this.scene.launch('CutsceneScene', {
+      cutsceneId: trigger.cutsceneId,
+      overlay: true,
+      onComplete: () => {
+        this.inputEnabled = this.preCutsceneInputEnabled;
+        onResume?.();
+      },
     });
-    this.bannerShownForTurn = this.engine.turnManager.turnNumber;
+  }
+
+  private playDeadUnitTriggers(deadUnits: Unit[], index: number, onDone: () => void): void {
+    if (index >= deadUnits.length) {
+      onDone();
+      return;
+    }
+    const dead = deadUnits[index];
+    const attacker = this.battleDisplayState?.attacker;
+    this.playCutsceneIfTriggered({ eventType: 'on_kill', killerId: attacker?.id, victimId: dead.id }, () => {
+      this.playCutsceneIfTriggered({ eventType: 'on_death', unitId: dead.id }, () => {
+        this.playDeadUnitTriggers(deadUnits, index + 1, onDone);
+      });
+    });
   }
 
   private showExpPopup(
