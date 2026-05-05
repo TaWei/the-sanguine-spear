@@ -28,6 +28,22 @@ export class CutsceneTriggerEngine {
     this.firstCombatOccurred = true;
   }
 
+  getConsumed(): Set<string> {
+    return new Set(this.consumed);
+  }
+
+  setConsumed(consumed: Set<string>): void {
+    this.consumed = new Set(consumed);
+  }
+
+  getFirstCombatOccurred(): boolean {
+    return this.firstCombatOccurred;
+  }
+
+  setFirstCombatOccurred(v: boolean): void {
+    this.firstCombatOccurred = v;
+  }
+
   reset(): void {
     this.triggers = [];
     this.consumed.clear();

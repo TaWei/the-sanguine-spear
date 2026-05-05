@@ -25,6 +25,8 @@ import { CutsceneTrigger, TriggerContext } from './cutscene/CutsceneTrigger';
 import { PromotionEngine } from './promotion/PromotionEngine';
 import { AiBehavior } from './ai/Behavior';
 import { AiPersonality } from './ai/Personality';
+import { SaveData, SAVE_VERSION, TerrainSnapshot } from './save/SaveData';
+import { serializeUnit, deserializeUnit } from './save/UnitSerializer';
 
 export class GameEngine {
   grid: Grid;
@@ -97,6 +99,45 @@ export class GameEngine {
     }
     // Register triggers
     this.triggerEngine.register(def.triggers ?? []);
+  }
+
+  snapshot(levelId: string): SaveData {
+    const terrain: TerrainSnapshot[] = [];
+    for (let y = 0; y < this.grid.rows; y++) {
+      for (let x = 0; x < this.grid.cols; x++) {
+        terrain.push({ x, y, type: this.grid.getTerrain(x, y) });
+      }
+    }
+    return {
+      version: SAVE_VERSION,
+      timestamp: Date.now(),
+      levelId,
+      turnNumber: this.turnManager.turnNumber,
+      currentPhase: this.turnManager.currentPhase,
+      gridCols: this.grid.cols,
+      gridRows: this.grid.rows,
+      terrain,
+      units: this.units.map(serializeUnit),
+      consumedTriggers: Array.from(this.triggerEngine.getConsumed()),
+      firstCombatOccurred: this.triggerEngine.getFirstCombatOccurred(),
+    };
+  }
+
+  restore(data: SaveData): void {
+    this.grid = new Grid(data.gridCols, data.gridRows);
+    for (const t of data.terrain) {
+      this.grid.setTerrain(t.x, t.y, t.type);
+    }
+    this.units = [];
+    for (const snap of data.units) {
+      const unit = deserializeUnit(snap);
+      this.units.push(unit);
+      this.grid.placeUnit(unit, unit.gridX, unit.gridY);
+    }
+    this.turnManager.turnNumber = data.turnNumber;
+    this.turnManager.currentPhase = data.currentPhase;
+    this.triggerEngine.setConsumed(new Set(data.consumedTriggers));
+    this.triggerEngine.setFirstCombatOccurred(data.firstCombatOccurred);
   }
 
   getUnit(x: number, y: number): Unit | null {

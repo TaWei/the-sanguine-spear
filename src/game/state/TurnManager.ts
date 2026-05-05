@@ -18,8 +18,16 @@ export class TurnManager {
     return this.phase;
   }
 
+  set currentPhase(phase: GamePhase) {
+    this.phase = phase;
+  }
+
   get turnNumber(): number {
     return this.turn;
+  }
+
+  set turnNumber(turn: number) {
+    this.turn = turn;
   }
 
   advancePhase(units: Unit[] = []): void {
