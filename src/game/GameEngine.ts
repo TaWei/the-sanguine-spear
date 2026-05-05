@@ -23,6 +23,8 @@ import { LevelDefinition } from './levels/LevelDefinition';
 import { CutsceneTriggerEngine } from './cutscene/TriggerEngine';
 import { CutsceneTrigger, TriggerContext } from './cutscene/CutsceneTrigger';
 import { PromotionEngine } from './promotion/PromotionEngine';
+import { AiBehavior } from './ai/Behavior';
+import { AiPersonality } from './ai/Personality';
 
 export class GameEngine {
   grid: Grid;
@@ -52,8 +54,9 @@ export class GameEngine {
     stats: UnitStats,
     gridX: number,
     gridY: number,
+    options?: import('./units/Unit').UnitOptions,
   ): Unit {
-    const unit = new Unit(id, name, faction, unitClass, stats, gridX, gridY);
+    const unit = new Unit(id, name, faction, unitClass, stats, gridX, gridY, options);
     const startingItems = getStartingItems(unitClass);
     for (const item of startingItems) {
       unit.inventory.add(item);
@@ -333,7 +336,16 @@ export class GameEngine {
     if (this.turnManager.isEnemyPhase()) {
       const enemies = this.getUnitsByFaction(Faction.ENEMY);
       const players = this.getUnitsByFaction(Faction.PLAYER);
-      const actions = this.commander.planEnemyTurn(enemies, players);
+      const configs = new Map<Unit, import('./ai/Commander').AiConfig>();
+      for (const enemy of enemies) {
+        if (enemy.aiBehavior || enemy.aiPersonality) {
+          configs.set(enemy, {
+            behavior: enemy.aiBehavior ?? AiBehavior.ATTACK_IN_RANGE,
+            personality: enemy.aiPersonality ?? AiPersonality.BALANCED,
+          });
+        }
+      }
+      const actions = this.commander.planEnemyTurn(enemies, players, configs.size > 0 ? configs : undefined);
       for (const action of actions) {
         this.actionQueue.enqueue(action);
       }
