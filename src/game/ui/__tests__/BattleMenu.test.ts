@@ -225,4 +225,59 @@ describe('BattleMenu', () => {
     expect(menu.state).toBe(MenuState.RESOLVED);
     expect(menu.selectedTarget).toBe(ally);
   });
+
+  it('selecting TRADE transitions to CHOOSE_TRADE_TARGET', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.TRADE);
+    expect(menu.state).toBe(MenuState.CHOOSE_TRADE_TARGET);
+    expect(menu.selectedAction).toBe(MenuAction.TRADE);
+  });
+
+  it('selecting SHOP transitions to CHOOSE_SHOP', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.SHOP);
+    expect(menu.state).toBe(MenuState.CHOOSE_SHOP);
+    expect(menu.selectedAction).toBe(MenuAction.SHOP);
+  });
+
+  it('selectTradeTarget transitions to RESOLVED', () => {
+    const menu = new BattleMenu();
+    const ally = new Unit('a1', 'Ally', Faction.PLAYER, UnitClass.LORD, stats, 5, 4);
+    menu.show(player, [enemy], [], [ally]);
+    menu.selectAction(MenuAction.TRADE);
+    menu.selectTradeTarget(ally);
+    expect(menu.state).toBe(MenuState.RESOLVED);
+    expect(menu.selectedTarget).toBe(ally);
+  });
+
+  it('cancelTradeSelection returns to CHOOSE_ACTION', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.TRADE);
+    expect(menu.state).toBe(MenuState.CHOOSE_TRADE_TARGET);
+    menu.cancelTradeSelection();
+    expect(menu.state).toBe(MenuState.CHOOSE_ACTION);
+    expect(menu.selectedAction).toBeNull();
+  });
+
+  it('stores adjacent allies when shown', () => {
+    const menu = new BattleMenu();
+    const ally = new Unit('a1', 'Ally', Faction.PLAYER, UnitClass.LORD, stats, 5, 4);
+    menu.show(player, [enemy], [], [ally]);
+    expect(menu.adjacentAllies).toHaveLength(1);
+    expect(menu.adjacentAllies[0].id).toBe('a1');
+  });
+
+  it('reset from CHOOSE_TRADE_TARGET returns to hidden', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.TRADE);
+    expect(menu.state).toBe(MenuState.CHOOSE_TRADE_TARGET);
+    menu.reset();
+    expect(menu.state).toBe(MenuState.HIDDEN);
+    expect(menu.unit).toBeNull();
+    expect(menu.adjacentAllies).toHaveLength(0);
+  });
 });

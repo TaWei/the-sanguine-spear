@@ -8,6 +8,8 @@ export const MenuState = {
   CHOOSE_HEAL_TARGET: 'choose_heal_target',
   CHOOSE_STATUS: 'choose_status',
   CHOOSE_ITEM: 'choose_item',
+  CHOOSE_TRADE_TARGET: 'choose_trade_target',
+  CHOOSE_SHOP: 'choose_shop',
   RESOLVED: 'resolved',
 } as const;
 export type MenuState = (typeof MenuState)[keyof typeof MenuState];
@@ -18,6 +20,8 @@ export const MenuAction = {
   ITEMS: 'items',
   END_TURN: 'end_turn',
   STATUS: 'status',
+  TRADE: 'trade',
+  SHOP: 'shop',
 } as const;
 export type MenuAction = (typeof MenuAction)[keyof typeof MenuAction];
 
@@ -26,6 +30,7 @@ export class BattleMenu {
   private _unit: Unit | null = null;
   private _enemies: Unit[] = [];
   private _healTargets: Unit[] = [];
+  private _allies: Unit[] = [];
   private _selectedAction: MenuAction | null = null;
   private _selectedTarget: Unit | null = null;
   private _selectedWeaponIndex: number = -1;
@@ -42,6 +47,9 @@ export class BattleMenu {
   }
   get adjacentEnemies(): readonly Unit[] {
     return this._enemies;
+  }
+  get adjacentAllies(): readonly Unit[] {
+    return this._allies;
   }
   get selectedAction(): MenuAction | null {
     return this._selectedAction;
@@ -60,10 +68,11 @@ export class BattleMenu {
     return this._healTargets;
   }
 
-  show(unit: Unit, enemies: Unit[], healTargets: Unit[] = []): void {
+  show(unit: Unit, enemies: Unit[], healTargets: Unit[] = [], allies: Unit[] = []): void {
     this._unit = unit;
     this._enemies = enemies;
     this._healTargets = healTargets;
+    this._allies = allies;
     this._selectedAction = null;
     this._selectedTarget = null;
     this._selectedWeaponIndex = -1;
@@ -82,6 +91,10 @@ export class BattleMenu {
       this._state = MenuState.CHOOSE_STATUS;
     } else if (action === MenuAction.ITEMS) {
       this._state = MenuState.CHOOSE_ITEM;
+    } else if (action === MenuAction.TRADE) {
+      this._state = MenuState.CHOOSE_TRADE_TARGET;
+    } else if (action === MenuAction.SHOP) {
+      this._state = MenuState.CHOOSE_SHOP;
     } else if (action === MenuAction.FIGHT) {
       const weapons = this._unit!.inventory.items.filter((i) => i.kind === 'weapon');
       if (weapons.length > 1) {
@@ -156,11 +169,29 @@ export class BattleMenu {
     this._state = MenuState.CHOOSE_ACTION;
   }
 
+  selectTradeTarget(target: Unit): void {
+    if (this._state !== MenuState.CHOOSE_TRADE_TARGET) {
+      throw new Error(`Cannot select trade target in state ${this._state}`);
+    }
+    this._selectedTarget = target;
+    this._state = MenuState.RESOLVED;
+  }
+
+  cancelTradeSelection(): void {
+    if (this._state !== MenuState.CHOOSE_TRADE_TARGET) {
+      throw new Error(`Cannot cancel trade selection in state ${this._state}`);
+    }
+    this._selectedTarget = null;
+    this._selectedAction = null;
+    this._state = MenuState.CHOOSE_ACTION;
+  }
+
   reset(): void {
     this._state = MenuState.HIDDEN;
     this._unit = null;
     this._enemies = [];
     this._healTargets = [];
+    this._allies = [];
     this._selectedAction = null;
     this._selectedTarget = null;
     this._selectedWeaponIndex = -1;
