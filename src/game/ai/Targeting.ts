@@ -64,7 +64,7 @@ export function pickBestTarget(
   targetWeaponResolver?: (unit: Unit) => WeaponData | undefined,
 ): Unit | null {
   let best: Unit | null = null;
-  let bestScore = 0;
+  let bestScore = -Infinity;
 
   for (const target of targets) {
     const targetWeapon = targetWeaponResolver ? targetWeaponResolver(target) : undefined;

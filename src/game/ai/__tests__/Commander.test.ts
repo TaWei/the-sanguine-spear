@@ -5,6 +5,9 @@ import { createStats } from '../../units/Stats';
 import { Grid } from '../../map/Grid';
 import { WEAPON_DB } from '../../combat/Weapons';
 import { ActionType } from '../../state/ActionQueue';
+import { AiPersonality } from '../Personality';
+import { AiBehavior } from '../Behavior';
+import { TerrainType } from '../../map/Terrain';
 
 describe('Commander', () => {
   it('generates actions for enemies to attack nearby players', () => {
@@ -384,5 +387,89 @@ describe('Commander', () => {
 
     // Each MOVE action must have a unique destination
     expect(destinations.size).toBe(moveActions.length);
+  });
+});
+
+describe('Commander with AI config', () => {
+  it('PURSUE enemy moves toward nearest player even when out of attack range', () => {
+    const grid = new Grid(10, 10);
+    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 2 });
+    const enemy = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 0, 0);
+    grid.placeUnit(enemy, 0, 0);
+
+    const playerStats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const player = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, playerStats, 9, 9);
+    grid.placeUnit(player, 9, 9);
+
+    const commander = new Commander(grid, WEAPON_DB);
+    const configs = new Map([[enemy, { personality: AiPersonality.BALANCED, behavior: AiBehavior.PURSUE }]]);
+    const actions = commander.planEnemyTurn([enemy], [player], configs);
+
+    const moveAction = actions.find((a) => a.type === ActionType.MOVE);
+    expect(moveAction).toBeDefined();
+    // Should move south-east toward player
+    expect(moveAction!.x + moveAction!.y).toBeGreaterThan(0);
+  });
+
+  it('ATTACK_IN_RANGE enemy does not move when no target is reachable', () => {
+    const grid = new Grid(10, 10);
+    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 2 });
+    const enemy = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 0, 0);
+    grid.placeUnit(enemy, 0, 0);
+
+    const playerStats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const player = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, playerStats, 9, 9);
+    grid.placeUnit(player, 9, 9);
+
+    const commander = new Commander(grid, WEAPON_DB);
+    const configs = new Map([[enemy, { personality: AiPersonality.BALANCED, behavior: AiBehavior.ATTACK_IN_RANGE }]]);
+    const actions = commander.planEnemyTurn([enemy], [player], configs);
+
+    expect(actions).toHaveLength(0);
+  });
+
+  it('GUARD enemy never moves or attacks outside guard zone', () => {
+    const grid = new Grid(10, 10);
+    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5 });
+    const enemy = new Unit('e1', 'Sentry', Faction.ENEMY, UnitClass.SOLDIER, enemyStats, 5, 5);
+    grid.placeUnit(enemy, 5, 5);
+
+    const playerStats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const player = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, playerStats, 6, 5);
+    grid.placeUnit(player, 6, 5);
+
+    const commander = new Commander(grid, WEAPON_DB);
+    const configs = new Map([[enemy, { personality: AiPersonality.BALANCED, behavior: AiBehavior.GUARD }]]);
+    const actions = commander.planEnemyTurn([enemy], [player], configs);
+
+    // GUARD means attack-in-range only; since player is adjacent (range 1), it CAN attack
+    // but should not move. Let's verify no move action.
+    const moveAction = actions.find((a) => a.type === ActionType.MOVE);
+    expect(moveAction).toBeUndefined();
+  });
+
+  it('CAUTIOUS personality prefers defensive terrain tiles', () => {
+    const grid = new Grid(10, 10);
+    // Place forest at (5,6) for defensive bonus
+    grid.setTerrain(5, 6, TerrainType.FOREST);
+
+    const enemyStats = createStats({ hp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 3 });
+    // Start at (5,4) so (5,6) forest is reachable: 5,4->5,5(1) + 5,5->5,6(2) = 3
+    const enemy = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 5, 4);
+    grid.placeUnit(enemy, 5, 4);
+
+    const playerStats = createStats({ hp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5 });
+    const player = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, playerStats, 5, 7);
+    grid.placeUnit(player, 5, 7);
+
+    const commander = new Commander(grid, WEAPON_DB);
+    const configs = new Map([[enemy, { personality: AiPersonality.CAUTIOUS, behavior: AiBehavior.PURSUE }]]);
+    const actions = commander.planEnemyTurn([enemy], [player], configs);
+
+    const moveAction = actions.find((a) => a.type === ActionType.MOVE);
+    expect(moveAction).toBeDefined();
+    // With CAUTIOUS, should prefer the forest tile (5,6) if it's in range and can attack
+    expect(moveAction!.x).toBe(5);
+    expect(moveAction!.y).toBe(6);
   });
 });
