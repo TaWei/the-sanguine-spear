@@ -853,7 +853,6 @@ export class BattleScene extends Phaser.Scene {
     }
     this.menuTexts.push(...texts);
   }
-  }
 
   private showWeaponSelection(unit: Unit): void {
     this.inputEnabled = false;
