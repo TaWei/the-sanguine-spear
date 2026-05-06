@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SaveManager } from '../SaveManager';
-import { SaveData } from '../SaveData';
+import type { SaveData } from '../SaveData';
 
 const localStorageMock = (() => {
   let store: Record<string, string> = {};

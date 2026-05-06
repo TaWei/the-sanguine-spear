@@ -25,7 +25,8 @@ import { CutsceneTrigger, TriggerContext } from './cutscene/CutsceneTrigger';
 import { PromotionEngine } from './promotion/PromotionEngine';
 import { AiBehavior } from './ai/Behavior';
 import { AiPersonality } from './ai/Personality';
-import { SaveData, SAVE_VERSION, TerrainSnapshot } from './save/SaveData';
+import { SAVE_VERSION } from './save/SaveData';
+import type { SaveData, TerrainSnapshot } from './save/SaveData';
 import { serializeUnit, deserializeUnit } from './save/UnitSerializer';
 import { ArmyGold } from './shop/ArmyGold';
 import { ShopEngine, ShopItem } from './shop/ShopEngine';
@@ -469,6 +470,10 @@ export class GameEngine {
 
   markFirstCombat(): void {
     this.triggerEngine.markFirstCombat();
+  }
+
+  getFirstCombatOccurred(): boolean {
+    return this.triggerEngine.getFirstCombatOccurred();
   }
 
   canPromote(unit: Unit): boolean {

@@ -1,4 +1,5 @@
-import { SaveData, SAVE_VERSION } from './SaveData';
+import { SAVE_VERSION } from './SaveData';
+import type { SaveData } from './SaveData';
 
 const PREFIX = 'tss_save_';
 

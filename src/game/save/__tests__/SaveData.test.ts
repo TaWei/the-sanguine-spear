@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { SaveData, SAVE_VERSION } from '../SaveData';
+import type { SaveData } from '../SaveData';
+import { SAVE_VERSION } from '../SaveData';
 
 describe('SaveData', () => {
   it('has a current version constant', () => {
