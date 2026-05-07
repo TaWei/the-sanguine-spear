@@ -304,8 +304,8 @@ export class BattleScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.dragDetector.pointerDown(pointer.x, pointer.y);
 
-      const gx = Math.floor((pointer.x - this.offsetX) / TILE_SIZE);
-      const gy = Math.floor((pointer.y - this.offsetY) / TILE_SIZE);
+      const gx = this.screenToGridX(pointer.x);
+      const gy = this.screenToGridY(pointer.y);
       if (!this.engine.grid.isInBounds(gx, gy)) {
         if (this.battleMenu.isVisible && !this.isPointerOverMenuText(pointer.x, pointer.y)) {
           this.handleOutsideMenuClick();
@@ -334,8 +334,8 @@ export class BattleScene extends Phaser.Scene {
       ) {
         return;
       }
-      const gx = Math.floor((pointer.x - this.offsetX) / TILE_SIZE);
-      const gy = Math.floor((pointer.y - this.offsetY) / TILE_SIZE);
+      const gx = this.screenToGridX(pointer.x);
+      const gy = this.screenToGridY(pointer.y);
       if (!this.engine.grid.isInBounds(gx, gy)) {
         this.pathGraphics.clear();
         return;
@@ -348,13 +348,27 @@ export class BattleScene extends Phaser.Scene {
 
       // If it was a click (not a drag), process the tile click
       if (!this.dragDetector.wasDrag) {
-        const gx = Math.floor((pointer.x - this.offsetX) / TILE_SIZE);
-        const gy = Math.floor((pointer.y - this.offsetY) / TILE_SIZE);
+        const gx = this.screenToGridX(pointer.x);
+        const gy = this.screenToGridY(pointer.y);
         if (this.engine.grid.isInBounds(gx, gy)) {
           this.handleTileClick(gx, gy, pointer.x, pointer.y);
         }
       }
     });
+  }
+
+  /** Convert screen x to grid column, accounting for camera scroll+offset. */
+  private screenToGridX(screenX: number): number {
+    return Math.floor(
+      (screenX + this.cameras.main.scrollX - this.offsetX) / TILE_SIZE,
+    );
+  }
+
+  /** Convert screen y to grid row, accounting for camera scroll+offset. */
+  private screenToGridY(screenY: number): number {
+    return Math.floor(
+      (screenY + this.cameras.main.scrollY - this.offsetY) / TILE_SIZE,
+    );
   }
 
   private handleTileClick(gx: number, gy: number, pointerX: number, pointerY: number): void {
