@@ -96,7 +96,7 @@ describe('DragDetector', () => {
     it('returns zero delta on first move', () => {
       detector.pointerDown(100, 200);
       const delta = detector.computeScrollDelta(105, 205);
-      expect(delta).toEqual({ dx: -5, dy: -5 });
+      expect(delta).toEqual({ dx: 5, dy: 5 });
     });
 
     it('returns correct delta for rightward drag', () => {
@@ -104,8 +104,8 @@ describe('DragDetector', () => {
       detector.pointerMove(110, 200); // trigger drag
       // Second move: 110→120
       const delta = detector.computeScrollDelta(120, 200);
-      // pointer went +10 right → camera should scrollX -= 10 → dx = -10
-      expect(delta.dx).toBe(-10);
+      // pointer went +10 right → camera scrollX += 10
+      expect(delta.dx).toBe(10);
       expect(Math.abs(delta.dy)).toBe(0);
     });
 
@@ -113,16 +113,16 @@ describe('DragDetector', () => {
       detector.pointerDown(200, 200);
       detector.pointerMove(210, 200); // trigger drag
       const delta = detector.computeScrollDelta(190, 200);
-      // pointer went -20 left → camera should scrollX -= (-20) → dx = +20
-      expect(delta.dx).toBe(20);
+      // pointer went -20 left → camera scrollX -= 20
+      expect(delta.dx).toBe(-20);
     });
 
     it('returns correct delta for downward drag', () => {
       detector.pointerDown(100, 200);
       detector.pointerMove(110, 200); // trigger drag
       const delta = detector.computeScrollDelta(110, 220);
-      // pointer went +20 down → camera should scrollY -= 20 → dy = -20
-      expect(delta.dy).toBe(-20);
+      // pointer went +20 down → camera scrollY += 20
+      expect(delta.dy).toBe(20);
     });
   });
 });

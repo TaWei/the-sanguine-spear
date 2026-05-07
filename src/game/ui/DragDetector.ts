@@ -75,8 +75,8 @@ export class DragDetector {
   /**
    * Compute the scroll delta for a drag frame.
    * Returns { dx, dy } where:
-   *   camera.scrollX -= dx  (positive dx pans left in world = finger drags right)
-   *   camera.scrollY -= dy  (positive dy pans up in world = finger drags down)
+   *   camera.scrollX += dx  (positive dx = finger drags right → see more right)
+   *   camera.scrollY += dy  (positive dy = finger drags down → see more below)
    *
    * Only valid while isDragging is true.
    */
@@ -85,6 +85,6 @@ export class DragDetector {
     const dy = currentY - this._lastY;
     this._lastX = currentX;
     this._lastY = currentY;
-    return { dx: -dx, dy: -dy };
+    return { dx, dy };
   }
 }
