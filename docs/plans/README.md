@@ -68,6 +68,7 @@ src/
 | 10 | [10-level-objectives.md](./10-level-objectives.md) | ✅ | Victory/defeat conditions, level completion |
 | 11 | [11-promotion-system.md](./11-promotion-system.md) | ✅ | Fire Emblem-style class promotion |
 | 12 | [12-shops-gold-trading.md](./12-shops-gold-trading.md) | ⬜ | Shops, gold, and trading |
+| 13 | [13-level-3-sunken-temple.md](./13-level-3-sunken-temple.md) | ⬜ | Level 3: colossal water-themed 100×100 map |
 
 ---
 
