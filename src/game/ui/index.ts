@@ -4,3 +4,4 @@ export { TradeMenu, TradeMenuState } from './TradeMenu';
 export { BattleDisplayState, BattlePhase } from './BattleDisplayState';
 export { StatusWindow, StatusDisplay } from './StatusWindow';
 export { LevelUpDisplay, LEVEL_UP_PHASE } from './LevelUpDisplay';
+export { DragDetector } from './DragDetector';

@@ -8,6 +8,7 @@ import { BattleDisplayState, BattlePhase } from '../game/ui/BattleDisplayState';
 import { UNIT_STATE } from '../game/state/UnitState';
 import { EnemyPreview } from '../game/ui/EnemyPreview';
 import { getLevel, getNextLevelId } from '../game/levels/LevelData';
+import { DragDetector } from '../game/ui/DragDetector';
 import { ExpPopup } from '../game/ui/ExpPopup';
 import { StatusWindow } from '../game/ui/StatusWindow';
 import { ItemMenu } from '../game/ui/ItemMenu';
@@ -92,9 +93,7 @@ export class BattleScene extends Phaser.Scene {
   private goldText: Phaser.GameObjects.Text | null = null;
   private cutsceneQueue = new CutsceneQueue();
   private preCutsceneInputEnabled = true;
-  private isDragging = false;
-  private dragLastX = 0;
-  private dragLastY = 0;
+  private dragDetector = new DragDetector(5);
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -303,31 +302,26 @@ export class BattleScene extends Phaser.Scene {
 
   private setupInput(): void {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.dragDetector.pointerDown(pointer.x, pointer.y);
+
       const gx = Math.floor((pointer.x - this.offsetX) / TILE_SIZE);
       const gy = Math.floor((pointer.y - this.offsetY) / TILE_SIZE);
       if (!this.engine.grid.isInBounds(gx, gy)) {
-        // Start drag for camera pan on large maps
-        this.isDragging = true;
-        this.dragLastX = pointer.x;
-        this.dragLastY = pointer.y;
         if (this.battleMenu.isVisible && !this.isPointerOverMenuText(pointer.x, pointer.y)) {
           this.handleOutsideMenuClick();
         }
         return;
       }
-      this.isDragging = false;
-      this.handleTileClick(gx, gy, pointer.x, pointer.y);
+      // Tile click handled on pointerup (after distinguishing click vs drag)
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      // Handle drag-to-scroll
-      if (this.isDragging && pointer.isDown) {
-        const dx = this.dragLastX - pointer.x;
-        const dy = this.dragLastY - pointer.y;
-        this.cameras.main.scrollX += dx;
-        this.cameras.main.scrollY += dy;
-        this.dragLastX = pointer.x + dx;
-        this.dragLastY = pointer.y + dy;
+      this.dragDetector.pointerMove(pointer.x, pointer.y);
+
+      if (this.dragDetector.isDragging) {
+        const delta = this.dragDetector.computeScrollDelta(pointer.x, pointer.y);
+        this.cameras.main.scrollX += delta.dx;
+        this.cameras.main.scrollY += delta.dy;
         this.updateVisibleTiles();
         return;
       }
@@ -349,8 +343,17 @@ export class BattleScene extends Phaser.Scene {
       this.handleTileHover(gx, gy);
     });
 
-    this.input.on('pointerup', () => {
-      this.isDragging = false;
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      this.dragDetector.pointerUp();
+
+      // If it was a click (not a drag), process the tile click
+      if (!this.dragDetector.wasDrag) {
+        const gx = Math.floor((pointer.x - this.offsetX) / TILE_SIZE);
+        const gy = Math.floor((pointer.y - this.offsetY) / TILE_SIZE);
+        if (this.engine.grid.isInBounds(gx, gy)) {
+          this.handleTileClick(gx, gy, pointer.x, pointer.y);
+        }
+      }
     });
   }
 
