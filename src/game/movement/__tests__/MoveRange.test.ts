@@ -211,6 +211,66 @@ describe('MoveRange', () => {
     expect(range.has('2,2')).toBe(false);
   });
 
+  it('flying unit can traverse deep water at reduced cost', () => {
+    const grid = new Grid(5, 5);
+    grid.setTerrain(2, 2, TerrainType.WATER);
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 3,
+    });
+    const pegasus = new Unit('u1', 'Peg', Faction.PLAYER, UnitClass.PEGASUS_KNIGHT, stats, 1, 2);
+    const range = computeMoveRange(pegasus, grid);
+    // Flying unit treats WATER as cost 1, so 1,2 → 2,2 costs 1 (total 1 ≤ mov 3)
+    expect(range.has('2,2')).toBe(true);
+  });
+
+  it('non-flying unit cannot traverse deep water', () => {
+    const grid = new Grid(5, 5);
+    grid.setTerrain(2, 2, TerrainType.WATER);
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 5,
+    });
+    const lord = new Unit('u1', 'Lord', Faction.PLAYER, UnitClass.LORD, stats, 1, 2);
+    const range = computeMoveRange(lord, grid);
+    // Non-flying unit gets cost 99 for WATER → impassable
+    expect(range.has('2,2')).toBe(false);
+  });
+
+  it('falcon knight can cross deep water like pegasus knight', () => {
+    const grid = new Grid(5, 5);
+    grid.setTerrain(2, 3, TerrainType.WATER);
+    const stats = createStats({
+      hp: 24,
+      str: 7,
+      mag: 7,
+      skl: 9,
+      spd: 9,
+      luk: 7,
+      def: 7,
+      res: 7,
+      mov: 3,
+    });
+    const falcon = new Unit('u1', 'Falcon', Faction.PLAYER, UnitClass.FALCON_KNIGHT, stats, 1, 2);
+    const range = computeMoveRange(falcon, grid);
+    // Falcon knight (flying) treats WATER as cost 1
+    expect(range.has('2,3')).toBe(true);
+  });
+
   it('non-flying unit can traverse cliffs with enough movement', () => {
     const grid = new Grid(5, 5);
     grid.setTerrain(2, 2, TerrainType.CLIFF);
