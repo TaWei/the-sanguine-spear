@@ -30,6 +30,10 @@ const TERRAIN_COLORS: Record<string, number> = {
   wall: 0x2f4f4f,
   lava: 0xff4500,
   cliff: 0xa0522d,
+  shallow_water: 0x5dade2,
+  deep_water: 0x1b4f72,
+  bridge: 0x8b4513,
+  reef: 0x2ecc71,
 };
 
 const FACTION_COLORS: Record<string, number> = {
@@ -41,6 +45,8 @@ const FACTION_COLORS: Record<string, number> = {
 export class BattleScene extends Phaser.Scene {
   private engine!: GameEngine;
   private tileRects: Phaser.GameObjects.Rectangle[][] = [];
+  private tileSpriteMap = new Map<string, Phaser.GameObjects.Rectangle>();
+  private readonly TILE_CULL_MARGIN = 2;
   private unitSprites = new Map<string, Phaser.GameObjects.Container>();
   private moveGraphics!: Phaser.GameObjects.Graphics;
   private selectedUnit: Unit | null = null;
@@ -86,6 +92,9 @@ export class BattleScene extends Phaser.Scene {
   private goldText: Phaser.GameObjects.Text | null = null;
   private cutsceneQueue = new CutsceneQueue();
   private preCutsceneInputEnabled = true;
+  private isDragging = false;
+  private dragLastX = 0;
+  private dragLastY = 0;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -114,8 +123,21 @@ export class BattleScene extends Phaser.Scene {
       this.engine.loadLevel(level);
     }
 
-    this.offsetX = (this.cameras.main.width - level.cols * TILE_SIZE) / 2;
-    this.offsetY = (this.cameras.main.height - level.rows * TILE_SIZE) / 2;
+    const gridPixelW = level.cols * TILE_SIZE;
+    const gridPixelH = level.rows * TILE_SIZE;
+    const cameraW = this.cameras.main.width;
+    const cameraH = this.cameras.main.height;
+
+    if (gridPixelW <= cameraW && gridPixelH <= cameraH) {
+      // Small map: center on screen (existing behavior)
+      this.offsetX = (cameraW - gridPixelW) / 2;
+      this.offsetY = (cameraH - gridPixelH) / 2;
+    } else {
+      // Large map: world-space coordinates, camera scrolls
+      this.offsetX = 0;
+      this.offsetY = 0;
+      this.cameras.main.setBounds(0, 0, gridPixelW, gridPixelH);
+    }
 
     this.moveGraphics = this.add.graphics();
     this.moveGraphics.setDepth(1);
@@ -135,6 +157,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createGridVisuals(): void {
+    // Large map: use viewport-culled tile rendering
+    if (this.offsetX === 0 && this.offsetY === 0) {
+      this.updateVisibleTiles();
+      return;
+    }
+
+    // Small map: create all tiles at once (existing behavior)
     for (let y = 0; y < this.engine.grid.rows; y++) {
       this.tileRects[y] = [];
       for (let x = 0; x < this.engine.grid.cols; x++) {
@@ -155,12 +184,76 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private syncTileColors(): void {
+    // Large map: iterate visible tiles only
+    if (this.offsetX === 0 && this.offsetY === 0) {
+      for (const [key, rect] of this.tileSpriteMap) {
+        const [x, y] = key.split(',').map(Number);
+        const terrain = this.engine.grid.getTerrain(x, y);
+        const color = TERRAIN_COLORS[terrain] ?? TERRAIN_COLORS.plains;
+        rect.setFillStyle(color);
+      }
+      return;
+    }
+
+    // Small map: iterate all tiles (existing behavior)
     for (let y = 0; y < this.engine.grid.rows; y++) {
       for (let x = 0; x < this.engine.grid.cols; x++) {
         const terrain = this.engine.grid.getTerrain(x, y);
         const color = TERRAIN_COLORS[terrain] ?? TERRAIN_COLORS.plains;
         const rect = this.tileRects[y][x];
         rect.setFillStyle(color);
+      }
+    }
+  }
+
+  private updateVisibleTiles(): void {
+    // Only operates on large maps (offsetX=0, offsetY=0)
+    if (this.offsetX !== 0 || this.offsetY !== 0) return;
+
+    const cam = this.cameras.main;
+    const margin = this.TILE_CULL_MARGIN;
+    const tilePx = TILE_SIZE;
+
+    const startCol = Math.max(0, Math.floor(cam.scrollX / tilePx) - margin);
+    const endCol = Math.min(
+      this.engine.grid.cols - 1,
+      Math.ceil((cam.scrollX + cam.width) / tilePx) + margin,
+    );
+    const startRow = Math.max(0, Math.floor(cam.scrollY / tilePx) - margin);
+    const endRow = Math.min(
+      this.engine.grid.rows - 1,
+      Math.ceil((cam.scrollY + cam.height) / tilePx) + margin,
+    );
+
+    const visible = new Set<string>();
+    for (let y = startRow; y <= endRow; y++) {
+      for (let x = startCol; x <= endCol; x++) {
+        const key = `${x},${y}`;
+        visible.add(key);
+        if (!this.tileSpriteMap.has(key)) {
+          const px = x * tilePx;
+          const py = y * tilePx;
+          const rect = this.add.rectangle(
+            px + tilePx / 2,
+            py + tilePx / 2,
+            tilePx - 2,
+            tilePx - 2,
+            TERRAIN_COLORS.plains,
+          );
+          rect.setStrokeStyle(1, 0x1a1a2e);
+          rect.setInteractive({ useHandCursor: true });
+          const terrain = this.engine.grid.getTerrain(x, y);
+          rect.setFillStyle(TERRAIN_COLORS[terrain] ?? TERRAIN_COLORS.plains);
+          this.tileSpriteMap.set(key, rect);
+        }
+      }
+    }
+
+    // Remove tiles that scrolled out of view
+    for (const [key, rect] of this.tileSpriteMap) {
+      if (!visible.has(key)) {
+        rect.destroy();
+        this.tileSpriteMap.delete(key);
       }
     }
   }
@@ -213,15 +306,32 @@ export class BattleScene extends Phaser.Scene {
       const gx = Math.floor((pointer.x - this.offsetX) / TILE_SIZE);
       const gy = Math.floor((pointer.y - this.offsetY) / TILE_SIZE);
       if (!this.engine.grid.isInBounds(gx, gy)) {
+        // Start drag for camera pan on large maps
+        this.isDragging = true;
+        this.dragLastX = pointer.x;
+        this.dragLastY = pointer.y;
         if (this.battleMenu.isVisible && !this.isPointerOverMenuText(pointer.x, pointer.y)) {
           this.handleOutsideMenuClick();
         }
         return;
       }
+      this.isDragging = false;
       this.handleTileClick(gx, gy, pointer.x, pointer.y);
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      // Handle drag-to-scroll
+      if (this.isDragging && pointer.isDown) {
+        const dx = this.dragLastX - pointer.x;
+        const dy = this.dragLastY - pointer.y;
+        this.cameras.main.scrollX += dx;
+        this.cameras.main.scrollY += dy;
+        this.dragLastX = pointer.x + dx;
+        this.dragLastY = pointer.y + dy;
+        this.updateVisibleTiles();
+        return;
+      }
+
       if (
         !this.inputEnabled ||
         !this.engine.turnManager.isPlayerPhase() ||
@@ -237,6 +347,10 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
       this.handleTileHover(gx, gy);
+    });
+
+    this.input.on('pointerup', () => {
+      this.isDragging = false;
     });
   }
 
@@ -537,6 +651,7 @@ export class BattleScene extends Phaser.Scene {
         backgroundColor: '#c0392b',
         padding: { x: 10, y: 6 },
       })
+      .setScrollFactor(0)
       .setInteractive({ useHandCursor: true });
 
     endTurn.on('pointerdown', () => {
@@ -551,6 +666,7 @@ export class BattleScene extends Phaser.Scene {
     })
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true })
+      .setScrollFactor(0)
       .setDepth(10);
 
     this.saveBtn.on('pointerover', () => this.saveBtn!.setStyle({ color: '#f1c40f' }));
