@@ -99,30 +99,44 @@ describe('DragDetector', () => {
       expect(delta).toEqual({ dx: 5, dy: 5 });
     });
 
-    it('returns correct delta for rightward drag', () => {
+    it('computes delta from last computeScrollDelta position', () => {
       detector.pointerDown(100, 200);
-      detector.pointerMove(110, 200); // trigger drag
-      // Second move: 110→120
-      const delta = detector.computeScrollDelta(120, 200);
-      // pointer went +10 right → camera scrollX += 10
+      detector.pointerMove(110, 200); // trigger drag (threshold 100→110 = 10 > 5)
+      // First drag frame: delta from pointerDown position
+      let delta = detector.computeScrollDelta(110, 200);
       expect(delta.dx).toBe(10);
+      // Next frame: _lastX is now 110
+      delta = detector.computeScrollDelta(125, 200);
+      expect(delta.dx).toBe(15);
       expect(Math.abs(delta.dy)).toBe(0);
     });
 
-    it('returns correct delta for leftward drag', () => {
+    it('handles leftward drag correctly', () => {
       detector.pointerDown(200, 200);
-      detector.pointerMove(210, 200); // trigger drag
-      const delta = detector.computeScrollDelta(190, 200);
-      // pointer went -20 left → camera scrollX -= 20
-      expect(delta.dx).toBe(-20);
+      detector.pointerMove(188, 200); // trigger drag left: |200-188| = 12 > 5
+      // First drag frame from start:
+      const delta = detector.computeScrollDelta(188, 200);
+      expect(delta.dx).toBe(-12);
     });
 
-    it('returns correct delta for downward drag', () => {
+    it('handles downward drag correctly', () => {
       detector.pointerDown(100, 200);
-      detector.pointerMove(110, 200); // trigger drag
-      const delta = detector.computeScrollDelta(110, 220);
-      // pointer went +20 down → camera scrollY += 20
-      expect(delta.dy).toBe(20);
+      detector.pointerMove(100, 210); // trigger drag down: |200-210| = 10 > 5
+      const delta = detector.computeScrollDelta(100, 210);
+      expect(delta.dy).toBe(10);
+    });
+
+    it('accumulates multi-frame drag deltas', () => {
+      detector.pointerDown(100, 100);
+      detector.pointerMove(108, 100); // trigger
+      let d = detector.computeScrollDelta(108, 100); // +8
+      expect(d.dx).toBe(8);
+      d = detector.computeScrollDelta(115, 110); // +7 x, +10 y
+      expect(d.dx).toBe(7);
+      expect(d.dy).toBe(10);
+      d = detector.computeScrollDelta(95, 105); // -20 x, -5 y
+      expect(d.dx).toBe(-20);
+      expect(d.dy).toBe(-5);
     });
   });
 });

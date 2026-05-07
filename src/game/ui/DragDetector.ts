@@ -43,9 +43,8 @@ export class DragDetector {
         this._wasDrag = true;
       }
     }
-
-    this._lastX = x;
-    this._lastY = y;
+    // NOTE: _lastX/_lastY are updated only in computeScrollDelta,
+    // so the delta calculation has the correct previous-frame position.
   }
 
   pointerUp(): void {
