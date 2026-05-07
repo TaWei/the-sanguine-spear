@@ -257,6 +257,15 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  /** Pan camera to center on the given grid neighbor (for large maps). */
+  private panCameraToUnit(dest: { x: number; y: number }): void {
+    if (this.offsetX !== 0 || this.offsetY !== 0) return; // small map, no scrolling
+    const cam = this.cameras.main;
+    const targetWorldX = dest.x * TILE_SIZE + TILE_SIZE / 2 - cam.width / 2;
+    const targetWorldY = dest.y * TILE_SIZE + TILE_SIZE / 2 - cam.height / 2;
+    cam.pan(targetWorldX, targetWorldY, 300, 'Power2');
+  }
+
   private syncUnitSprites(): void {
     for (const sprite of this.unitSprites.values()) {
       sprite.destroy();
@@ -506,6 +515,10 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.isAnimatingMovement = true;
+
+    // Pan camera to keep unit visible during movement
+    this.panCameraToUnit(path[path.length - 1]);
+
     let stepIndex = 0;
     const processStep = () => {
       if (stepIndex >= path.length) {
@@ -659,7 +672,8 @@ export class BattleScene extends Phaser.Scene {
         backgroundColor: '#2c3e50',
         padding: { x: 10, y: 6 },
       })
-      .setScrollFactor(0);
+      .setScrollFactor(0)
+      .setDepth(100);
 
     const endTurn = this.add
       .text(16, 60, '[ End Turn ]', {
@@ -669,7 +683,8 @@ export class BattleScene extends Phaser.Scene {
         padding: { x: 10, y: 6 },
       })
       .setScrollFactor(0)
-      .setInteractive({ useHandCursor: true });
+      .setInteractive({ useHandCursor: true })
+      .setDepth(100);
 
     endTurn.on('pointerdown', () => {
       this.triggerEndTurn();
