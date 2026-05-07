@@ -59,9 +59,12 @@ export class CutsceneScene extends Phaser.Scene {
     this.cutsceneId = data.cutsceneId;
     this.isOverlay = data.overlay ?? false;
     this.onComplete = data.onComplete ?? (() => undefined);
+    this.isFinishing = false;
+    this.lastAdvanceTime = 0;
   }
 
   create(): void {
+    this.input.enabled = true;
     if (!this.isOverlay) {
       this.cameras.main.fadeIn(300, 0, 0, 0);
     }
@@ -418,6 +421,7 @@ export class CutsceneScene extends Phaser.Scene {
     if (this.isOverlay) {
       this.cleanupScene();
       this.onComplete();
+      this.scene.stop();
       return;
     }
 

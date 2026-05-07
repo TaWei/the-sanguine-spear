@@ -3,17 +3,15 @@ import type { Item } from '../items/ItemTypes';
 
 export enum TradeMenuState {
   INACTIVE = 'inactive',
-  SELECT_LEFT = 'select_left',
-  SELECT_RIGHT = 'select_right',
-  RESOLVED = 'resolved',
+  ACTIVE = 'active',
 }
 
 export class TradeMenu {
   private _state = TradeMenuState.INACTIVE;
   private _leftUnit: Unit | null = null;
   private _rightUnit: Unit | null = null;
-  private _leftSelectedIndex = -1;
-  private _rightSelectedIndex = -1;
+  private _selectedLeftIndex = -1;
+  private _selectedRightIndex = -1;
 
   get state(): TradeMenuState {
     return this._state;
@@ -39,58 +37,56 @@ export class TradeMenu {
     return this._rightUnit?.inventory.items ?? [];
   }
 
-  get leftSelectedIndex(): number {
-    return this._leftSelectedIndex;
+  get selectedLeftIndex(): number {
+    return this._selectedLeftIndex;
   }
 
+  /** @deprecated Use selectedLeftIndex */
+  get leftSelectedIndex(): number {
+    return this._selectedLeftIndex;
+  }
+
+  get selectedRightIndex(): number {
+    return this._selectedRightIndex;
+  }
+
+  /** @deprecated Use selectedRightIndex */
   get rightSelectedIndex(): number {
-    return this._rightSelectedIndex;
+    return this._selectedRightIndex;
   }
 
   open(leftUnit: Unit, rightUnit: Unit): void {
     this._leftUnit = leftUnit;
     this._rightUnit = rightUnit;
-    this._leftSelectedIndex = -1;
-    this._rightSelectedIndex = -1;
-    this._state = TradeMenuState.SELECT_LEFT;
+    this._selectedLeftIndex = -1;
+    this._selectedRightIndex = -1;
+    this._state = TradeMenuState.ACTIVE;
   }
 
   selectLeftItem(index: number): void {
-    if (this._state !== TradeMenuState.SELECT_LEFT) {
-      throw new Error(`Cannot select left item in state ${this._state}`);
-    }
-    if (index < 0 || index >= this.leftItems.length) {
-      throw new Error(`Invalid left item index ${index}`);
-    }
-    this._leftSelectedIndex = index;
-    this._state = TradeMenuState.SELECT_RIGHT;
+    if (this._state !== TradeMenuState.ACTIVE) return;
+    if (index < 0 || index >= this.leftItems.length) return;
+    // Toggle selection
+    this._selectedLeftIndex = this._selectedLeftIndex === index ? -1 : index;
   }
 
   selectRightItem(index: number): void {
-    if (this._state !== TradeMenuState.SELECT_RIGHT) {
-      throw new Error(`Cannot select right item in state ${this._state}`);
-    }
-    if (index !== -1 && (index < 0 || index >= this.rightItems.length)) {
-      throw new Error(`Invalid right item index ${index}`);
-    }
-    this._rightSelectedIndex = index;
-    this._state = TradeMenuState.RESOLVED;
+    if (this._state !== TradeMenuState.ACTIVE) return;
+    if (index < 0 || index >= this.rightItems.length) return;
+    // Toggle selection
+    this._selectedRightIndex = this._selectedRightIndex === index ? -1 : index;
   }
 
-  cancel(): void {
-    if (this._state !== TradeMenuState.SELECT_RIGHT) {
-      throw new Error(`Cannot cancel in state ${this._state}`);
-    }
-    this._leftSelectedIndex = -1;
-    this._rightSelectedIndex = -1;
-    this._state = TradeMenuState.SELECT_LEFT;
+  clearSelections(): void {
+    this._selectedLeftIndex = -1;
+    this._selectedRightIndex = -1;
   }
 
   close(): void {
     this._state = TradeMenuState.INACTIVE;
     this._leftUnit = null;
     this._rightUnit = null;
-    this._leftSelectedIndex = -1;
-    this._rightSelectedIndex = -1;
+    this._selectedLeftIndex = -1;
+    this._selectedRightIndex = -1;
   }
 }

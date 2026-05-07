@@ -28,4 +28,10 @@ export const TerrainType = {
   MOUNTAIN: 'mountain',
   WATER: 'water',
   WALL: 'wall',
+  LAVA: 'lava',
+  CLIFF: 'cliff',
+  SHALLOW_WATER: 'shallow_water',
+  DEEP_WATER: 'deep_water',
+  BRIDGE: 'bridge',
+  REEF: 'reef',
 } as const;

@@ -12,7 +12,7 @@ export function getTerrainMoveCost(unit: Unit, terrain: TerrainType): number {
     case TerrainType.MOUNTAIN:
     case TerrainType.WATER:
     case TerrainType.WALL:
-      return 99;
+      return unit.isFlying ? 1 : 99;
     case TerrainType.PLAINS:
     default:
       return 1;

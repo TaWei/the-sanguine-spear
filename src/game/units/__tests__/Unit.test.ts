@@ -257,6 +257,22 @@ describe('Unit', () => {
     expect(unit.isFlying).toBe(true);
   });
 
+  it('falcon knight is flying', () => {
+    const falconStats = createStats({
+      hp: 24,
+      str: 7,
+      mag: 7,
+      skl: 9,
+      spd: 9,
+      luk: 7,
+      def: 7,
+      res: 7,
+      mov: 8,
+    });
+    const unit = new Unit('u2', 'Falcon', Faction.PLAYER, UnitClass.FALCON_KNIGHT, falconStats, 0, 0);
+    expect(unit.isFlying).toBe(true);
+  });
+
   it('lord is not flying', () => {
     const lordStats = createStats({
       hp: 20,

@@ -127,7 +127,7 @@ export class Unit {
   }
 
   get isFlying(): boolean {
-    return this.unitClass === UnitClass.PEGASUS_KNIGHT;
+    return this.unitClass === UnitClass.PEGASUS_KNIGHT || this.unitClass === UnitClass.FALCON_KNIGHT;
   }
 
   get level(): number {

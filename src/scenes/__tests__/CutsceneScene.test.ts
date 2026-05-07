@@ -112,6 +112,11 @@ function createMockScene(): CutsceneScene {
   // Attach callback helper for fadeOut tests
   (scene as any).__fadeOutCallback = fadeOutCallback;
 
+  // scene.stop() for overlay cutscene cleanup
+  (scene as any).scene = {
+    stop: vi.fn(),
+  };
+
   return scene;
 }
 
