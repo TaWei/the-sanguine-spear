@@ -25,7 +25,7 @@ describe('LevelData', () => {
   });
 
   it('getNextLevelId returns null for the last level', () => {
-    expect(getNextLevelId('level-2')).toBeNull();
+    expect(getNextLevelId('level-3')).toBeNull();
   });
 
   it('getNextLevelId returns null for unknown level', () => {
