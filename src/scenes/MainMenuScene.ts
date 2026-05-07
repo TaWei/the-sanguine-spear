@@ -89,8 +89,38 @@ export class MainMenuScene extends Phaser.Scene {
       },
     );
 
+    const level3Btn = this.add
+      .text(cx, cy + 180, '[ Level 3: The Sunken Temple ]', {
+        fontSize: '24px',
+        color: '#ecf0f1',
+        backgroundColor: '#1b4f72',
+        padding: { x: 20, y: 10 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    level3Btn.on('pointerover', () => level3Btn.setStyle({ color: '#f1c40f' }));
+    level3Btn.on('pointerout', () => level3Btn.setStyle({ color: '#ecf0f1' }));
+    level3Btn.on(
+      'pointerdown',
+      (
+        _pointer: unknown,
+        _localX: number,
+        _localY: number,
+        event: Phaser.Types.Input.EventData,
+      ) => {
+        if (this.cutsceneActive) return;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        this.cameras.main.fadeOut(500, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.scene.start('BattleScene', { levelId: 'level-3' });
+        });
+      },
+    );
+
     const prologueBtn = this.add
-      .text(cx, cy + 180, '[ Watch Prologue ]', {
+      .text(cx, cy + 240, '[ Watch Prologue ]', {
         fontSize: '24px',
         color: '#bdc3c7',
         backgroundColor: '#1a1a2e',
@@ -124,7 +154,7 @@ export class MainMenuScene extends Phaser.Scene {
     );
 
     const loadBtn = this.add
-      .text(cx, cy + 240, '[ Load Game ]', {
+      .text(cx, cy + 300, '[ Load Game ]', {
         fontSize: '24px',
         color: '#ecf0f1',
         backgroundColor: '#2c3e50',
