@@ -241,6 +241,7 @@ export class BattleScene extends Phaser.Scene {
           );
           rect.setStrokeStyle(1, 0x1a1a2e);
           rect.setInteractive({ useHandCursor: true });
+          rect.setDepth(0);
           const terrain = this.engine.grid.getTerrain(x, y);
           rect.setFillStyle(TERRAIN_COLORS[terrain] ?? TERRAIN_COLORS.plains);
           this.tileSpriteMap.set(key, rect);
@@ -292,6 +293,7 @@ export class BattleScene extends Phaser.Scene {
         .setOrigin(0.5);
 
       const container = this.add.container(px, py, [body, label]);
+      container.setDepth(10);
 
       // HP bar
       const hpRatio = unit.stats.hp / unit.stats.maxHp;
