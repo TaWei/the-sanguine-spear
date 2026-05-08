@@ -572,6 +572,98 @@ export const LEVEL_3: LevelDefinition = {
       aiBehavior: AiBehavior.PURSUE,
       aiPersonality: AiPersonality.BERSERKER,
     },
+
+    // --- Forgotten Shrine (SW island, 10-25 × 60-80) ---
+    {
+      id: 'shrine_sentry',
+      name: 'Shrine Sentry',
+      faction: Faction.ENEMY,
+      unitClass: UnitClass.SOLDIER,
+      stats: createStats({ hp: 32, maxHp: 32, str: 11, mag: 0, skl: 9, spd: 7, luk: 4, def: 12, res: 2, mov: 5 }),
+      x: 15,
+      y: 68,
+      aiBehavior: AiBehavior.GUARD,
+    },
+    {
+      id: 'shrine_warden',
+      name: 'Shrine Warden',
+      faction: Faction.ENEMY,
+      unitClass: UnitClass.MAGE,
+      stats: createStats({ hp: 24, maxHp: 24, str: 1, mag: 13, skl: 9, spd: 8, luk: 5, def: 4, res: 10, mov: 5 }),
+      x: 17,
+      y: 72,
+      aiBehavior: AiBehavior.ATTACK_IN_RANGE,
+      aiPersonality: AiPersonality.CAUTIOUS,
+    },
+    {
+      id: 'shrine_keeper',
+      name: 'Shrine Keeper',
+      faction: Faction.ENEMY,
+      unitClass: UnitClass.MERCENARY,
+      stats: createStats({ hp: 30, maxHp: 30, str: 12, mag: 2, skl: 12, spd: 11, luk: 6, def: 8, res: 4, mov: 5 }),
+      x: 20,
+      y: 65,
+      aiBehavior: AiBehavior.PURSUE,
+      aiPersonality: AiPersonality.AGGRESSIVE,
+    },
+
+    // --- Ambush on NW bridge (row 25, cols 30-35) ---
+    {
+      id: 'bridge_ambusher',
+      name: 'Bridge Ambusher',
+      faction: Faction.ENEMY,
+      unitClass: UnitClass.BRIGAND,
+      stats: createStats({ hp: 26, maxHp: 26, str: 12, mag: 0, skl: 8, spd: 10, luk: 4, def: 5, res: 1, mov: 5 }),
+      x: 32,
+      y: 25,
+      aiBehavior: AiBehavior.PURSUE,
+      aiPersonality: AiPersonality.BERSERKER,
+    },
+
+    // --- Beach skirmishers on Starting Isle (east edge) ---
+    {
+      id: 'shore_scavenger_1',
+      name: 'Shore Scavenger',
+      faction: Faction.ENEMY,
+      unitClass: UnitClass.BRIGAND,
+      stats: createStats({ hp: 26, maxHp: 26, str: 10, mag: 0, skl: 6, spd: 8, luk: 4, def: 5, res: 1, mov: 5 }),
+      x: 18,
+      y: 12,
+    },
+    {
+      id: 'shore_scavenger_2',
+      name: 'Shore Scavenger',
+      faction: Faction.ENEMY,
+      unitClass: UnitClass.BRIGAND,
+      stats: createStats({ hp: 26, maxHp: 26, str: 9, mag: 0, skl: 7, spd: 9, luk: 4, def: 4, res: 1, mov: 5 }),
+      x: 20,
+      y: 14,
+    },
+
+    // --- Deep reef hunter (SE reef cluster) ---
+    {
+      id: 'reef_hunter',
+      name: 'Reef Hunter',
+      faction: Faction.ENEMY,
+      unitClass: UnitClass.SOLDIER,
+      stats: createStats({ hp: 30, maxHp: 30, str: 10, mag: 0, skl: 8, spd: 8, luk: 3, def: 9, res: 1, mov: 5 }),
+      x: 85,
+      y: 55,
+      aiBehavior: AiBehavior.PURSUE,
+    },
+
+    // --- Central Trade Isle reinforcement ---
+    {
+      id: 'smuggler_lancer',
+      name: 'Smuggler Lancer',
+      faction: Faction.ENEMY,
+      unitClass: UnitClass.CAVALRY,
+      stats: createStats({ hp: 30, maxHp: 30, str: 10, mag: 0, skl: 9, spd: 10, luk: 5, def: 8, res: 3, mov: 7 }),
+      x: 42,
+      y: 65,
+      aiBehavior: AiBehavior.PURSUE,
+      aiPersonality: AiPersonality.AGGRESSIVE,
+    },
   ],
   triggers: [
     {
