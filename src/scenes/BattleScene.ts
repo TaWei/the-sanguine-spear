@@ -2052,6 +2052,12 @@ export class BattleScene extends Phaser.Scene {
   private startBattleMode(attacker: Unit, defender: Unit, onComplete?: () => void): void {
     this.inBattleMode = true;
     this.pendingBattleCallback = onComplete ?? null;
+
+    // Snapshot HP before combat resolution so the battle display shows
+    // the correct starting values (resolveCombat mutates unit HP inline).
+    const attackerInitialHp = attacker.stats.hp;
+    const defenderInitialHp = defender.stats.hp;
+
     const result = this.engine.resolvePlayerCombat(
       attacker,
       defender,
@@ -2059,7 +2065,13 @@ export class BattleScene extends Phaser.Scene {
       this.battleMenu.selectedWeaponIndex ?? undefined,
     );
     this.combatResult = result;
-    this.battleDisplayState = new BattleDisplayState(attacker, defender, result.log);
+    this.battleDisplayState = new BattleDisplayState(
+      attacker,
+      defender,
+      result.log,
+      attackerInitialHp,
+      defenderInitialHp,
+    );
 
     // Get combat preview for display stats
     const preview = this.engine.getCombatPreview(attacker, defender);
@@ -2081,13 +2093,13 @@ export class BattleScene extends Phaser.Scene {
     // Attacker panel (left)
     const attX = this.cameras.main.width * 0.25;
     const attY = this.cameras.main.height * 0.5;
-    const attPanel = this.createUnitBattlePanel(attacker, attX, attY, 0x3498db, preview.attacker);
+    const attPanel = this.createUnitBattlePanel(attacker, attX, attY, 0x3498db, preview.attacker, attackerInitialHp);
     overlay.add(attPanel);
 
     // Defender panel (right)
     const defX = this.cameras.main.width * 0.75;
     const defY = this.cameras.main.height * 0.5;
-    const defPanel = this.createUnitBattlePanel(defender, defX, defY, 0xe74c3c, preview.defender);
+    const defPanel = this.createUnitBattlePanel(defender, defX, defY, 0xe74c3c, preview.defender, defenderInitialHp);
     overlay.add(defPanel);
 
     // VS label
@@ -2114,6 +2126,7 @@ export class BattleScene extends Phaser.Scene {
     y: number,
     color: number,
     preview: import('../game/combat/Engine').AttackPreview | null,
+    initialHp?: number,
   ): Phaser.GameObjects.Container {
     const panel = this.add.container(x, y);
 
@@ -2192,8 +2205,9 @@ export class BattleScene extends Phaser.Scene {
     const hpBg = this.add.rectangle(10, 10, 120, 12, 0x000000);
     panel.add(hpBg);
 
-    // HP bar fill
-    const hpRatio = unit.stats.hp / unit.stats.maxHp;
+    // HP bar fill (uses initialHp so the panel reflects pre-combat state)
+    const displayHp = initialHp ?? unit.stats.hp;
+    const hpRatio = displayHp / unit.stats.maxHp;
     const hpColor = hpRatio > 0.5 ? 0x2ecc71 : hpRatio > 0.25 ? 0xf1c40f : 0xe74c3c;
     const hpFill = this.add.rectangle(-50 + (120 * hpRatio) / 2, 10, 120 * hpRatio, 12, hpColor);
     hpFill.setName('hpFill');
@@ -2201,7 +2215,7 @@ export class BattleScene extends Phaser.Scene {
 
     // HP text
     const hpText = this.add
-      .text(10, 30, `${unit.stats.hp.toString()} / ${unit.stats.maxHp.toString()}`, {
+      .text(10, 30, `${displayHp.toString()} / ${unit.stats.maxHp.toString()}`, {
         fontSize: '14px',
         color: '#ecf0f1',
       })
@@ -2244,6 +2258,9 @@ export class BattleScene extends Phaser.Scene {
           this.showDamageNumber(target, entry.damage, entry.critical);
         } else if (entry) {
           this.showMissText(target);
+        }
+        if (entry) {
+          state.applyLogEntry(entry);
         }
         this.updateBattleHpBars();
         this.time.delayedCall(600, () => {
@@ -2328,15 +2345,15 @@ export class BattleScene extends Phaser.Scene {
     if (!this.battleDisplayState || !this.battleOverlay) {
       return;
     }
-    const { attacker, defender } = this.battleDisplayState;
+    const { attacker, defender, attackerCurrentHp, defenderCurrentHp } = this.battleDisplayState;
 
     // Update attacker HP bar
-    this.updatePanelHp(attacker, 0x3498db);
+    this.updatePanelHp(attacker, attackerCurrentHp, 0x3498db);
     // Update defender HP bar
-    this.updatePanelHp(defender, 0xe74c3c);
+    this.updatePanelHp(defender, defenderCurrentHp, 0xe74c3c);
   }
 
-  private updatePanelHp(unit: Unit, _color: number): void {
+  private updatePanelHp(unit: Unit, currentHp: number, _color: number): void {
     if (!this.battleDisplayState || !this.battleOverlay) {
       return;
     }
@@ -2345,7 +2362,7 @@ export class BattleScene extends Phaser.Scene {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     const panel = this.battleOverlay.getAt(panelIndex) as Phaser.GameObjects.Container;
 
-    const hpRatio = Math.max(0, unit.stats.hp / unit.stats.maxHp);
+    const hpRatio = Math.max(0, currentHp / unit.stats.maxHp);
     const hpColor = hpRatio > 0.5 ? 0x2ecc71 : hpRatio > 0.25 ? 0xf1c40f : 0xe74c3c;
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
@@ -2359,7 +2376,7 @@ export class BattleScene extends Phaser.Scene {
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     const hpText = panel.getByName('hpText') as Phaser.GameObjects.Text;
-    hpText.setText(`${unit.stats.hp.toString()} / ${unit.stats.maxHp.toString()}`);
+    hpText.setText(`${currentHp.toString()} / ${unit.stats.maxHp.toString()}`);
   }
 
   private resolveStaffHeal(healer: Unit, target: Unit): void {

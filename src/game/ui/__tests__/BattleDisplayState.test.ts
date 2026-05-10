@@ -176,4 +176,106 @@ describe('BattleDisplayState', () => {
     state.advance(); // DEFENDER_COUNTER -> log[1]
     expect(state.currentLogEntry).toBe(log[1]);
   });
+
+  it('tracks current HP separately and applies damage from log entries', () => {
+    const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
+    const log = [makeLogEntry(attacker, defender, 8, true)];
+    const state = new BattleDisplayState(attacker, defender, log, 22, 26);
+
+    expect(state.attackerCurrentHp).toBe(22);
+    expect(state.defenderCurrentHp).toBe(26);
+
+    state.applyLogEntry(log[0]);
+
+    expect(state.attackerCurrentHp).toBe(22);
+    expect(state.defenderCurrentHp).toBe(18);
+  });
+
+  it('applies counterattack damage to attacker', () => {
+    const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
+    const log = [
+      makeLogEntry(attacker, defender, 8, true),
+      makeLogEntry(defender, attacker, 6, true),
+    ];
+    const state = new BattleDisplayState(attacker, defender, log, 22, 26);
+
+    state.applyLogEntry(log[0]);
+    expect(state.defenderCurrentHp).toBe(18);
+
+    state.applyLogEntry(log[1]);
+    expect(state.attackerCurrentHp).toBe(16);
+  });
+
+  it('does not apply damage on a miss', () => {
+    const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
+    const log = [makeLogEntry(attacker, defender, 8, false)];
+    const state = new BattleDisplayState(attacker, defender, log, 22, 26);
+
+    state.applyLogEntry(log[0]);
+    expect(state.defenderCurrentHp).toBe(26);
+  });
+
+  it('does not double-apply the same log entry', () => {
+    const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
+    const log = [makeLogEntry(attacker, defender, 8, true)];
+    const state = new BattleDisplayState(attacker, defender, log, 22, 26);
+
+    state.applyLogEntry(log[0]);
+    state.applyLogEntry(log[0]);
+    expect(state.defenderCurrentHp).toBe(18);
+  });
+
+  it('clamps HP to zero on fatal damage', () => {
+    const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
+    const defender = new Unit(
+      'e1',
+      'Bandit',
+      Faction.ENEMY,
+      UnitClass.BRIGAND,
+      { ...enemyStats },
+      6,
+      5,
+    );
+    const log = [makeLogEntry(attacker, defender, 30, true)];
+    const state = new BattleDisplayState(attacker, defender, log, 22, 26);
+
+    state.applyLogEntry(log[0]);
+    expect(state.defenderCurrentHp).toBe(0);
+  });
 });

@@ -23,17 +23,40 @@ const PHASE_ORDER: BattlePhase[] = [
 export class BattleDisplayState {
   readonly attackerInitialHp: number;
   readonly defenderInitialHp: number;
+  attackerCurrentHp: number;
+  defenderCurrentHp: number;
   private log: CombatLogEntry[];
   private index = 0;
+  private appliedEntries = new Set<number>();
 
   constructor(
     public readonly attacker: Unit,
     public readonly defender: Unit,
     log: CombatLogEntry[],
+    attackerInitialHp?: number,
+    defenderInitialHp?: number,
   ) {
-    this.attackerInitialHp = attacker.stats.hp;
-    this.defenderInitialHp = defender.stats.hp;
+    this.attackerInitialHp = attackerInitialHp ?? attacker.stats.hp;
+    this.defenderInitialHp = defenderInitialHp ?? defender.stats.hp;
+    this.attackerCurrentHp = this.attackerInitialHp;
+    this.defenderCurrentHp = this.defenderInitialHp;
     this.log = log;
+  }
+
+  applyLogEntry(entry: CombatLogEntry): void {
+    const idx = this.log.findIndex((e) => e === entry);
+    if (idx < 0 || this.appliedEntries.has(idx)) {
+      return;
+    }
+    this.appliedEntries.add(idx);
+    if (!entry.hit) {
+      return;
+    }
+    if (entry.defender === this.attacker) {
+      this.attackerCurrentHp = Math.max(0, this.attackerCurrentHp - entry.damage);
+    } else if (entry.defender === this.defender) {
+      this.defenderCurrentHp = Math.max(0, this.defenderCurrentHp - entry.damage);
+    }
   }
 
   get phase(): BattlePhase {
