@@ -1,5 +1,10 @@
 import Phaser from 'phaser';
-import { registerCutscene, prologueCutscene, firstBattleWarningCutscene, bossDefeatedCutscene } from '../game/cutscene';
+import {
+  registerCutscene,
+  prologueCutscene,
+  firstBattleWarningCutscene,
+  bossDefeatedCutscene,
+} from '../game/cutscene';
 
 export class BootScene extends Phaser.Scene {
   constructor() {

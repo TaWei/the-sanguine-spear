@@ -9,6 +9,7 @@ export interface UnitStats {
   def: number;
   res: number;
   mov: number;
+  con: number;
 }
 
 export interface UnitStatsInput {
@@ -22,6 +23,7 @@ export interface UnitStatsInput {
   def: number;
   res: number;
   mov: number;
+  con?: number;
 }
 
 export function createStats(input: UnitStatsInput): UnitStats {
@@ -37,5 +39,6 @@ export function createStats(input: UnitStatsInput): UnitStats {
     def: input.def,
     res: input.res,
     mov: input.mov,
+    con: input.con ?? 0,
   };
 }

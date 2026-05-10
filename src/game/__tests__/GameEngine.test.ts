@@ -1268,4 +1268,164 @@ describe('GameEngine', () => {
       expect(adjacent[0].id).toBe('p2');
     });
   });
+
+  describe('Rescue / Drop', () => {
+    it('canRescue returns true for cavalry + adjacent lord', () => {
+      const engine = new GameEngine(8, 8);
+      engine.setTerrain(3, 3, 'plains');
+      engine.setTerrain(4, 3, 'plains');
+      const cav = engine.addUnit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 10, spd: 10, luk: 3, def: 8, res: 2, mov: 7 }),
+        3, 3);
+      const lord = engine.addUnit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+        createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+        4, 3);
+      expect(engine.canRescue(cav, lord)).toBe(true);
+    });
+
+    it('canRescue returns false for non-adjacent units', () => {
+      const engine = new GameEngine(8, 8);
+      const cav = engine.addUnit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 10, spd: 10, luk: 3, def: 8, res: 2, mov: 7 }),
+        3, 3);
+      const lord = engine.addUnit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+        createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+        6, 3);
+      expect(engine.canRescue(cav, lord)).toBe(false);
+    });
+
+    it('cannot rescue diagonally', () => {
+      const engine = new GameEngine(8, 8);
+      const cav = engine.addUnit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 10, spd: 10, luk: 3, def: 8, res: 2, mov: 7 }),
+        3, 3);
+      const lord = engine.addUnit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+        createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+        4, 4);
+      expect(engine.canRescue(cav, lord)).toBe(false);
+    });
+
+    it('rescue removes the rescued unit from the grid', () => {
+      const engine = new GameEngine(8, 8);
+      engine.setTerrain(3, 3, 'plains');
+      engine.setTerrain(4, 3, 'plains');
+      const cav = engine.addUnit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 14, spd: 12, luk: 3, def: 8, res: 2, mov: 7 }),
+        3, 3);
+      const lord = engine.addUnit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+        createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+        4, 3);
+      engine.rescue(cav, lord);
+      // Lord is no longer on the grid
+      expect(engine.getUnit(4, 3)).toBeNull();
+      // Cav is carrying the lord
+      expect(cav.rescuedUnit).toBe(lord);
+      expect(lord.rescuedBy).toBe(cav);
+    });
+
+    it('drop places rescued unit on adjacent empty tile', () => {
+      const engine = new GameEngine(8, 8);
+      engine.setTerrain(3, 3, 'plains');
+      engine.setTerrain(4, 3, 'plains');
+      engine.setTerrain(3, 4, 'plains');
+      const cav = engine.addUnit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 14, spd: 12, luk: 3, def: 8, res: 2, mov: 7 }),
+        3, 3);
+      const lord = engine.addUnit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+        createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+        4, 3);
+      engine.rescue(cav, lord);
+      engine.drop(cav, 3, 4);
+      expect(engine.getUnit(3, 4)).toBe(lord);
+      expect(lord.gridX).toBe(3);
+      expect(lord.gridY).toBe(4);
+      expect(cav.rescuedUnit).toBeNull();
+      expect(lord.rescuedBy).toBeNull();
+      // Cav stats restored
+      expect(cav.stats.skl).toBe(14);
+    });
+
+    it('throw if drop target is occupied', () => {
+      const engine = new GameEngine(8, 8);
+      engine.setTerrain(3, 3, 'plains');
+      engine.setTerrain(4, 3, 'plains');
+      engine.setTerrain(3, 4, 'plains');
+      const cav = engine.addUnit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 14, spd: 12, luk: 3, def: 8, res: 2, mov: 7 }),
+        3, 3);
+      const lord = engine.addUnit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+        createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+        4, 3);
+      engine.addUnit('u3', 'Franz', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 22, maxHp: 22, str: 8, mag: 0, skl: 9, spd: 10, luk: 3, def: 7, res: 2, mov: 7 }),
+        3, 4);
+      engine.rescue(cav, lord);
+      expect(() => engine.drop(cav, 3, 4)).toThrow(/occupied/);
+    });
+  });
+
+  describe('Give / Take', () => {
+    it('give transfers rescued unit to adjacent ally', () => {
+      const engine = new GameEngine(8, 8);
+      engine.setTerrain(3, 3, 'plains');
+      engine.setTerrain(4, 3, 'plains');
+      engine.setTerrain(4, 4, 'plains');
+    engine.setTerrain(3, 4, 'plains');
+      const cav = engine.addUnit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 10, spd: 10, luk: 3, def: 8, res: 2, mov: 7 }),
+        3, 3);
+      const lord = engine.addUnit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+        createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+        4, 3);
+      const cav2 = engine.addUnit('u3', 'Franz', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 22, maxHp: 22, str: 8, mag: 0, skl: 9, spd: 10, luk: 3, def: 7, res: 2, mov: 7 }),
+        3, 4);
+      engine.rescue(cav, lord);
+      engine.giveUnit(cav, cav2);
+      expect(cav.rescuedUnit).toBeNull();
+      expect(cav2.rescuedUnit).toBe(lord);
+      expect(lord.rescuedBy).toBe(cav2);
+    });
+
+    it('take steals rescued unit from adjacent carrier', () => {
+      const engine = new GameEngine(8, 8);
+      engine.setTerrain(3, 3, 'plains');
+      engine.setTerrain(4, 3, 'plains');
+      engine.setTerrain(4, 4, 'plains');
+    engine.setTerrain(3, 4, 'plains');
+      const cav = engine.addUnit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 10, spd: 10, luk: 3, def: 8, res: 2, mov: 7 }),
+        3, 3);
+      const lord = engine.addUnit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+        createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+        4, 3);
+      const cav2 = engine.addUnit('u3', 'Franz', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 22, maxHp: 22, str: 8, mag: 0, skl: 9, spd: 10, luk: 3, def: 7, res: 2, mov: 7 }),
+        3, 4);
+      engine.rescue(cav, lord);
+      engine.takeUnit(cav2, cav);
+      expect(cav.rescuedUnit).toBeNull();
+      expect(cav2.rescuedUnit).toBe(lord);
+      expect(lord.rescuedBy).toBe(cav2);
+    });
+  });
+
+  describe('Rescue edge cases', () => {
+    it('rescued unit dies when carrier dies', () => {
+      const engine = new GameEngine(8, 8);
+      engine.setTerrain(3, 3, 'plains');
+      engine.setTerrain(4, 3, 'plains');
+      const cav = engine.addUnit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+        createStats({ hp: 5, maxHp: 25, str: 10, mag: 0, skl: 10, spd: 10, luk: 3, def: 8, res: 2, mov: 7 }),
+        3, 3);
+      const lord = engine.addUnit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+        createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+        4, 3);
+      engine.rescue(cav, lord);
+      // Kill the carrier
+      cav.takeDamage(999);
+      engine.killPassengersIfCarrierDead();
+      expect(lord.isAlive).toBe(false);
+    });
+  });
 });

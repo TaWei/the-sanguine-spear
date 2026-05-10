@@ -79,7 +79,7 @@ describe('combat EXP calculation', () => {
   it('awards hit EXP for a hit without kill', () => {
     const grid = new Grid(3, 3);
     const attacker = makeUnit('att', 1, 20, 5, 10);
-    const defender = makeUnit('def', 1, 20, 0, 0); // enough hp to survive
+    const defender = makeUnit('def', 1, 30, 0, 0); // 30 HP survives two 10-dmg hits
     grid.placeUnit(attacker, 0, 0);
     grid.placeUnit(defender, 1, 0);
 

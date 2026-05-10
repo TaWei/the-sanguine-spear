@@ -10,6 +10,13 @@ export const TerrainType = {
   DEEP_WATER: 'deep_water',
   BRIDGE: 'bridge',
   REEF: 'reef',
+  DOOR: 'door',
+  CHEST: 'chest',
+  THRONE: 'throne',
+  ESCAPE: 'escape',
+  FORT: 'fort',
+  VILLAGE: 'village',
+  GATE: 'gate',
 } as const;
 
 export type TerrainType = (typeof TerrainType)[keyof typeof TerrainType];
@@ -34,4 +41,11 @@ export const TERRAIN_DEFS: Record<TerrainType, TerrainData> = {
   deep_water: { type: 'deep_water', moveCost: 99, defenseBonus: 0, avoidBonus: 0 },
   bridge: { type: 'bridge', moveCost: 1, defenseBonus: 0, avoidBonus: 0 },
   reef: { type: 'reef', moveCost: 2, defenseBonus: 2, avoidBonus: 15 },
+  door: { type: 'door', moveCost: 99, defenseBonus: 0, avoidBonus: 0 },
+  chest: { type: 'chest', moveCost: 1, defenseBonus: 0, avoidBonus: 0 },
+  throne: { type: 'throne', moveCost: 1, defenseBonus: 3, avoidBonus: 30, hazardDamage: 0 },
+  escape: { type: 'escape', moveCost: 1, defenseBonus: 0, avoidBonus: 0 },
+  fort: { type: 'fort', moveCost: 1, defenseBonus: 2, avoidBonus: 20, hazardDamage: 0 },
+  village: { type: 'village', moveCost: 1, defenseBonus: 1, avoidBonus: 10 },
+  gate: { type: 'gate', moveCost: 1, defenseBonus: 3, avoidBonus: 30, hazardDamage: 0 },
 };

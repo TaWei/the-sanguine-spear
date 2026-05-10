@@ -7,6 +7,9 @@ import type { UnitStateType } from '../state/UnitState';
 import type { GrowthRates } from '../progression/GrowthRates';
 import type { AiBehavior } from '../ai/Behavior';
 import type { AiPersonality } from '../ai/Personality';
+import type { WeaponRankData } from '../combat/WeaponRank';
+import type { WeaponType } from '../combat/Weapons';
+import type { SupportPair } from '../support/SupportEngine';
 
 export const SAVE_VERSION = 1;
 
@@ -32,6 +35,9 @@ export interface UnitSnapshot {
   inventory: Item[];
   aiBehavior?: AiBehavior;
   aiPersonality?: AiPersonality;
+  weaponRanks: Record<WeaponType, WeaponRankData>;
+  rescuedUnitId: string | null;
+  rescuedById: string | null;
 }
 
 export interface SaveData {
@@ -48,4 +54,8 @@ export interface SaveData {
   consumedTriggers: string[];
   firstCombatOccurred: boolean;
   gold: number;
+  consumedTalks: string[];
+  visitedVillages: string[];
+  spawnedReinforcementIds: string[];
+  supportPairs: SupportPair[];
 }

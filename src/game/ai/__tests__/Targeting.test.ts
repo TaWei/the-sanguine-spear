@@ -62,7 +62,7 @@ describe('Targeting', () => {
     expect(score).toBeGreaterThan(0);
   });
 
-  it('returns -Infinity if target is not an enemy', () => {
+  it('returns a positive score for a valid ally target', () => {
     const enemy = makeEnemy();
     const allyStats = createStats({
       hp: 16,
@@ -77,7 +77,7 @@ describe('Targeting', () => {
     });
     const ally = new Unit('a1', 'Ally', Faction.ALLY, UnitClass.LORD, allyStats, 6, 5);
     const score = scoreTarget(enemy, ally, WEAPON_DB['Iron Axe'], grid);
-    expect(score).toBe(-Infinity);
+    expect(score).toBeGreaterThan(0);
   });
 
   it('returns -Infinity if target is same faction', () => {

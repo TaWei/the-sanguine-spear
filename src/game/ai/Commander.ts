@@ -123,6 +123,12 @@ export class Commander {
     if (unit.unitClass === 'soldier') {
       return this.weaponDb['Iron Lance'];
     }
+    if (unit.unitClass === 'assassin') {
+      return this.weaponDb['Killer Sword'];
+    }
+    if (unit.unitClass === 'wraith_knight') {
+      return this.weaponDb['Steel Lance'];
+    }
     return this.weaponDb['Iron Sword'];
   }
 

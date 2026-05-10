@@ -67,8 +67,11 @@ src/
 | 9 | [09-player-battle-mode.md](./09-player-battle-mode.md) | ⬜ | Fight menu, target selection, combat animation |
 | 10 | [10-level-objectives.md](./10-level-objectives.md) | ✅ | Victory/defeat conditions, level completion |
 | 11 | [11-promotion-system.md](./11-promotion-system.md) | ✅ | Fire Emblem-style class promotion |
-| 12 | [12-shops-gold-trading.md](./12-shops-gold-trading.md) | ⬜ | Shops, gold, and trading |
-| 13 | [13-level-3-sunken-temple.md](./13-level-3-sunken-temple.md) | ⬜ | Level 3: colossal water-themed 100×100 map |
+| 12 | [12-effective-weapons.md](./12-effective-weapons.md) | ✅ | Effective weapons (3x might vs class tags) |
+| 13 | [13-steel-silver-brave.md](./13-steel-silver-brave.md) | ✅ | Steel/Silver/Brave weapon tiers, Brave consecutive attacks |
+| 14 | [14-constitution-weight.md](./14-constitution-weight.md) | ✅ | Constitution, weapon weight, attack speed |
+| 15 | [15-weapon-ranks-wexp.md](./15-weapon-ranks-wexp.md) | ✅ | Weapon ranks (E→S), WEXP tracking, rank-gated weapons |
+| 16 | [16-steal-doors-chests.md](./16-steal-doors-chests.md) | ✅ | Thief class, Steal command, Door/Chest opening with keys |
 
 ---
 

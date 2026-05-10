@@ -21,6 +21,15 @@ export function serializeUnit(unit: Unit): UnitSnapshot {
     inventory: unit.inventory.items.map((item) => ({ ...item })),
     aiBehavior: unit.aiBehavior,
     aiPersonality: unit.aiPersonality,
+    weaponRanks: {
+      sword: { ...unit.getWeaponRank('sword') },
+      axe: { ...unit.getWeaponRank('axe') },
+      lance: { ...unit.getWeaponRank('lance') },
+      bow: { ...unit.getWeaponRank('bow') },
+      magic: { ...unit.getWeaponRank('magic') },
+    },
+    rescuedUnitId: unit.rescuedUnit?.id ?? null,
+    rescuedById: unit.rescuedBy?.id ?? null,
   };
 }
 
@@ -44,6 +53,13 @@ export function deserializeUnit(snap: UnitSnapshot): Unit {
 
   for (const item of snap.inventory) {
     unit.inventory.add(item);
+  }
+
+  // Restore weapon ranks
+  if (snap.weaponRanks) {
+    for (const [type, rank] of Object.entries(snap.weaponRanks)) {
+      unit.setWeaponRank(type as any, rank);
+    }
   }
 
   if (snap.state === UNIT_STATE.MOVING) {

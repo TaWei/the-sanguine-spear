@@ -17,6 +17,9 @@ export interface WeaponItem {
   maxRange: number;
   usesMagic: boolean;
   uses: number;
+  consecutiveAttacks?: number;
+  weight?: number;
+  requiredRank?: number;
 }
 
 export interface RecoveryItem {
@@ -78,6 +81,10 @@ export function createWeaponItem(
   minRange: number,
   maxRange: number,
   usesMagic: boolean,
+  uses = 40,
+  consecutiveAttacks?: number,
+  weight?: number,
+  requiredRank?: number,
 ): WeaponItem {
   return {
     kind: 'weapon',
@@ -89,7 +96,10 @@ export function createWeaponItem(
     minRange,
     maxRange,
     usesMagic,
-    uses: 40,
+    uses,
+    ...(consecutiveAttacks !== undefined && { consecutiveAttacks }),
+    ...(weight !== undefined && { weight }),
+    ...(requiredRank !== undefined && { requiredRank }),
   };
 }
 

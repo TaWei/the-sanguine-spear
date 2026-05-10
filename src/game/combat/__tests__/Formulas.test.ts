@@ -146,6 +146,24 @@ describe('Combat Formulas', () => {
     });
   });
 
+  describe('calcDamage with effectiveness', () => {
+    it('applies 3x might vs effective target', () => {
+      // 10 atk + (8 mt * 3) - 12 def = 10 + 24 - 12 = 22
+      const dmg = calcDamage(10, 8, 12, false, true);
+      expect(dmg).toBe(22);
+    });
+
+    it('does not apply multiplier when not effective', () => {
+      const dmg = calcDamage(10, 8, 12, false, false);
+      expect(dmg).toBe(6); // 10 + 8 - 12 = 6
+    });
+
+    it('default parameter is false (backward compat)', () => {
+      const dmg = calcDamage(10, 8, 12, false);
+      expect(dmg).toBe(6); // no multiplier applied
+    });
+  });
+
   describe('2RN True Hit', () => {
     it('hits when average of two RNs < display hit', () => {
       // display hit = 70, RNs: 60, 70 → avg 65 < 70 → hit

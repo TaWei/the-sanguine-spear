@@ -1,12 +1,19 @@
 import { Unit, UnitClass } from '../units/Unit';
 import { UnitStats } from '../units/Stats';
-import { getPromotedClass, CLASS_PROMO_BONUSES, PROMOTED_CLASS_BASES } from './PromotionData';
+import {
+  getPromotedClass,
+  CLASS_PROMO_BONUSES,
+  PROMOTED_CLASS_BASES,
+  PromoBonus,
+} from './PromotionData';
 import { CLASS_CAPS } from '../progression/StatCaps';
 
 export interface PromotionResult {
   success: boolean;
+  unitName: string;
   oldClass: UnitClass;
   newClass: string | null;
+  oldStats: UnitStats;
   newStats: UnitStats;
   diff: Partial<Record<keyof UnitStats, number>>;
 }
@@ -20,12 +27,28 @@ export class PromotionEngine {
 
   promote(unit: Unit, bypassLevel = false): PromotionResult {
     if (!this.canPromote(unit, bypassLevel)) {
-      return { success: false, oldClass: unit.unitClass, newClass: null, newStats: unit.stats, diff: {} };
+      return {
+        success: false,
+        unitName: unit.name,
+        oldClass: unit.unitClass,
+        newClass: null,
+        oldStats: unit.stats,
+        newStats: unit.stats,
+        diff: {},
+      };
     }
 
     const promotedClass = getPromotedClass(unit.unitClass);
     if (!promotedClass) {
-      return { success: false, oldClass: unit.unitClass, newClass: null, newStats: unit.stats, diff: {} };
+      return {
+        success: false,
+        unitName: unit.name,
+        oldClass: unit.unitClass,
+        newClass: null,
+        oldStats: unit.stats,
+        newStats: unit.stats,
+        diff: {},
+      };
     }
 
     const bonuses = CLASS_PROMO_BONUSES[promotedClass];
@@ -35,19 +58,19 @@ export class PromotionEngine {
     const oldStats = { ...unit.stats };
     const newStats: UnitStats = { ...unit.stats };
 
-    const statKeys = Object.keys(bonuses) as (keyof UnitStats)[];
+    const statKeys = Object.keys(bonuses) as (keyof PromoBonus)[];
     for (const key of statKeys) {
-      const bonus = bonuses[key];
+      const bonus = (bonuses as unknown as Record<string, number>)[key];
       const baseMin = bases?.[key] ?? 0;
 
-      let val = newStats[key] + bonus;
+      let val = (newStats as unknown as Record<string, number>)[key] + bonus;
       if (baseMin > 0 && val < baseMin) {
         val = baseMin;
       }
-      if (caps && val > caps[key]) {
-        val = caps[key];
+      if (caps && val > (caps as unknown as Record<string, number>)[key]) {
+        val = (caps as unknown as Record<string, number>)[key];
       }
-      (newStats as Record<keyof UnitStats, number>)[key] = val;
+      (newStats as unknown as Record<string, number>)[key] = val;
     }
 
     // Ensure maxHp tracks hp changes
@@ -66,7 +89,9 @@ export class PromotionEngine {
 
     return {
       success: true,
+      unitName: unit.name,
       oldClass,
+      oldStats,
       newClass: promotedClass,
       newStats,
       diff,

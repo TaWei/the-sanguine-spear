@@ -358,3 +358,113 @@ describe('Unit', () => {
     expect(unit.stats.hp).toBe(20);
   });
 });
+
+describe('Rescue state', () => {
+  it('starts with no rescued unit and not rescued', () => {
+    const unit = new Unit('u1', 'Rowan', Faction.PLAYER, UnitClass.CAVALRY,
+      createStats({ hp: 20, maxHp: 20, str: 8, mag: 0, skl: 8, spd: 8, luk: 3, def: 5, res: 2, mov: 5 }),
+      3, 3);
+    expect(unit.rescuedUnit).toBeNull();
+    expect(unit.rescuedBy).toBeNull();
+    expect(unit.isCarrying).toBe(false);
+    expect(unit.isRescued).toBe(false);
+  });
+
+  it('can carry a rescued unit', () => {
+    const carrier = new Unit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+      createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 10, spd: 10, luk: 3, def: 8, res: 2, mov: 7 }),
+      3, 3);
+    const passenger = new Unit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+      createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+      4, 3);
+    
+    carrier.setRescuedUnit(passenger);
+    
+    expect(carrier.rescuedUnit).toBe(passenger);
+    expect(carrier.isCarrying).toBe(true);
+    expect(passenger.rescuedBy).toBe(carrier);
+    expect(passenger.isRescued).toBe(true);
+  });
+
+  it('clearing rescued unit restores both sides', () => {
+    const carrier = new Unit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+      createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 10, spd: 10, luk: 3, def: 8, res: 2, mov: 7 }),
+      3, 3);
+    const passenger = new Unit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+      createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+      4, 3);
+    
+    carrier.setRescuedUnit(passenger);
+    carrier.clearRescuedUnit();
+    
+    expect(carrier.rescuedUnit).toBeNull();
+    expect(carrier.isCarrying).toBe(false);
+    expect(passenger.rescuedBy).toBeNull();
+    expect(passenger.isRescued).toBe(false);
+  });
+
+  it('cannot rescue a unit that is already carrying someone', () => {
+    const carrier1 = new Unit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+      createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 10, spd: 10, luk: 3, def: 8, res: 2, mov: 7 }),
+      3, 3);
+    const carrier2 = new Unit('u2', 'Franz', Faction.PLAYER, UnitClass.CAVALRY,
+      createStats({ hp: 22, maxHp: 22, str: 8, mag: 0, skl: 9, spd: 10, luk: 3, def: 7, res: 2, mov: 7 }),
+      4, 3);
+    const passenger = new Unit('u3', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+      createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+      5, 3);
+    
+    carrier1.setRescuedUnit(passenger);
+    expect(() => carrier2.setRescuedUnit(carrier1)).toThrow();
+  });
+});
+
+describe('Rescue stat penalties', () => {
+  it('carrying unit has halved Skl and Spd', () => {
+    const carrier = new Unit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+      createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 14, spd: 12, luk: 8, def: 10, res: 5, mov: 7 }),
+      3, 3);
+    const passenger = new Unit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+      createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+      4, 3);
+    
+    carrier.setRescuedUnit(passenger);
+    
+    // Skl: floor(14/2) = 7, Spd: floor(12/2) = 6
+    expect(carrier.stats.skl).toBe(7);
+    expect(carrier.stats.spd).toBe(6);
+    // Other stats unchanged
+    expect(carrier.stats.str).toBe(10);
+    expect(carrier.stats.def).toBe(10);
+  });
+
+  it('clearing rescued unit restores full stats', () => {
+    const carrier = new Unit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+      createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 14, spd: 12, luk: 8, def: 10, res: 5, mov: 7 }),
+      3, 3);
+    const passenger = new Unit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+      createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+      4, 3);
+    
+    carrier.setRescuedUnit(passenger);
+    expect(carrier.stats.skl).toBe(7);
+    expect(carrier.stats.spd).toBe(6);
+    
+    carrier.clearRescuedUnit();
+    expect(carrier.stats.skl).toBe(14);
+    expect(carrier.stats.spd).toBe(12);
+  });
+
+  it('rescued unit stats are unchanged', () => {
+    const carrier = new Unit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+      createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 10, spd: 10, luk: 8, def: 10, res: 5, mov: 7 }),
+      3, 3);
+    const passenger = new Unit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+      createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+      4, 3);
+    
+    carrier.setRescuedUnit(passenger);
+    expect(passenger.stats.skl).toBe(8);  // unchanged
+    expect(passenger.stats.spd).toBe(10); // unchanged
+  });
+});

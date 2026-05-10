@@ -1,6 +1,9 @@
-import { Unit } from '../units/Unit';
+import { Unit, UnitClass } from '../units/Unit';
 import { Grid } from '../map/Grid';
 import { WeaponData, getWeaponTriangleMod } from './Weapons';
+import { getClassTags } from './Effectiveness';
+import { getPrimaryWeaponType } from './WeaponRank';
+import type { DurabilityTracker } from './DurabilityTracker';
 
 export function calcCombatExp(
   attackerLevel: number,
@@ -50,6 +53,10 @@ export interface CombatResult {
   attackerDied: boolean;
   defenderDied: boolean;
   expAward: number;
+  /** Whether the attacker's weapon durability was consumed (at least 1 use) */
+  attackerWeaponUsed: boolean;
+  /** Whether the defender's weapon durability was consumed (at least 1 use) */
+  defenderWeaponUsed: boolean;
 }
 
 export interface AttackPreview {
@@ -77,32 +84,104 @@ export class CombatEngine {
     attackerWeapon: WeaponData,
     defenderWeapon: WeaponData,
     rng: () => number = Math.random,
+    attTracker?: DurabilityTracker,
+    defTracker?: DurabilityTracker,
   ): CombatResult {
     const log: CombatLogEntry[] = [];
-    const attackerDied = false;
+    let attackerWeaponUsed = false;
+    let defenderWeaponUsed = false;
 
-    // Resolve one attack
-    const entry = this.resolveAttack(attacker, defender, attackerWeapon, defenderWeapon, rng);
-    log.push(entry);
-    let expAward = calcCombatExp(attacker.level, defender.level, entry.hit, !defender.isAlive);
+    // Helper: perform attacks (Brave weapons fire consecutiveAttacks times)
+    const performAttacks = (
+      att: Unit,
+      def: Unit,
+      wpn: WeaponData,
+      defWpn: WeaponData,
+      tracker?: DurabilityTracker,
+    ): CombatLogEntry[] => {
+      const entries: CombatLogEntry[] = [];
+      const count = wpn.consecutiveAttacks ?? 1;
 
+      for (let i = 0; i < count; i++) {
+        // Don't attack if weapon is broken
+        if (tracker && tracker.isBroken) break;
+        if (!att.isAlive || !def.isAlive) break;
+
+        const entry = this.resolveHit(att, def, wpn, defWpn, rng);
+        if (entry.hit) {
+          def.takeDamage(entry.damage);
+        }
+
+        // Consume durability (weapon was swung, hit or miss)
+        if (tracker) {
+          tracker.consume();
+        }
+
+        entries.push(entry);
+      }
+      return entries;
+    };
+
+    // Determine follow-up eligibility using Attack Speed
+    const attAS = this.computeAttackSpeed(attacker, attackerWeapon);
+    const defAS = this.computeAttackSpeed(defender, defenderWeapon);
+    const attackerDoubles = attAS - defAS >= 4;
+    const defenderDoubles = defAS - attAS >= 4;
+
+    // === Attacker's first attack(s) ===
+    const a1entries = performAttacks(attacker, defender, attackerWeapon, defenderWeapon, attTracker);
+    log.push(...a1entries);
+    if (a1entries.length > 0 && attTracker?.wasUsed) attackerWeaponUsed = true;
+
+    // Check if defender died before counter
     if (!defender.isAlive) {
-      return { log, attackerDied, defenderDied: true, expAward };
+      const attackerHit = log.some((e) => e.attacker === attacker && e.hit);
+      const expAward = calcCombatExp(attacker.level, defender.level, attackerHit, true);
+      return { log, attackerDied: false, defenderDied: true, expAward, attackerWeaponUsed, defenderWeaponUsed };
     }
 
-    // Defender counterattack if in range
+    // === Defender's counterattack(s) ===
     if (
       this.isInRange(defender.gridX, defender.gridY, attacker.gridX, attacker.gridY, defenderWeapon)
     ) {
-      const counter = this.resolveAttack(defender, attacker, defenderWeapon, attackerWeapon, rng);
-      log.push(counter);
-      if (!attacker.isAlive) {
-        expAward = 0; // attacker died, no EXP
+      // First counter
+      const d1entries = performAttacks(defender, attacker, defenderWeapon, attackerWeapon, defTracker);
+      log.push(...d1entries);
+      if (d1entries.length > 0 && defTracker?.wasUsed) defenderWeaponUsed = true;
+
+      // Defender follow-up (if eligible, attacker alive, weapon not broken)
+      if (defenderDoubles && attacker.isAlive) {
+        const d2entries = performAttacks(defender, attacker, defenderWeapon, attackerWeapon, defTracker);
+        log.push(...d2entries);
       }
-      return { log, attackerDied: !attacker.isAlive, defenderDied: !defender.isAlive, expAward };
     }
 
-    return { log, attackerDied: false, defenderDied: false, expAward };
+    // === Attacker follow-up (GBA FE order: attacker → counter → attacker follow-up) ===
+    if (attackerDoubles && attacker.isAlive && defender.isAlive) {
+      const a2entries = performAttacks(attacker, defender, attackerWeapon, defenderWeapon, attTracker);
+      log.push(...a2entries);
+    }
+
+    const attackerDied = !attacker.isAlive;
+    const defenderDied = !defender.isAlive;
+    const attackerHit = log.some((e) => e.attacker === attacker && e.hit);
+    const expAward = attackerDied
+      ? 0
+      : calcCombatExp(attacker.level, defender.level, attackerHit, defenderDied);
+
+    // Award WEXP — 1 per combat round, +1 bonus for primary weapon type
+    this.awardCombatWeaponExp(attacker, attackerWeapon);
+    if (defender.isAlive) {
+      this.awardCombatWeaponExp(defender, defenderWeapon);
+    }
+
+    return { log, attackerDied, defenderDied, expAward, attackerWeaponUsed, defenderWeaponUsed };
+  }
+
+  private awardCombatWeaponExp(unit: Unit, weapon: WeaponData): void {
+    const isPrimary = getPrimaryWeaponType(unit.unitClass) === weapon.type;
+    const wexp = isPrimary ? 2 : 1;
+    unit.awardWeaponExp(weapon.type, wexp);
   }
 
   previewCombat(
@@ -122,7 +201,6 @@ export class CombatEngine {
 
     return { attacker: attackerPreview, defender: defenderPreview };
   }
-
   private previewAttack(
     attacker: Unit,
     defender: Unit,
@@ -135,25 +213,41 @@ export class CombatEngine {
     const triangle = getWeaponTriangleMod(weapon.type, defenderWeapon.type);
 
     const hitRate = calcHitRate(weapon.hit, attStats.skl, attStats.luk) + triangle.hitBonus;
+    const defAS = this.computeAttackSpeed(defender, defenderWeapon);
     const terrainData = this.grid.getTerrainData(defender.gridX, defender.gridY);
-    const avoid = calcAvoid(defStats.spd, defStats.luk, terrainData.avoidBonus);
+    const avoid = calcAvoid(defAS, defStats.luk, terrainData.avoidBonus);
     const hit = calcDisplayHit(hitRate, avoid);
 
     const atkStat = weapon.usesMagic ? attStats.mag : attStats.str;
     const defStat = weapon.usesMagic ? defStats.res : defStats.def;
-    const damage = calcDamage(atkStat, weapon.mt + triangle.mtBonus, defStat, weapon.usesMagic);
+    const effective = this.isEffective(weapon, defender.unitClass);
+    const damage = calcDamage(atkStat, weapon.mt, defStat, weapon.usesMagic, effective, triangle.mtBonus);
 
     const classBonus = getClassCritBonus(attacker.unitClass);
     const critRate = calcCritRate(weapon.crit, attStats.skl, classBonus);
     const critAvoid = calcCritAvoid(defStats.luk);
     const crit = calcDisplayCrit(critRate, critAvoid);
 
-    const doubleAttack = attStats.spd - defStats.spd >= 4;
+    const attAS = this.computeAttackSpeed(attacker, weapon);
+    const doubleAttack = attAS - defAS >= 4;
 
     return { hit, crit, damage, doubleAttack };
   }
 
-  private resolveAttack(
+  private isEffective(weapon: WeaponData, targetClass: UnitClass): boolean {
+    if (!weapon.effectiveAgainst) return false;
+    const tags = getClassTags(targetClass);
+    return weapon.effectiveAgainst.some(tag => tags.has(tag));
+  }
+
+  private computeAttackSpeed(unit: Unit, weapon: WeaponData): number {
+    const wt = weapon.weight ?? 0;
+    const con = unit.stats.con;
+    const penalty = Math.max(0, wt - con);
+    return Math.max(0, unit.stats.spd - penalty);
+  }
+
+  private resolveHit(
     attacker: Unit,
     defender: Unit,
     weapon: WeaponData,
@@ -163,13 +257,12 @@ export class CombatEngine {
     const attStats = attacker.stats;
     const defStats = defender.stats;
 
-    // Triangle modifier
     const triangle = getWeaponTriangleMod(weapon.type, defenderWeapon.type);
 
-    // Hit calculation
     const hitRate = calcHitRate(weapon.hit, attStats.skl, attStats.luk) + triangle.hitBonus;
+    const defAS = this.computeAttackSpeed(defender, defenderWeapon);
     const terrainData = this.grid.getTerrainData(defender.gridX, defender.gridY);
-    const avoid = calcAvoid(defStats.spd, defStats.luk, terrainData.avoidBonus);
+    const avoid = calcAvoid(defAS, defStats.luk, terrainData.avoidBonus);
     const displayHit = calcDisplayHit(hitRate, avoid);
     const hit = rollTrueHit(displayHit, rng);
 
@@ -178,12 +271,11 @@ export class CombatEngine {
     let displayCrit = 0;
 
     if (hit) {
-      // Damage
       const atkStat = weapon.usesMagic ? attStats.mag : attStats.str;
       const defStat = weapon.usesMagic ? defStats.res : defStats.def;
-      damage = calcDamage(atkStat, weapon.mt + triangle.mtBonus, defStat, weapon.usesMagic);
+      const effective = this.isEffective(weapon, defender.unitClass);
+      damage = calcDamage(atkStat, weapon.mt, defStat, weapon.usesMagic, effective, triangle.mtBonus);
 
-      // Crit
       const classBonus = getClassCritBonus(attacker.unitClass);
       const critRate = calcCritRate(weapon.crit, attStats.skl, classBonus);
       const critAvoid = calcCritAvoid(defStats.luk);
@@ -192,9 +284,6 @@ export class CombatEngine {
       if (critical) {
         damage *= 3;
       }
-
-      // Apply damage
-      defender.takeDamage(damage);
     }
 
     return { attacker, defender, hit, critical, damage, displayHit, displayCrit };

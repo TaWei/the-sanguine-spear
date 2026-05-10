@@ -39,7 +39,11 @@ export function scoreTarget(
   if (target.faction === attacker.faction) {
     return -Infinity;
   }
-  if (target.faction === Faction.ALLY) {
+  // Player and ally are on the same team — don't attack each other
+  if (
+    (attacker.faction === Faction.PLAYER || attacker.faction === Faction.ALLY) &&
+    (target.faction === Faction.PLAYER || target.faction === Faction.ALLY)
+  ) {
     return -Infinity;
   }
 

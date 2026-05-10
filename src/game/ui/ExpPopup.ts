@@ -17,13 +17,39 @@ export class ExpPopup {
     this.elapsed = 0;
   }
 
+  private get visualDistance(): number {
+    if (this.startExp === this.targetExp) {
+      return 0;
+    }
+    if (this.leveledUp) {
+      return (100 - this.startExp) + this.targetExp;
+    }
+    return this.targetExp - this.startExp;
+  }
+
+  private get visualExp(): number {
+    const dist = this.visualDistance;
+    if (dist === 0) {
+      return this.startExp;
+    }
+    const traveled = this.progress * dist;
+    if (this.leveledUp) {
+      const toCap = 100 - this.startExp;
+      if (traveled <= toCap) {
+        return this.startExp + traveled;
+      }
+      return traveled - toCap;
+    }
+    return this.startExp + traveled;
+  }
+
   update(deltaMs: number): void {
     if (this.isComplete()) {
       return;
     }
     this.elapsed += deltaMs;
     this.progress = Math.min(1, this.elapsed / this.duration);
-    this.currentExp = Math.round(this.startExp + this.progress * (this.targetExp - this.startExp));
+    this.currentExp = Math.round(this.visualExp);
   }
 
   isComplete(): boolean {
@@ -37,6 +63,6 @@ export class ExpPopup {
     if (this.startExp === this.targetExp) {
       return 0;
     }
-    return this.progress;
+    return this.visualExp / 100;
   }
 }

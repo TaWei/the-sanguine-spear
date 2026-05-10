@@ -4,6 +4,26 @@ import { GrowthRates, createGrowthRates } from '../progression/GrowthRates';
 import { Inventory } from '../items/Inventory';
 import type { AiBehavior } from '../ai/Behavior';
 import type { AiPersonality } from '../ai/Personality';
+import { createWeaponRank, wexpToRank } from '../combat/WeaponRank';
+import type { WeaponRankData } from '../combat/WeaponRank';
+import type { WeaponType } from '../combat/Weapons';
+
+// Re-export from UnitClass module
+export { UnitClass } from './UnitClass';
+export type { UnitClass as UnitClassType, UnitTier } from './UnitClass';
+
+// Auto-derive con from class if not explicitly set
+const CLASS_CON: Record<string, number> = {
+  lord: 7, mercenary: 9, mage: 6, archer: 7,
+  cavalry: 9, pegasus_knight: 5, soldier: 10, brigand: 12,
+  swordmaster: 9, berserker: 13, paladin: 11, sage: 7,
+  sniper: 8, falcon_knight: 6, general: 15, thief: 6,
+  assassin: 7, wraith_knight: 12,
+};
+
+function getBaseCon(unitClass: string): number {
+  return CLASS_CON[unitClass] ?? 0;
+}
 
 export const Faction = {
   PLAYER: 'player',
@@ -11,28 +31,9 @@ export const Faction = {
   ALLY: 'ally',
 } as const;
 
-export const UnitClass = {
-  LORD: 'lord',
-  MERCENARY: 'mercenary',
-  MAGE: 'mage',
-  ARCHER: 'archer',
-  CAVALRY: 'cavalry',
-  PEGASUS_KNIGHT: 'pegasus_knight',
-  SOLDIER: 'soldier',
-  BRIGAND: 'brigand',
-  SWORDMASTER: 'swordmaster',
-  BERSERKER: 'berserker',
-  PALADIN: 'paladin',
-  SAGE: 'sage',
-  SNIPER: 'sniper',
-  FALCON_KNIGHT: 'falcon_knight',
-  GENERAL: 'general',
-} as const;
-
-export type UnitTier = 'base' | 'promoted';
-
 export type Faction = (typeof Faction)[keyof typeof Faction];
-export type UnitClass = (typeof UnitClass)[keyof typeof UnitClass];
+
+import type { UnitClass, UnitTier } from './UnitClass';
 
 export interface UnitOptions {
   level?: number;
@@ -59,6 +60,22 @@ export class Unit {
   aiBehavior?: AiBehavior;
   aiPersonality?: AiPersonality;
 
+  // Equipped weapon index (for prep screen)
+  equippedWeaponIndex: number | null = null;
+
+  // Rescue state
+  private _rescuedUnit: Unit | null = null;
+  private _rescuedBy: Unit | null = null;
+
+  // Weapon rank tracking
+  private _weaponRanks: Record<WeaponType, WeaponRankData> = {
+    sword: createWeaponRank(),
+    axe: createWeaponRank(),
+    lance: createWeaponRank(),
+    bow: createWeaponRank(),
+    magic: createWeaponRank(),
+  };
+
   constructor(
     id: string,
     name: string,
@@ -82,6 +99,11 @@ export class Unit {
     this._growthRates = options.growthRates ?? createGrowthRates();
     this.aiBehavior = options.aiBehavior;
     this.aiPersonality = options.aiPersonality;
+
+    // Auto-derive con from class if not explicitly set
+    if (this._stats.con === 0) {
+      this._stats = { ...this._stats, con: getBaseCon(unitClass) };
+    }
   }
 
   get unitClass(): UnitClass {
@@ -89,6 +111,14 @@ export class Unit {
   }
 
   get stats(): Readonly<UnitStats> {
+    if (this._rescuedUnit) {
+      // Carrying halves Skl and Spd (floor)
+      return {
+        ...this._stats,
+        skl: Math.floor(this._stats.skl / 2),
+        spd: Math.floor(this._stats.spd / 2),
+      };
+    }
     return this._stats;
   }
   get hasActed(): boolean {
@@ -126,8 +156,13 @@ export class Unit {
     return this.faction === Faction.ENEMY;
   }
 
+  /** Change faction (used for recruitment) */
+  setFaction(faction: Faction): void {
+    (this as { faction: Faction }).faction = faction;
+  }
+
   get isFlying(): boolean {
-    return this.unitClass === UnitClass.PEGASUS_KNIGHT || this.unitClass === UnitClass.FALCON_KNIGHT;
+    return this.unitClass === 'pegasus_knight' || this.unitClass === 'falcon_knight';
   }
 
   get level(): number {
@@ -149,6 +184,36 @@ export class Unit {
   get tier(): UnitTier {
     return this._tier;
   }
+
+  // ---- Rescue state ----
+
+  get rescuedUnit(): Unit | null { return this._rescuedUnit; }
+  get rescuedBy(): Unit | null { return this._rescuedBy; }
+  get isCarrying(): boolean { return this._rescuedUnit !== null; }
+  get isRescued(): boolean { return this._rescuedBy !== null; }
+
+  setRescuedUnit(unit: Unit): void {
+    if (unit.isCarrying) {
+      throw new Error(`${unit.name} is already carrying someone`);
+    }
+    if (unit.isRescued) {
+      throw new Error(`${unit.name} is already being rescued`);
+    }
+    if (this._rescuedUnit) {
+      throw new Error(`${this.name} is already carrying ${this._rescuedUnit.name}`);
+    }
+    this._rescuedUnit = unit;
+    unit._rescuedBy = this;
+  }
+
+  clearRescuedUnit(): void {
+    if (this._rescuedUnit) {
+      this._rescuedUnit._rescuedBy = null;
+      this._rescuedUnit = null;
+    }
+  }
+
+  // ---- Movement / damage ----
 
   moveTo(x: number, y: number): void {
     this._gridX = x;
@@ -192,5 +257,20 @@ export class Unit {
     this._level = 1;
     this._exp = 0;
     this._tier = 'promoted';
+  }
+
+  getWeaponRank(type: WeaponType): WeaponRankData {
+    return this._weaponRanks[type] ?? createWeaponRank();
+  }
+
+  awardWeaponExp(type: WeaponType, amount: number): void {
+    const current = this.getWeaponRank(type);
+    const newWexp = current.wexp + amount;
+    const newRank = wexpToRank(newWexp);
+    this._weaponRanks[type] = { rank: newRank, wexp: newWexp };
+  }
+
+  setWeaponRank(type: WeaponType, rank: WeaponRankData): void {
+    this._weaponRanks[type] = { ...rank };
   }
 }

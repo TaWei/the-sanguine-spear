@@ -13,6 +13,10 @@ import { STAFF_DB } from '../staves/Staves';
 export function createItemByName(name: string): Item | null {
   const weapon = WEAPON_DB[name];
   if (weapon) {
+    // Use-count mapping matching GBA FE
+    const shortUseWeapons = new Set(['Javelin', 'Hand Axe', 'Silver Sword', 'Silver Axe', 'Silver Lance', 'Silver Bow']);
+    const uses = shortUseWeapons.has(name) ? 20 :
+      (name.startsWith('Steel') || name.startsWith('Brave')) ? 30 : 40;
     return createWeaponItem(
       weapon.name,
       weapon.type,
@@ -22,6 +26,10 @@ export function createItemByName(name: string): Item | null {
       weapon.minRange,
       weapon.maxRange,
       weapon.usesMagic,
+      uses,
+      weapon.consecutiveAttacks,
+      weapon.weight,
+      weapon.requiredRank,
     );
   }
 

@@ -8,20 +8,22 @@ import { BattleDisplayState, BattlePhase } from '../game/ui/BattleDisplayState';
 import { UNIT_STATE } from '../game/state/UnitState';
 import { EnemyPreview } from '../game/ui/EnemyPreview';
 import { getLevel, getNextLevelId } from '../game/levels/LevelData';
-import { DragDetector } from '../game/ui/DragDetector';
 import { ExpPopup } from '../game/ui/ExpPopup';
 import { StatusWindow } from '../game/ui/StatusWindow';
 import { ItemMenu } from '../game/ui/ItemMenu';
-import { TradeMenu, TradeMenuState } from '../game/ui/TradeMenu';
+import { TradeMenu } from '../game/ui/TradeMenu';
+import { TurnBannerTiming } from '../game/ui/TurnBannerTiming';
+import { snapGridLine } from '../game/ui/GridLineSnapper';
 import { LevelUpDisplay, LEVEL_UP_PHASE } from '../game/ui/LevelUpDisplay';
 import { PromotionDisplay, PROMOTION_PHASE } from '../game/ui/PromotionDisplay';
 import { getPromotedClass } from '../game/promotion/PromotionData';
 import type { Item, WeaponItem } from '../game/items/ItemTypes';
 import type { CombatResult } from '../game/combat/Engine';
-import { getHealTargets } from '../game/staves/getHealTargets';
-import { CutsceneQueue } from '../game/cutscene/CutsceneQueue';
+
 import { hasCutscene } from '../game/cutscene';
+import { DragDetector } from '../game/ui/DragDetector';
 import { TriggerContext } from '../game/cutscene/CutsceneTrigger';
+import { FogTileRenderer } from '../game/fog/FogTileRenderer';
 
 const TERRAIN_COLORS: Record<string, number> = {
   plains: 0x8fbc8f,
@@ -35,6 +37,13 @@ const TERRAIN_COLORS: Record<string, number> = {
   deep_water: 0x1b4f72,
   bridge: 0x8b4513,
   reef: 0x2ecc71,
+  throne: 0xf1c40f,
+  escape: 0x1abc9c,
+  fort: 0x95a5a6,
+  village: 0xe67e22,
+  gate: 0x8e44ad,
+  door: 0x8b4513,
+  chest: 0xf39c12,
 };
 
 const FACTION_COLORS: Record<string, number> = {
@@ -50,6 +59,7 @@ export class BattleScene extends Phaser.Scene {
   private readonly TILE_CULL_MARGIN = 2;
   private unitSprites = new Map<string, Phaser.GameObjects.Container>();
   private moveGraphics!: Phaser.GameObjects.Graphics;
+  private gridLinesGraphics!: Phaser.GameObjects.Graphics;
   private selectedUnit: Unit | null = null;
   private offsetX = 0;
   private offsetY = 0;
@@ -70,7 +80,6 @@ export class BattleScene extends Phaser.Scene {
   private currentLevelId = 'level-1';
   private combatResult: CombatResult | null = null;
   private expPopupContainer: Phaser.GameObjects.Container | null = null;
-  private levelUpBanner: Phaser.GameObjects.Container | null = null;
   private levelUpSequence: {
     display: LevelUpDisplay;
     container: Phaser.GameObjects.Container;
@@ -91,9 +100,9 @@ export class BattleScene extends Phaser.Scene {
   private tradeMenu: TradeMenu = new TradeMenu();
   private tradeOverlay: Phaser.GameObjects.Container | null = null;
   private goldText: Phaser.GameObjects.Text | null = null;
-  private cutsceneQueue = new CutsceneQueue();
   private preCutsceneInputEnabled = true;
   private dragDetector = new DragDetector(5);
+  private fogRenderer: FogTileRenderer | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -117,10 +126,12 @@ export class BattleScene extends Phaser.Scene {
       if (!saveData) {
         throw new Error(`Save slot not found: ${data.saveSlot}`);
       }
-      this.engine.restore(saveData);
+      this.engine.restore(saveData, level);
     } else {
       this.engine.loadLevel(level);
     }
+
+    this.fogRenderer = new FogTileRenderer(this.engine.fog);
 
     const gridPixelW = level.cols * TILE_SIZE;
     const gridPixelH = level.rows * TILE_SIZE;
@@ -142,6 +153,8 @@ export class BattleScene extends Phaser.Scene {
     this.moveGraphics.setDepth(1);
     this.pathGraphics = this.add.graphics();
     this.pathGraphics.setDepth(2);
+    this.gridLinesGraphics = this.add.graphics();
+    this.gridLinesGraphics.setDepth(5);
 
     this.createGridVisuals();
     this.syncTileColors();
@@ -155,7 +168,42 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private drawGridLines(): void {
+    const g = this.gridLinesGraphics;
+    g.clear();
+    const cols = this.engine.grid.cols;
+    const rows = this.engine.grid.rows;
+    const pixelW = cols * TILE_SIZE;
+    const pixelH = rows * TILE_SIZE;
+    const lineColor = 0x1a1a2e;
+    const scrollX = this.cameras.main.scrollX;
+    const scrollY = this.cameras.main.scrollY;
+
+    g.lineStyle(1, lineColor, 1);
+
+    // Vertical lines — snap to pixel grid for uniform thickness
+    for (let x = 0; x <= cols; x++) {
+      const worldX = this.offsetX + x * TILE_SIZE;
+      const px = snapGridLine(worldX, scrollX);
+      const startY = snapGridLine(this.offsetY, scrollY);
+      const endY = snapGridLine(this.offsetY + pixelH, scrollY);
+      g.lineBetween(px, startY, px, endY);
+    }
+
+    // Horizontal lines — snap to pixel grid for uniform thickness
+    for (let y = 0; y <= rows; y++) {
+      const worldY = this.offsetY + y * TILE_SIZE;
+      const py = snapGridLine(worldY, scrollY);
+      const startX = snapGridLine(this.offsetX, scrollX);
+      const endX = snapGridLine(this.offsetX + pixelW, scrollX);
+      g.lineBetween(startX, py, endX, py);
+    }
+  }
+
   private createGridVisuals(): void {
+    // Draw uniform grid lines first (so they're behind everything)
+    this.drawGridLines();
+
     // Large map: use viewport-culled tile rendering
     if (this.offsetX === 0 && this.offsetY === 0) {
       this.updateVisibleTiles();
@@ -171,11 +219,10 @@ export class BattleScene extends Phaser.Scene {
         const rect = this.add.rectangle(
           px + TILE_SIZE / 2,
           py + TILE_SIZE / 2,
-          TILE_SIZE - 2,
-          TILE_SIZE - 2,
+          TILE_SIZE,
+          TILE_SIZE,
           TERRAIN_COLORS.plains,
         );
-        rect.setStrokeStyle(1, 0x1a1a2e);
         rect.setInteractive({ useHandCursor: true });
         this.tileRects[y][x] = rect;
       }
@@ -190,6 +237,9 @@ export class BattleScene extends Phaser.Scene {
         const terrain = this.engine.grid.getTerrain(x, y);
         const color = TERRAIN_COLORS[terrain] ?? TERRAIN_COLORS.plains;
         rect.setFillStyle(color);
+        if (this.fogRenderer) {
+          rect.setAlpha(this.fogRenderer.getTileAlpha(x, y));
+        }
       }
       return;
     }
@@ -201,6 +251,9 @@ export class BattleScene extends Phaser.Scene {
         const color = TERRAIN_COLORS[terrain] ?? TERRAIN_COLORS.plains;
         const rect = this.tileRects[y][x];
         rect.setFillStyle(color);
+        if (this.fogRenderer) {
+          rect.setAlpha(this.fogRenderer.getTileAlpha(x, y));
+        }
       }
     }
   }
@@ -235,16 +288,21 @@ export class BattleScene extends Phaser.Scene {
           const rect = this.add.rectangle(
             px + tilePx / 2,
             py + tilePx / 2,
-            tilePx - 2,
-            tilePx - 2,
+            tilePx,
+            tilePx,
             TERRAIN_COLORS.plains,
           );
-          rect.setStrokeStyle(1, 0x1a1a2e);
           rect.setInteractive({ useHandCursor: true });
           rect.setDepth(0);
           const terrain = this.engine.grid.getTerrain(x, y);
           rect.setFillStyle(TERRAIN_COLORS[terrain] ?? TERRAIN_COLORS.plains);
+          if (this.fogRenderer) {
+            rect.setAlpha(this.fogRenderer.getTileAlpha(x, y));
+          }
           this.tileSpriteMap.set(key, rect);
+        } else if (this.fogRenderer) {
+          const rect = this.tileSpriteMap.get(key)!;
+          rect.setAlpha(this.fogRenderer.getTileAlpha(x, y));
         }
       }
     }
@@ -258,13 +316,42 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  /** Pan camera to center on the given grid neighbor (for large maps). */
-  private panCameraToUnit(dest: { x: number; y: number }): void {
+  /** Pan camera to the destination tile. When force=true, always center immediately (enemy turns). */
+  private panCameraToUnit(dest: { x: number; y: number }, force = false): void {
     if (this.offsetX !== 0 || this.offsetY !== 0) return; // small map, no scrolling
     const cam = this.cameras.main;
-    const targetWorldX = dest.x * TILE_SIZE + TILE_SIZE / 2 - cam.width / 2;
-    const targetWorldY = dest.y * TILE_SIZE + TILE_SIZE / 2 - cam.height / 2;
-    cam.pan(targetWorldX, targetWorldY, 300, 'Power2');
+    const tileCenterX = dest.x * TILE_SIZE + TILE_SIZE / 2;
+    const tileCenterY = dest.y * TILE_SIZE + TILE_SIZE / 2;
+
+    if (!force) {
+      // Check if the tile center is already within the visible viewport
+      const margin = TILE_SIZE * 2; // 2-tile margin before we bother panning
+      const visibleLeft = cam.scrollX - margin;
+      const visibleRight = cam.scrollX + cam.width + margin;
+      const visibleTop = cam.scrollY - margin;
+      const visibleBottom = cam.scrollY + cam.height + margin;
+
+      if (
+        tileCenterX >= visibleLeft &&
+        tileCenterX <= visibleRight &&
+        tileCenterY >= visibleTop &&
+        tileCenterY <= visibleBottom
+      ) {
+        return; // already visible — don't move the camera
+      }
+    }
+
+    const targetWorldX = tileCenterX - cam.width / 2;
+    const targetWorldY = tileCenterY - cam.height / 2;
+
+    if (force) {
+      // Instant scroll + immediate tile update (enemy turns)
+      cam.setScroll(targetWorldX, targetWorldY);
+      this.updateVisibleTiles();
+    } else {
+      cam.pan(targetWorldX, targetWorldY, 300, 'Power2');
+      this.time.delayedCall(350, () => this.updateVisibleTiles());
+    }
   }
 
   private syncUnitSprites(): void {
@@ -275,6 +362,10 @@ export class BattleScene extends Phaser.Scene {
 
     for (const unit of this.engine.getAllUnits()) {
       if (!unit.isAlive) {
+        continue;
+      }
+      // Skip enemies on unseen tiles
+      if (unit.faction === 'enemy' && !this.engine.isUnitVisibleToPlayer(unit)) {
         continue;
       }
       const color = FACTION_COLORS[unit.faction] ?? 0xffffff;
@@ -330,10 +421,13 @@ export class BattleScene extends Phaser.Scene {
       this.dragDetector.pointerMove(pointer.x, pointer.y);
 
       if (this.dragDetector.isDragging) {
+        // Don't scroll camera during battle mode or enemy phase
+        if (this.inBattleMode || !this.inputEnabled) return;
         const delta = this.dragDetector.computeScrollDelta(pointer.x, pointer.y);
         this.cameras.main.scrollX += delta.dx;
         this.cameras.main.scrollY += delta.dy;
         this.updateVisibleTiles();
+        this.drawGridLines();
         return;
       }
 
@@ -370,16 +464,12 @@ export class BattleScene extends Phaser.Scene {
 
   /** Convert screen x to grid column, accounting for camera scroll+offset. */
   private screenToGridX(screenX: number): number {
-    return Math.floor(
-      (screenX + this.cameras.main.scrollX - this.offsetX) / TILE_SIZE,
-    );
+    return Math.floor((screenX + this.cameras.main.scrollX - this.offsetX) / TILE_SIZE);
   }
 
   /** Convert screen y to grid row, accounting for camera scroll+offset. */
   private screenToGridY(screenY: number): number {
-    return Math.floor(
-      (screenY + this.cameras.main.scrollY - this.offsetY) / TILE_SIZE,
-    );
+    return Math.floor((screenY + this.cameras.main.scrollY - this.offsetY) / TILE_SIZE);
   }
 
   private handleTileClick(gx: number, gy: number, pointerX: number, pointerY: number): void {
@@ -396,7 +486,10 @@ export class BattleScene extends Phaser.Scene {
 
     // If menu is open, handle menu/target selection or outside clicks
     if (this.battleMenu.isVisible) {
-      if (this.battleMenu.state === MenuState.CHOOSE_TARGET || this.battleMenu.state === MenuState.CHOOSE_HEAL_TARGET) {
+      if (
+        this.battleMenu.state === MenuState.CHOOSE_TARGET ||
+        this.battleMenu.state === MenuState.CHOOSE_HEAL_TARGET
+      ) {
         this.handleMenuInput(gx, gy, clickedUnit);
       } else if (this.battleMenu.state === MenuState.CHOOSE_ACTION) {
         if (!this.isPointerOverMenuText(pointerX, pointerY)) {
@@ -420,7 +513,20 @@ export class BattleScene extends Phaser.Scene {
         this.pathGraphics.clear();
         this.animatePathMovement(unitToMove, path, () => {
           this.engine.moveUnit(unitToMove, gx, gy);
+          this.engine.updateFogOfWar();
+          this.syncTileColors();
+          this.syncUnitSprites();
           unitToMove.state.transition(UNIT_STATE.MOVING);
+          // Check move-based objectives (seize/escape)
+          const moveObj = this.engine.checkMoveObjective(unitToMove);
+          if (moveObj.victory) {
+            this.showVictoryScreen();
+            return;
+          }
+          if (moveObj.defeat) {
+            this.showDefeatScreen();
+            return;
+          }
           unitToMove.state.transition(UNIT_STATE.MENU);
           this.showPostMoveMenu(unitToMove);
         });
@@ -580,6 +686,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showEnemyPreview(unit: Unit): void {
+    if (!this.engine.isUnitVisibleToPlayer(unit)) {
+      return;
+    }
+
     this.moveGraphics.clear();
     this.clearEnemyPreviewTexts();
     this.selectedUnit = null;
@@ -692,12 +802,13 @@ export class BattleScene extends Phaser.Scene {
       this.triggerEndTurn();
     });
 
-    this.saveBtn = this.add.text(this.cameras.main.width - 20, 20, '[ Save ]', {
-      fontSize: '18px',
-      color: '#ecf0f1',
-      backgroundColor: '#2c3e50',
-      padding: { x: 12, y: 6 },
-    })
+    this.saveBtn = this.add
+      .text(this.cameras.main.width - 20, 20, '[ Save ]', {
+        fontSize: '18px',
+        color: '#ecf0f1',
+        backgroundColor: '#2c3e50',
+        padding: { x: 12, y: 6 },
+      })
       .setOrigin(1, 0)
       .setInteractive({ useHandCursor: true })
       .setScrollFactor(0)
@@ -705,10 +816,13 @@ export class BattleScene extends Phaser.Scene {
 
     this.saveBtn.on('pointerover', () => this.saveBtn!.setStyle({ color: '#f1c40f' }));
     this.saveBtn.on('pointerout', () => this.saveBtn!.setStyle({ color: '#ecf0f1' }));
-    this.saveBtn.on('pointerdown', (_p, _lx, _ly, event: Phaser.Types.Input.EventData) => {
-      event.stopPropagation();
-      this.openSaveMenu();
-    });
+    this.saveBtn.on(
+      'pointerdown',
+      (_p: Phaser.Input.Pointer, _lx: number, _ly: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
+        this.openSaveMenu();
+      },
+    );
 
     this.goldText = this.add
       .text(this.cameras.main.width - 16, 56, `G: ${this.engine.gold.amount}`, {
@@ -785,14 +899,27 @@ export class BattleScene extends Phaser.Scene {
           this.showHazardDamage(report1);
           this.engine.removeDeadUnits();
           this.syncUnitSprites();
+          this.updatePhaseText();
           this.playCutsceneIfTriggered({ eventType: 'on_turn_end', faction: 'enemy' }, () => {
-            const report2 = this.engine.endTurn(); // Ally → Player
-            this.showHazardDamage(report2);
-            this.engine.removeDeadUnits();
-            this.syncUnitSprites();
-            this.updatePhaseText();
-            this.playCutsceneIfTriggered({ eventType: 'on_turn_end', faction: 'ally' }, () => {
-              this.beginPlayerPhase();
+            // Execute ally actions
+            this.executeAllyActions(() => {
+              const objectives2 = this.engine.checkObjectives();
+              if (objectives2.victory) {
+                this.showVictoryScreen();
+                return;
+              }
+              if (objectives2.defeat) {
+                this.showDefeatScreen();
+                return;
+              }
+              const report2 = this.engine.endTurn(); // Ally → Player
+              this.showHazardDamage(report2);
+              this.engine.removeDeadUnits();
+              this.syncUnitSprites();
+              this.updatePhaseText();
+              this.playCutsceneIfTriggered({ eventType: 'on_turn_end', faction: 'ally' }, () => {
+                this.beginPlayerPhase();
+              });
             });
           });
         });
@@ -851,81 +978,183 @@ export class BattleScene extends Phaser.Scene {
       }
 
       const processNext = (index: number) => {
-      if (index >= actions.length) {
-        onComplete();
-        return;
-      }
+        if (index >= actions.length) {
+          onComplete();
+          return;
+        }
 
-      const action = actions[index];
-      if (action.type === 'move' && action.x !== undefined && action.y !== undefined) {
-        const sprite = this.unitSprites.get(action.actor.id);
-        const moveX = action.x;
-        const moveY = action.y;
-        if (sprite) {
-          this.isAnimatingMovement = true;
-          const onMoveComplete = () => {
-            this.isAnimatingMovement = false;
-            this.engine.moveUnit(action.actor, moveX, moveY);
-            processNext(index + 1);
-          };
-          if (action.path && action.path.length > 0) {
-            let stepIndex = 0;
-            const processStep = () => {
-              if (stepIndex >= action.path!.length) {
-                onMoveComplete();
-                return;
-              }
-              const step = action.path![stepIndex];
-              const targetX = this.offsetX + step.x * TILE_SIZE + TILE_SIZE / 2;
-              const targetY = this.offsetY + step.y * TILE_SIZE + TILE_SIZE / 2;
+        const action = actions[index];
+        if (action.type === 'move' && action.x !== undefined && action.y !== undefined) {
+          const sprite = this.unitSprites.get(action.actor.id);
+          const moveX = action.x;
+          const moveY = action.y;
+          if (sprite) {
+            this.isAnimatingMovement = true;
+            // Pan camera to follow enemy movement
+            this.panCameraToUnit({ x: moveX, y: moveY }, true);
+            const onMoveComplete = () => {
+              this.isAnimatingMovement = false;
+              this.engine.moveUnit(action.actor, moveX, moveY);
+              this.engine.updateFogOfWar();
+              this.syncTileColors();
+              this.syncUnitSprites();
+              processNext(index + 1);
+            };
+            if (action.path && action.path.length > 0) {
+              let stepIndex = 0;
+              const processStep = () => {
+                if (stepIndex >= action.path!.length) {
+                  onMoveComplete();
+                  return;
+                }
+                const step = action.path![stepIndex];
+                const targetX = this.offsetX + step.x * TILE_SIZE + TILE_SIZE / 2;
+                const targetY = this.offsetY + step.y * TILE_SIZE + TILE_SIZE / 2;
+                this.tweens.add({
+                  targets: sprite,
+                  x: targetX,
+                  y: targetY,
+                  duration: 150,
+                  ease: 'Linear',
+                  onComplete: () => {
+                    stepIndex++;
+                    processStep();
+                  },
+                });
+              };
+              processStep();
+            } else {
+              const targetX = this.offsetX + moveX * TILE_SIZE + TILE_SIZE / 2;
+              const targetY = this.offsetY + moveY * TILE_SIZE + TILE_SIZE / 2;
               this.tweens.add({
                 targets: sprite,
                 x: targetX,
                 y: targetY,
-                duration: 150,
-                ease: 'Linear',
-                onComplete: () => {
-                  stepIndex++;
-                  processStep();
-                },
+                duration: 300,
+                onComplete: onMoveComplete,
               });
-            };
-            processStep();
+            }
           } else {
-            const targetX = this.offsetX + moveX * TILE_SIZE + TILE_SIZE / 2;
-            const targetY = this.offsetY + moveY * TILE_SIZE + TILE_SIZE / 2;
-            this.tweens.add({
-              targets: sprite,
-              x: targetX,
-              y: targetY,
-              duration: 300,
-              onComplete: onMoveComplete,
-            });
+            processNext(index + 1);
+          }
+        } else if (
+          action.type === 'attack' &&
+          action.targetX !== undefined &&
+          action.targetY !== undefined
+        ) {
+          const target = this.engine.getUnit(action.targetX, action.targetY);
+          if (target?.isAlive) {
+            this.playCutsceneIfTriggered(
+              { eventType: 'on_attack', attackerId: action.actor.id, defenderId: target.id },
+              () => {
+                this.startBattleMode(action.actor, target, () => {
+                  processNext(index + 1);
+                });
+              },
+            );
+          } else {
+            processNext(index + 1);
           }
         } else {
           processNext(index + 1);
         }
-      } else if (
-        action.type === 'attack' &&
-        action.targetX !== undefined &&
-        action.targetY !== undefined
-      ) {
-        const target = this.engine.getUnit(action.targetX, action.targetY);
-        if (target?.isAlive) {
-          this.playCutsceneIfTriggered({ eventType: 'on_attack', attackerId: action.actor.id, defenderId: target.id }, () => {
-            this.startBattleMode(action.actor, target, () => {
+      };
+
+      processNext(0);
+    });
+  }
+
+  private executeAllyActions(onComplete: () => void): void {
+    this.playCutsceneIfTriggered({ eventType: 'on_turn_start', faction: 'ally' }, () => {
+      const actions = this.engine.getPendingActions();
+      if (actions.length === 0) {
+        onComplete();
+        return;
+      }
+
+      const processNext = (index: number) => {
+        if (index >= actions.length) {
+          onComplete();
+          return;
+        }
+
+        const action = actions[index];
+        if (action.type === 'move' && action.x !== undefined && action.y !== undefined) {
+          const sprite = this.unitSprites.get(action.actor.id);
+          const moveX = action.x;
+          const moveY = action.y;
+          if (sprite) {
+            this.isAnimatingMovement = true;
+            this.panCameraToUnit({ x: moveX, y: moveY }, true);
+            const onMoveComplete = () => {
+              this.isAnimatingMovement = false;
+              this.engine.moveUnit(action.actor, moveX, moveY);
+              this.engine.updateFogOfWar();
+              this.syncTileColors();
+              this.syncUnitSprites();
               processNext(index + 1);
-            });
-          });
+            };
+            if (action.path && action.path.length > 0) {
+              let stepIndex = 0;
+              const processStep = () => {
+                if (stepIndex >= action.path!.length) {
+                  onMoveComplete();
+                  return;
+                }
+                const step = action.path![stepIndex];
+                const targetX = this.offsetX + step.x * TILE_SIZE + TILE_SIZE / 2;
+                const targetY = this.offsetY + step.y * TILE_SIZE + TILE_SIZE / 2;
+                this.tweens.add({
+                  targets: sprite,
+                  x: targetX,
+                  y: targetY,
+                  duration: 150,
+                  ease: 'Linear',
+                  onComplete: () => {
+                    stepIndex++;
+                    processStep();
+                  },
+                });
+              };
+              processStep();
+            } else {
+              const targetX = this.offsetX + moveX * TILE_SIZE + TILE_SIZE / 2;
+              const targetY = this.offsetY + moveY * TILE_SIZE + TILE_SIZE / 2;
+              this.tweens.add({
+                targets: sprite,
+                x: targetX,
+                y: targetY,
+                duration: 300,
+                onComplete: onMoveComplete,
+              });
+            }
+          } else {
+            processNext(index + 1);
+          }
+        } else if (
+          action.type === 'attack' &&
+          action.targetX !== undefined &&
+          action.targetY !== undefined
+        ) {
+          const target = this.engine.getUnit(action.targetX, action.targetY);
+          if (target?.isAlive) {
+            this.playCutsceneIfTriggered(
+              { eventType: 'on_attack', attackerId: action.actor.id, defenderId: target.id },
+              () => {
+                this.startBattleMode(action.actor, target, () => {
+                  processNext(index + 1);
+                });
+              },
+            );
+          } else {
+            processNext(index + 1);
+          }
         } else {
           processNext(index + 1);
         }
-      } else {
-        processNext(index + 1);
-      }
-    };
+      };
 
-    processNext(0);
+      processNext(0);
     });
   }
 
@@ -941,19 +1170,20 @@ export class BattleScene extends Phaser.Scene {
     const py = this.offsetY + unit.gridY * TILE_SIZE - TILE_SIZE;
 
     const staff = this.engine.getStaffForUnit(unit);
-    const healTargets = staff ? this.engine.getHealTargets(unit, staff) : [];
+    const healTargets = staff ? this.engine.getHealTargets(unit) : [];
     const hasStaff = staff !== null && healTargets.length > 0;
 
     this.battleMenu.show(unit, enemies, healTargets, allies);
 
     const fightText = this.add
       .text(px, py, '[ Fight ]', {
-        fontSize: '14px',
+        fontSize: '21px',
         color: '#ffffff',
         backgroundColor: enemies.length > 0 ? '#c0392b' : '#7f8c8d',
-        padding: { x: 8, y: 4 },
+        padding: { x: 12, y: 6 },
       })
       .setOrigin(0.5)
+      .setDepth(100)
       .setInteractive({ useHandCursor: enemies.length > 0 });
 
     if (enemies.length > 0) {
@@ -978,18 +1208,19 @@ export class BattleScene extends Phaser.Scene {
       );
     }
 
-    const baseY = hasStaff ? 24 : 0;
+    const baseY = hasStaff ? 36 : 0;
 
     let staffText: Phaser.GameObjects.Text | null = null;
     if (hasStaff) {
       staffText = this.add
-        .text(px, py + 24, '[ Staff ]', {
-          fontSize: '14px',
+        .text(px, py + 36, '[ Staff ]', {
+          fontSize: '21px',
           color: '#ffffff',
           backgroundColor: '#27ae60',
-          padding: { x: 8, y: 4 },
+          padding: { x: 12, y: 6 },
         })
         .setOrigin(0.5)
+        .setDepth(100)
         .setInteractive({ useHandCursor: true });
       staffText.on(
         'pointerdown',
@@ -1009,13 +1240,14 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const statusText = this.add
-      .text(px, py + 24 + baseY, '[ Status ]', {
-        fontSize: '14px',
+      .text(px, py + 36 + baseY, '[ Status ]', {
+        fontSize: '21px',
         color: '#ffffff',
         backgroundColor: '#27ae60',
-        padding: { x: 8, y: 4 },
+        padding: { x: 12, y: 6 },
       })
       .setOrigin(0.5)
+      .setDepth(100)
       .setInteractive({ useHandCursor: true });
 
     statusText.on(
@@ -1035,13 +1267,14 @@ export class BattleScene extends Phaser.Scene {
     );
 
     const itemsText = this.add
-      .text(px, py + 48 + baseY, '[ Items ]', {
-        fontSize: '14px',
+      .text(px, py + 72 + baseY, '[ Items ]', {
+        fontSize: '21px',
         color: '#ffffff',
         backgroundColor: '#8e44ad',
-        padding: { x: 8, y: 4 },
+        padding: { x: 12, y: 6 },
       })
       .setOrigin(0.5)
+      .setDepth(100)
       .setInteractive({ useHandCursor: true });
 
     itemsText.on(
@@ -1061,13 +1294,14 @@ export class BattleScene extends Phaser.Scene {
     );
 
     const tradeText = this.add
-      .text(px, py + 72 + baseY, '[ Trade ]', {
-        fontSize: '14px',
+      .text(px, py + 108 + baseY, '[ Trade ]', {
+        fontSize: '21px',
         color: '#ffffff',
         backgroundColor: allies.length > 0 ? '#f39c12' : '#7f8c8d',
-        padding: { x: 8, y: 4 },
+        padding: { x: 12, y: 6 },
       })
       .setOrigin(0.5)
+      .setDepth(100)
       .setInteractive({ useHandCursor: allies.length > 0 });
 
     if (allies.length > 0) {
@@ -1089,13 +1323,14 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const endText = this.add
-      .text(px, py + 72 + baseY + (allies.length > 0 ? 24 : 0), '[ End Turn ]', {
-        fontSize: '14px',
+      .text(px, py + 108 + baseY + (allies.length > 0 ? 36 : 0), '[ End Turn ]', {
+        fontSize: '21px',
         color: '#ffffff',
         backgroundColor: '#2c3e50',
-        padding: { x: 8, y: 4 },
+        padding: { x: 12, y: 6 },
       })
       .setOrigin(0.5)
+      .setDepth(100)
       .setInteractive({ useHandCursor: true });
 
     endText.on(
@@ -1229,10 +1464,7 @@ export class BattleScene extends Phaser.Scene {
       .setOrigin(0.5);
     overlay.add(rightTitle);
 
-    const executeTradeOp = (
-      leftIdx: number,
-      rightIdx: number,
-    ): boolean => {
+    const executeTradeOp = (leftIdx: number, rightIdx: number): boolean => {
       const result = this.engine.executeTrade(leftUnit, leftIdx, rightUnit, rightIdx);
       if (result.success) {
         this.tradeMenu.clearSelections();
@@ -1593,17 +1825,12 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const closeBtn = this.add
-      .text(
-        this.cameras.main.width / 2,
-        this.cameras.main.height / 2 + 140,
-        '[ Close ]',
-        {
-          fontSize: '16px',
-          color: '#ffffff',
-          backgroundColor: '#c0392b',
-          padding: { x: 12, y: 6 },
-        },
-      )
+      .text(this.cameras.main.width / 2, this.cameras.main.height / 2 + 140, '[ Close ]', {
+        fontSize: '16px',
+        color: '#ffffff',
+        backgroundColor: '#c0392b',
+        padding: { x: 12, y: 6 },
+      })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
@@ -1676,6 +1903,9 @@ export class BattleScene extends Phaser.Scene {
     if (this.preMovePosition) {
       const { x, y } = this.preMovePosition;
       this.engine.moveUnit(unit, x, y);
+      this.engine.updateFogOfWar();
+      this.syncTileColors();
+      this.syncUnitSprites();
       const sprite = this.unitSprites.get(unit.id);
       if (sprite) {
         sprite.setPosition(
@@ -1785,23 +2015,22 @@ export class BattleScene extends Phaser.Scene {
         this.moveGraphics.clear();
         this.pathGraphics.clear();
         const isFirstCombat = !this.engine.getFirstCombatOccurred();
-        this.playCutsceneIfTriggered({ eventType: 'on_attack', attackerId: unit.id, defenderId: validTarget.id }, () => {
-          if (isFirstCombat) {
-            this.playCutsceneIfTriggered({ eventType: 'on_first_combat' }, () => {
-              this.engine.markFirstCombat();
+        this.playCutsceneIfTriggered(
+          { eventType: 'on_attack', attackerId: unit.id, defenderId: validTarget.id },
+          () => {
+            if (isFirstCombat) {
+              this.playCutsceneIfTriggered({ eventType: 'on_first_combat' }, () => {
+                this.engine.markFirstCombat();
+                this.startBattleMode(unit, validTarget);
+              });
+            } else {
               this.startBattleMode(unit, validTarget);
-            });
-          } else {
-            this.startBattleMode(unit, validTarget);
-          }
-        });
+            }
+          },
+        );
       } else {
-        // Cancel target selection, return to action menu
-        this.moveGraphics.clear();
-        this.pathGraphics.clear();
-        const enemies = this.engine.getAdjacentEnemies(unit);
-        this.battleMenu.show(unit, enemies);
-        this.showPostMoveMenu(unit);
+        // Clicked a non-target tile — don't cancel; wait for actual enemy click
+        return;
       }
     } else if (this.battleMenu.state === MenuState.CHOOSE_HEAL_TARGET) {
       const unit = this.battleMenu.unit;
@@ -1809,16 +2038,13 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
       const staff = this.engine.getStaffForUnit(unit);
-      const healTargets = staff ? this.engine.getHealTargets(unit, staff) : [];
+      const healTargets = staff ? this.engine.getHealTargets(unit) : [];
       const validTarget = healTargets.find((e) => e.id === clickedUnit?.id);
       if (validTarget) {
         this.resolveStaffHeal(unit, validTarget);
       } else {
-        this.moveGraphics.clear();
-        this.pathGraphics.clear();
-        const enemies = this.engine.getAdjacentEnemies(unit);
-        this.battleMenu.show(unit, enemies);
-        this.showPostMoveMenu(unit);
+        // Clicked a non-target tile — don't cancel; wait for actual ally click
+        return;
       }
     }
   }
@@ -1826,15 +2052,22 @@ export class BattleScene extends Phaser.Scene {
   private startBattleMode(attacker: Unit, defender: Unit, onComplete?: () => void): void {
     this.inBattleMode = true;
     this.pendingBattleCallback = onComplete ?? null;
-    const result = this.engine.resolvePlayerCombat(attacker, defender, undefined, this.battleMenu.selectedWeaponIndex ?? undefined);
+    const result = this.engine.resolvePlayerCombat(
+      attacker,
+      defender,
+      undefined,
+      this.battleMenu.selectedWeaponIndex ?? undefined,
+    );
     this.combatResult = result;
     this.battleDisplayState = new BattleDisplayState(attacker, defender, result.log);
 
     // Get combat preview for display stats
     const preview = this.engine.getCombatPreview(attacker, defender);
 
-    // Create overlay container
+    // Create overlay container — pinned to screen, on top of everything
     const overlay = this.add.container(0, 0);
+    overlay.setScrollFactor(0);
+    overlay.setDepth(200);
     const bg = this.add.rectangle(
       this.cameras.main.width / 2,
       this.cameras.main.height / 2,
@@ -2137,8 +2370,9 @@ export class BattleScene extends Phaser.Scene {
     this.syncUnitSprites();
 
     this.time.delayedCall(600, () => {
-      if (result.progression && result.progression.expGained > 0) {
-        this.showExpPopup(healer, result.progression, () => {
+      const progression = this.engine.applyStaffExp(healer, result);
+      if (progression) {
+        this.showExpPopup(healer, progression, () => {
           this.finishStaffUse(healer);
         });
       } else {
@@ -2181,7 +2415,7 @@ export class BattleScene extends Phaser.Scene {
     this.inBattleMode = false;
 
     // Capture dead units before removal so we can evaluate kill/death triggers
-    const deadBeforeRemoval = this.engine.units.filter((u) => u.stats.hp <= 0);
+    const deadBeforeRemoval = this.engine.getAllUnits().filter((u) => u.stats.hp <= 0);
 
     // Clean up dead units from the grid and sync sprites immediately,
     // before the overlay fade / exp popup, so 0-HP enemies don't linger.
@@ -2350,6 +2584,8 @@ export class BattleScene extends Phaser.Scene {
   private showTurnBanner(turnNumber: number, onComplete: () => void): void {
     this.inputEnabled = false;
     const overlay = this.add.container(0, 0);
+    overlay.setScrollFactor(0);
+    overlay.setDepth(100);
     const bg = this.add.rectangle(
       this.cameras.main.width / 2,
       this.cameras.main.height * 0.4,
@@ -2375,28 +2611,34 @@ export class BattleScene extends Phaser.Scene {
       .setAlpha(0);
     overlay.add([bg, text]);
 
-    this.tweens.add({
-      targets: text,
-      alpha: 1,
-      duration: 300,
-      onComplete: () => {
-        this.time.delayedCall(1200, () => {
-          this.tweens.add({
-            targets: overlay,
-            alpha: 0,
-            duration: 300,
-            onComplete: () => {
-              overlay.destroy();
-              onComplete();
-            },
-          });
-        });
+    const timing = new TurnBannerTiming();
+    const timer = this.time.addEvent({
+      delay: 16,
+      callback: () => {
+        timing.update(16);
+        text.setAlpha(timing.textAlpha);
+        overlay.setAlpha(timing.overlayAlpha);
+        // Slide banner in during FADE_IN
+        const offsetY = (1 - timing.bannerProgress) * -40;
+        bg.setY(this.cameras.main.height * 0.4 + offsetY);
+        text.setY(this.cameras.main.height * 0.4 + offsetY);
+
+        if (timing.isComplete()) {
+          timer.destroy();
+          overlay.destroy();
+          onComplete();
+        }
       },
+      loop: true,
     });
   }
 
   private beginPlayerPhase(): void {
     this.playCutsceneIfTriggered({ eventType: 'on_turn_start', faction: 'player' }, () => {
+      const rowan = this.engine.getAllUnits().find((u) => u.id === 'rowan' && u.isAlive);
+      if (rowan) {
+        this.panCameraToUnit({ x: rowan.gridX, y: rowan.gridY });
+      }
       if (this.bannerShownForTurn === this.engine.turnManager.turnNumber) {
         this.inputEnabled = true;
         return;
@@ -2433,11 +2675,14 @@ export class BattleScene extends Phaser.Scene {
     }
     const dead = deadUnits[index];
     const attacker = this.battleDisplayState?.attacker;
-    this.playCutsceneIfTriggered({ eventType: 'on_kill', killerId: attacker?.id, victimId: dead.id }, () => {
-      this.playCutsceneIfTriggered({ eventType: 'on_death', unitId: dead.id }, () => {
-        this.playDeadUnitTriggers(deadUnits, index + 1, onDone);
-      });
-    });
+    this.playCutsceneIfTriggered(
+      { eventType: 'on_kill', killerId: attacker?.id, victimId: dead.id },
+      () => {
+        this.playCutsceneIfTriggered({ eventType: 'on_death', unitId: dead.id }, () => {
+          this.playDeadUnitTriggers(deadUnits, index + 1, onDone);
+        });
+      },
+    );
   }
 
   private showExpPopup(
@@ -2452,6 +2697,7 @@ export class BattleScene extends Phaser.Scene {
     const cy = this.cameras.main.height / 2;
 
     const container = this.add.container(cx, cy);
+    container.setScrollFactor(0);
     this.expPopupContainer = container;
 
     // Background panel
@@ -2556,9 +2802,8 @@ export class BattleScene extends Phaser.Scene {
     const cy = this.cameras.main.height / 2;
 
     const container = this.add.container(cx, cy);
+    container.setScrollFactor(0);
     container.setDepth(100);
-    this.levelUpBanner = container;
-
     // ---- BANNER ----
     const bannerBg = this.add.rectangle(0, -120, 320, 56, 0x27ae60, 0.95);
     bannerBg.setStrokeStyle(3, 0xf1c40f);
@@ -2590,11 +2835,26 @@ export class BattleScene extends Phaser.Scene {
     container.add(panelTitle);
 
     const statKeys: (keyof import('../game/units/Stats').UnitStats)[] = [
-      'hp', 'str', 'mag', 'skl', 'spd', 'luk', 'def', 'res', 'mov',
+      'hp',
+      'str',
+      'mag',
+      'skl',
+      'spd',
+      'luk',
+      'def',
+      'res',
+      'mov',
     ];
     const statLabels: Record<string, string> = {
-      hp: 'HP', str: 'Str', mag: 'Mag', skl: 'Skl', spd: 'Spd',
-      luk: 'Luk', def: 'Def', res: 'Res', mov: 'Mov',
+      hp: 'HP',
+      str: 'Str',
+      mag: 'Mag',
+      skl: 'Skl',
+      spd: 'Spd',
+      luk: 'Luk',
+      def: 'Def',
+      res: 'Res',
+      mov: 'Mov',
     };
 
     const statTexts: Phaser.GameObjects.Text[] = [];
@@ -2661,21 +2921,46 @@ export class BattleScene extends Phaser.Scene {
           bannerText.setPosition(0, -120);
         }
 
-        // Stats panel entrance
-        if (display.phase === LEVEL_UP_PHASE.STATS_IN || display.phase === LEVEL_UP_PHASE.STAT_REVEAL) {
+        // Stats panel entrance (also during counting)
+        if (
+          display.phase === LEVEL_UP_PHASE.STATS_IN ||
+          display.phase === LEVEL_UP_PHASE.STAT_REVEAL ||
+          display.phase === LEVEL_UP_PHASE.STAT_COUNTING
+        ) {
           const panelT = Math.min(1, (display.elapsed - 1100) / 400);
           panel.setAlpha(panelT * 0.95);
           panelTitle.setAlpha(panelT);
         }
 
-        // Per-stat reveal
-        if (display.phase === LEVEL_UP_PHASE.STAT_REVEAL || display.phase === LEVEL_UP_PHASE.WAIT_FOR_INPUT || display.phase === LEVEL_UP_PHASE.DONE) {
+        // Per-stat reveal + counting values
+        if (
+          display.phase === LEVEL_UP_PHASE.STAT_REVEAL ||
+          display.phase === LEVEL_UP_PHASE.STAT_COUNTING ||
+          display.phase === LEVEL_UP_PHASE.WAIT_FOR_INPUT ||
+          display.phase === LEVEL_UP_PHASE.DONE
+        ) {
           for (let i = 0; i < statKeys.length; i++) {
-            const progress = display.getRevealProgress(statKeys[i]);
+            const key = statKeys[i];
+            const progress = display.getRevealProgress(key);
             const nameText = statTexts[i * 2];
             const valueText = statTexts[i * 2 + 1];
             nameText.setAlpha(progress);
             valueText.setAlpha(progress);
+
+            // During counting phase, animate the number counting up
+            if (
+              display.isIncreased(key) &&
+              (display.phase === LEVEL_UP_PHASE.STAT_COUNTING ||
+                display.phase === LEVEL_UP_PHASE.WAIT_FOR_INPUT ||
+                display.phase === LEVEL_UP_PHASE.DONE)
+            ) {
+              const currentVal = display.getCurrentValue(key).toString();
+              const oldVal = (progression.oldStats![key] ?? 0).toString();
+              const increased = display.isIncreased(key);
+              const isCounting = display.isCounting(key);
+              valueText.setText(`${oldVal} \\u2192 ${currentVal}${increased ? ' \\u25b2' : ''}`);
+              valueText.setColor(isCounting ? '#27ae60' : increased ? '#f1c40f' : '#bdc3c7');
+            }
           }
         }
 
@@ -2713,7 +2998,6 @@ export class BattleScene extends Phaser.Scene {
     this.levelUpSequence?.timer.remove();
     this.levelUpSequence?.container.destroy();
     this.levelUpSequence = null;
-    this.levelUpBanner = null;
     this.updateSaveBtnVisibility();
   }
 
@@ -2742,7 +3026,14 @@ export class BattleScene extends Phaser.Scene {
     const cx = this.cameras.main.width / 2;
     const cy = this.cameras.main.height / 2;
 
-    const bg = this.add.rectangle(cx, cy, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.6);
+    const bg = this.add.rectangle(
+      cx,
+      cy,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.6,
+    );
     container.add(bg);
 
     const panel = this.add.rectangle(cx, cy, 340, 180, 0x1a1a2e, 0.95);
@@ -2800,9 +3091,17 @@ export class BattleScene extends Phaser.Scene {
   ): void {
     const cx = this.cameras.main.width / 2;
     const cy = this.cameras.main.height / 2;
-    const display = new PromotionDisplay(result);
+    const display = new PromotionDisplay(
+      result.unitName,
+      result.oldClass,
+      result.newClass!,
+      result.oldStats,
+      result.newStats,
+      result.diff,
+    );
 
     const container = this.add.container(cx, cy);
+    container.setScrollFactor(0);
     container.setDepth(100);
 
     const bannerBg = this.add.rectangle(0, -120, 320, 56, 0x8e44ad, 0.95);
@@ -2829,11 +3128,26 @@ export class BattleScene extends Phaser.Scene {
     container.add(classText);
 
     const statKeys: (keyof import('../game/units/Stats').UnitStats)[] = [
-      'hp', 'str', 'mag', 'skl', 'spd', 'luk', 'def', 'res', 'mov',
+      'hp',
+      'str',
+      'mag',
+      'skl',
+      'spd',
+      'luk',
+      'def',
+      'res',
+      'mov',
     ];
     const statLabels: Record<string, string> = {
-      hp: 'HP', str: 'Str', mag: 'Mag', skl: 'Skl', spd: 'Spd',
-      luk: 'Luk', def: 'Def', res: 'Res', mov: 'Mov',
+      hp: 'HP',
+      str: 'Str',
+      mag: 'Mag',
+      skl: 'Skl',
+      spd: 'Spd',
+      luk: 'Luk',
+      def: 'Def',
+      res: 'Res',
+      mov: 'Mov',
     };
 
     const statTexts: Phaser.GameObjects.Text[] = [];
@@ -2961,13 +3275,25 @@ export class BattleScene extends Phaser.Scene {
   private showItemMenu(unit: Unit): void {
     this.inputEnabled = false;
     const overlay = this.add.container(0, 0);
-    const bg = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x000000,
-      0.7,
+    overlay.setScrollFactor(0);
+    overlay.setDepth(99);
+    const bg = this.add
+      .rectangle(
+        this.cameras.main.width / 2,
+        this.cameras.main.height / 2,
+        this.cameras.main.width,
+        this.cameras.main.height,
+        0x000000,
+        0.7,
+      )
+      .setInteractive();
+    bg.on(
+      'pointerdown',
+      (_p: Phaser.Input.Pointer, _lx: number, _ly: number, event: Phaser.Types.Input.EventData) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        event.stopPropagation();
+        this.hideItemMenu(false);
+      },
     );
     overlay.add(bg);
 
@@ -3056,6 +3382,12 @@ export class BattleScene extends Phaser.Scene {
 
     overlay.add(closeBtn);
     this.itemOverlay = overlay;
+
+    // ESC key to dismiss
+    this.input.keyboard?.once('keydown-ESC', () => {
+      this.hideItemMenu(false);
+    });
+
     this.updateSaveBtnVisibility();
   }
 
@@ -3065,6 +3397,8 @@ export class BattleScene extends Phaser.Scene {
     this.itemOverlay = null;
 
     const overlay = this.add.container(0, 0);
+    overlay.setScrollFactor(0);
+    overlay.setDepth(99);
     const bg = this.add.rectangle(
       this.cameras.main.width / 2,
       this.cameras.main.height / 2,
@@ -3112,10 +3446,10 @@ export class BattleScene extends Phaser.Scene {
         event.stopPropagation();
         if (item.kind === 'promotion') {
           const result = this.engine.useItem(unit, index);
-          if (result.success) {
+          if (result.success && result.promotionResult) {
             this.itemMenu.confirmUse();
             this.hideItemMenu(true);
-            this.showPromotionSequence(unit);
+            this.showPromotionSequence(result.promotionResult, () => {});
           } else {
             this.itemMenu.cancel();
             this.hideItemMenu(false);
@@ -3311,5 +3645,4 @@ export class BattleScene extends Phaser.Scene {
     this.inputEnabled = true;
     this.updateSaveBtnVisibility();
   }
-
 }

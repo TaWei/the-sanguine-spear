@@ -30,7 +30,7 @@ export class MainMenuScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const startBtn = this.add
-      .text(cx, cy + 60, '[ New Campaign ]', {
+      .text(cx, cy + 40, '[ New Campaign ]', {
         fontSize: '24px',
         color: '#ecf0f1',
         backgroundColor: '#2c3e50',
@@ -59,72 +59,90 @@ export class MainMenuScene extends Phaser.Scene {
       },
     );
 
-    const level2Btn = this.add
-      .text(cx, cy + 120, '[ Level 2: The Molten Pass ]', {
-        fontSize: '24px',
-        color: '#ecf0f1',
-        backgroundColor: '#8b2500',
-        padding: { x: 20, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
+    // ── Level Select Grid (2 columns, all 13 levels) ──
+    const levelIds = [
+      'level-1',
+      'level-2',
+      'level-3',
+      'level-4',
+      'level-5',
+      'level-6',
+      'level-7',
+      'level-8',
+      'level-9',
+      'level-10',
+      'level-11',
+      'level-12',
+      'level-13',
+    ];
 
-    level2Btn.on('pointerover', () => level2Btn.setStyle({ color: '#f1c40f' }));
-    level2Btn.on('pointerout', () => level2Btn.setStyle({ color: '#ecf0f1' }));
-    level2Btn.on(
-      'pointerdown',
-      (
-        _pointer: unknown,
-        _localX: number,
-        _localY: number,
-        event: Phaser.Types.Input.EventData,
-      ) => {
-        if (this.cutsceneActive) return;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        event.stopPropagation();
-        this.cameras.main.fadeOut(500, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          this.scene.start('BattleScene', { levelId: 'level-2' });
-        });
-      },
-    );
+    const levelColors: Record<string, string> = {
+      'level-1': '#2c3e50',
+      'level-2': '#8b2500',
+      'level-3': '#1b4f72',
+      'level-4': '#1e5e33',
+      'level-5': '#2c3e50',
+      'level-6': '#8b0000',
+      'level-7': '#8b6914',
+      'level-8': '#4a4a5a',
+      'level-9': '#1b4f72',
+      'level-10': '#1e5e33',
+      'level-11': '#5d4037',
+      'level-12': '#8b6914',
+      'level-13': '#8b0000',
+    };
 
-    const level3Btn = this.add
-      .text(cx, cy + 180, '[ Level 3: The Sunken Temple ]', {
-        fontSize: '24px',
-        color: '#ecf0f1',
-        backgroundColor: '#1b4f72',
-        padding: { x: 20, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
+    const gridStartY = cy + 95;
+    const rowHeight = 42;
+    const colX = [cx - 260, cx + 260];
 
-    level3Btn.on('pointerover', () => level3Btn.setStyle({ color: '#f1c40f' }));
-    level3Btn.on('pointerout', () => level3Btn.setStyle({ color: '#ecf0f1' }));
-    level3Btn.on(
-      'pointerdown',
-      (
-        _pointer: unknown,
-        _localX: number,
-        _localY: number,
-        event: Phaser.Types.Input.EventData,
-      ) => {
-        if (this.cutsceneActive) return;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        event.stopPropagation();
-        this.cameras.main.fadeOut(500, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-          this.scene.start('BattleScene', { levelId: 'level-3' });
-        });
-      },
-    );
+    levelIds.forEach((levelId, index) => {
+      const level = getLevel(levelId);
+      const label = level ? `[ ${level.name} ]` : `[ ${levelId} ]`;
+      const col = index % 2;
+      const row = Math.floor(index / 2);
+      const bx = colX[col];
+      const by = gridStartY + row * rowHeight;
+
+      const btn = this.add
+        .text(bx, by, label, {
+          fontSize: '18px',
+          color: '#ecf0f1',
+          backgroundColor: levelColors[levelId] ?? '#2c3e50',
+          padding: { x: 12, y: 6 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+
+      btn.on('pointerover', () => btn.setStyle({ color: '#f1c40f' }));
+      btn.on('pointerout', () => btn.setStyle({ color: '#ecf0f1' }));
+      btn.on(
+        'pointerdown',
+        (
+          _pointer: unknown,
+          _localX: number,
+          _localY: number,
+          event: Phaser.Types.Input.EventData,
+        ) => {
+          if (this.cutsceneActive) return;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          event.stopPropagation();
+          this.cameras.main.fadeOut(500, 0, 0, 0);
+          this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.scene.start('BattleScene', { levelId });
+          });
+        },
+      );
+    });
+
+    const gridBottomY = gridStartY + Math.ceil(levelIds.length / 2) * rowHeight;
 
     const prologueBtn = this.add
-      .text(cx, cy + 240, '[ Watch Prologue ]', {
-        fontSize: '24px',
+      .text(cx - 120, gridBottomY + 15, '[ Watch Prologue ]', {
+        fontSize: '20px',
         color: '#bdc3c7',
         backgroundColor: '#1a1a2e',
-        padding: { x: 20, y: 10 },
+        padding: { x: 16, y: 8 },
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
@@ -154,11 +172,11 @@ export class MainMenuScene extends Phaser.Scene {
     );
 
     const loadBtn = this.add
-      .text(cx, cy + 300, '[ Load Game ]', {
-        fontSize: '24px',
+      .text(cx + 120, gridBottomY + 15, '[ Load Game ]', {
+        fontSize: '20px',
         color: '#ecf0f1',
         backgroundColor: '#2c3e50',
-        padding: { x: 20, y: 10 },
+        padding: { x: 16, y: 8 },
       })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });

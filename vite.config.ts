@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import checker from 'vite-plugin-checker';
 
 export default defineConfig({
   base: './',
@@ -10,4 +11,14 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  plugins: [
+    checker({
+      typescript: {
+        tsconfigPath: './tsconfig.json',
+      },
+      overlay: {
+        initialIsOpen: false,
+      },
+    }),
+  ],
 });

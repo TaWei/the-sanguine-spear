@@ -2,8 +2,8 @@ export function calcHitRate(weaponHit: number, skl: number, luk: number): number
   return weaponHit + skl * 2 + Math.floor(luk / 2);
 }
 
-export function calcAvoid(spd: number, luk: number, terrainAvoid = 0): number {
-  return spd * 2 + luk + terrainAvoid;
+export function calcAvoid(as: number, luk: number, terrainAvoid = 0): number {
+  return as * 2 + luk + terrainAvoid;
 }
 
 export function calcDisplayHit(hitRate: number, avoid: number): number {
@@ -19,6 +19,9 @@ export function getClassCritBonus(unitClass: string): number {
     return 15;
   }
   if (unitClass === 'berserker') {
+    return 15;
+  }
+  if (unitClass === 'assassin') {
     return 15;
   }
   return 0;
@@ -37,8 +40,11 @@ export function calcDamage(
   weaponMt: number,
   defenseStat: number,
   _isMagical: boolean,
+  isEffective = false,
+  triangleMtBonus = 0,
 ): number {
-  const rawDamage = attackStat + weaponMt - defenseStat;
+  const effectiveMt = isEffective ? weaponMt * 3 : weaponMt;
+  const rawDamage = attackStat + effectiveMt + triangleMtBonus - defenseStat;
   return Math.max(1, rawDamage);
 }
 

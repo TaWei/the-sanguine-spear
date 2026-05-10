@@ -29,7 +29,6 @@ export class CutsceneScene extends Phaser.Scene {
 
   // Visual elements
   private bgRect!: Phaser.GameObjects.Rectangle;
-  private backdrop!: Phaser.GameObjects.Rectangle;
   private nameLabel!: Phaser.GameObjects.Container;
   private nameText!: Phaser.GameObjects.Text;
   private dialogText!: Phaser.GameObjects.Text;
@@ -86,7 +85,7 @@ export class CutsceneScene extends Phaser.Scene {
 
   private createBackground(): void {
     if (this.isOverlay) {
-      this.backdrop = this.add
+      this.add
         .rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.6)
         .setDepth(0);
     } else {

@@ -28,6 +28,28 @@ describe('ItemFactory', () => {
     expect((item as any).uses).toBe(20);
   });
 
+  it('creates Mend staff with 20 uses', () => {
+    const item = createItemByName('Mend');
+    expect(item).toBeDefined();
+    expect(item!.kind).toBe('staff');
+    if (item!.kind === 'staff') {
+      expect(item.healAmount).toBe(20);
+      expect(item.minRange).toBe(1);
+      expect(item.maxRange).toBe(1);
+      expect(item.uses).toBe(20);
+    }
+  });
+
+  it('creates Physic staff with 20 uses', () => {
+    const item = createItemByName('Physic');
+    expect(item).toBeDefined();
+    expect(item!.kind).toBe('staff');
+    if (item!.kind === 'staff') {
+      expect(item.healAmount).toBe(10);
+      expect(item.uses).toBe(20);
+    }
+  });
+
   it('creates Vulnerary recovery item', () => {
     const item = createItemByName('Vulnerary');
     expect(item).not.toBeNull();
@@ -46,5 +68,29 @@ describe('ItemFactory', () => {
     const b = createItemByName('Iron Sword');
     expect(a).not.toBe(b);
     expect(a).toEqual(b);
+  });
+
+  it('creates Javelin with 20 uses (ranged physical)', () => {
+    const item = createItemByName('Javelin');
+    expect(item).not.toBeNull();
+    expect(item!.kind).toBe('weapon');
+    expect(item!.name).toBe('Javelin');
+    if (item!.kind === 'weapon') {
+      expect(item.uses).toBe(20);
+      expect(item.minRange).toBe(1);
+      expect(item.maxRange).toBe(2);
+      expect(item.weaponType).toBe('lance');
+    }
+  });
+
+  it('creates Hand Axe with 20 uses (ranged physical)', () => {
+    const item = createItemByName('Hand Axe');
+    expect(item).not.toBeNull();
+    expect(item!.kind).toBe('weapon');
+    expect(item!.name).toBe('Hand Axe');
+    if (item!.kind === 'weapon') {
+      expect(item.uses).toBe(20);
+      expect(item.weaponType).toBe('axe');
+    }
   });
 });
