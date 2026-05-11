@@ -19,6 +19,7 @@ import { PromotionDisplay, PROMOTION_PHASE } from '../game/ui/PromotionDisplay';
 import { getPromotedClass } from '../game/promotion/PromotionData';
 import type { Item, WeaponItem } from '../game/items/ItemTypes';
 import type { CombatResult } from '../game/combat/Engine';
+import { getWeaponTriangleMod } from '../game/combat/Weapons';
 
 import { hasCutscene } from '../game/cutscene';
 import { DragDetector } from '../game/ui/DragDetector';
@@ -108,6 +109,7 @@ export class BattleScene extends Phaser.Scene {
   private endTurnBtn: Phaser.GameObjects.Text | null = null;
   private menuBtn: Phaser.GameObjects.Text | null = null;
   private menuConfirmationOverlay: Phaser.GameObjects.Container | null = null;
+  private combatPreviewOverlay: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -620,6 +622,18 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private handleTileHover(gx: number, gy: number): void {
+    // Combat preview during target selection
+    if (this.battleMenu.state === MenuState.CHOOSE_TARGET && this.battleMenu.unit) {
+      const hoveredUnit = this.engine.getUnit(gx, gy);
+      const validTarget = this.battleMenu.adjacentEnemies.find((e) => e.id === hoveredUnit?.id);
+      if (validTarget) {
+        this.showCombatPreview(this.battleMenu.unit, validTarget);
+      } else {
+        this.hideCombatPreview();
+      }
+      return;
+    }
+
     if (!this.selectedUnit || this.battleMenu.isVisible) {
       this.pathGraphics.clear();
       return;
@@ -2133,6 +2147,7 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
       if (validTarget) {
+        this.hideCombatPreview();
         this.battleMenu.selectTarget(validTarget);
         this.clearMenuTexts();
         this.moveGraphics.clear();
@@ -2794,6 +2809,92 @@ export class BattleScene extends Phaser.Scene {
       this.menuConfirmationOverlay = null;
     }
     this.inputEnabled = true;
+  }
+
+  private showCombatPreview(attacker: Unit, defender: Unit): void {
+    if (this.combatPreviewOverlay) {
+      // Only rebuild if target changed
+      const existingDefender = (this.combatPreviewOverlay as any).__defenderId;
+      if (existingDefender === defender.id) return;
+      this.combatPreviewOverlay.destroy();
+    }
+
+    const overlay = this.add.container(0, 0);
+    (overlay as any).__defenderId = defender.id;
+    this.combatPreviewOverlay = overlay;
+    overlay.setScrollFactor(0);
+    overlay.setDepth(100);
+
+    const w = 280;
+    const h = 220;
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height * 0.35;
+
+    const bg = this.add.rectangle(cx, cy, w, h, 0x000000, 0.85);
+    bg.setStrokeStyle(2, 0xffffff);
+    overlay.add(bg);
+
+    const preview = this.engine.getCombatPreview(attacker, defender, this.battleMenu.selectedWeaponIndex ?? undefined);
+
+    // Weapon triangle indicator
+    const attWeapon = this.engine.getWeaponForUnit(attacker, this.battleMenu.selectedWeaponIndex ?? undefined);
+    const defWeapon = this.engine.getWeaponForUnit(defender);
+    const triangleMod = getWeaponTriangleMod(attWeapon.type, defWeapon.type);
+    let triangleText = '';
+    let triangleColor = '#ffffff';
+    if (triangleMod.hitBonus > 0) {
+      triangleText = 'Advantage';
+      triangleColor = '#2ecc71';
+    } else if (triangleMod.hitBonus < 0) {
+      triangleText = 'Disadvantage';
+      triangleColor = '#e74c3c';
+    } else {
+      triangleText = 'Neutral';
+      triangleColor = '#bdc3c7';
+    }
+
+    const triLabel = this.add.text(cx, cy - h / 2 + 16, triangleText, {
+      fontSize: '14px',
+      color: triangleColor,
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+    overlay.add(triLabel);
+
+    const leftX = cx - w / 2 + 16;
+    const rightX = cx + w / 2 - 16;
+    const rowY = cy - h / 2 + 44;
+    const rowH = 22;
+
+    // Headers
+    overlay.add(this.add.text(leftX, rowY, attacker.name, { fontSize: '13px', color: '#3498db' }).setOrigin(0, 0));
+    overlay.add(this.add.text(rightX, rowY, defender.name, { fontSize: '13px', color: '#e74c3c' }).setOrigin(1, 0));
+
+    const stats = [
+      { label: 'Dmg', att: preview.attacker.damage, def: preview.defender?.damage ?? '-' },
+      { label: 'Hit', att: preview.attacker.hit + '%', def: preview.defender ? preview.defender.hit + '%' : '-' },
+      { label: 'Crit', att: preview.attacker.crit + '%', def: preview.defender ? preview.defender.crit + '%' : '-' },
+      { label: '2x', att: preview.attacker.doubleAttack ? 'Yes' : 'No', def: preview.defender?.doubleAttack ? 'Yes' : 'No' },
+    ];
+
+    for (let i = 0; i < stats.length; i++) {
+      const y = rowY + 24 + i * rowH;
+      overlay.add(this.add.text(leftX, y, stats[i].label, { fontSize: '12px', color: '#aaaaaa' }).setOrigin(0, 0));
+      overlay.add(this.add.text(leftX + 70, y, String(stats[i].att), { fontSize: '12px', color: '#ffffff' }).setOrigin(1, 0));
+      overlay.add(this.add.text(rightX, y, stats[i].label, { fontSize: '12px', color: '#aaaaaa' }).setOrigin(1, 0));
+      overlay.add(this.add.text(rightX - 70, y, String(stats[i].def), { fontSize: '12px', color: '#ffffff' }).setOrigin(0, 0));
+    }
+
+    // Weapon names
+    const wepY = rowY + 24 + stats.length * rowH + 8;
+    overlay.add(this.add.text(leftX, wepY, attWeapon.name, { fontSize: '11px', color: '#f1c40f' }).setOrigin(0, 0));
+    overlay.add(this.add.text(rightX, wepY, defWeapon.name, { fontSize: '11px', color: '#f1c40f' }).setOrigin(1, 0));
+  }
+
+  private hideCombatPreview(): void {
+    if (this.combatPreviewOverlay) {
+      this.combatPreviewOverlay.destroy();
+      this.combatPreviewOverlay = null;
+    }
   }
 
   private showTurnBanner(turnNumber: number, onComplete: () => void): void {
