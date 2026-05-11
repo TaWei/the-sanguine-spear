@@ -178,7 +178,9 @@ export class BattleScene extends Phaser.Scene {
       this.setupInput();
       this.createUI();
       this.battleMenu = new BattleMenu();
-      this.beginPlayerPhase();
+      this.showChapterStartAnimation(() => {
+        this.beginPlayerPhase();
+      });
     });
   }
 
@@ -2895,6 +2897,83 @@ export class BattleScene extends Phaser.Scene {
       this.combatPreviewOverlay.destroy();
       this.combatPreviewOverlay = null;
     }
+  }
+
+  private showChapterStartAnimation(onComplete: () => void): void {
+    this.inputEnabled = false;
+    const overlay = this.add.container(0, 0);
+    overlay.setScrollFactor(0);
+    overlay.setDepth(100);
+
+    const match = this.currentLevelId.match(/level-(\d+)/);
+    const chapterNum = match ? match[1] : this.currentLevelId;
+    const level = getLevel(this.currentLevelId);
+    const chapterTitle = level ? level.name : '';
+
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height * 0.4,
+      this.cameras.main.width,
+      120,
+      0x000000,
+      0.8,
+    );
+
+    const chapterText = this.add
+      .text(
+        this.cameras.main.width / 2,
+        this.cameras.main.height * 0.4 - 20,
+        `Chapter ${chapterNum}`,
+        {
+          fontSize: '28px',
+          color: '#f1c40f',
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 4,
+        },
+      )
+      .setOrigin(0.5)
+      .setAlpha(0);
+
+    const titleText = this.add
+      .text(
+        this.cameras.main.width / 2,
+        this.cameras.main.height * 0.4 + 20,
+        chapterTitle,
+        {
+          fontSize: '20px',
+          color: '#ecf0f1',
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 3,
+        },
+      )
+      .setOrigin(0.5)
+      .setAlpha(0);
+
+    overlay.add([bg, chapterText, titleText]);
+
+    const timing = new TurnBannerTiming();
+    const timer = this.time.addEvent({
+      delay: 16,
+      callback: () => {
+        timing.update(16);
+        chapterText.setAlpha(timing.textAlpha);
+        titleText.setAlpha(timing.textAlpha);
+        overlay.setAlpha(timing.overlayAlpha);
+        const offsetY = (1 - timing.bannerProgress) * -40;
+        bg.setY(this.cameras.main.height * 0.4 + offsetY);
+        chapterText.setY(this.cameras.main.height * 0.4 - 20 + offsetY);
+        titleText.setY(this.cameras.main.height * 0.4 + 20 + offsetY);
+
+        if (timing.isComplete()) {
+          timer.destroy();
+          overlay.destroy();
+          onComplete();
+        }
+      },
+      loop: true,
+    });
   }
 
   private showTurnBanner(turnNumber: number, onComplete: () => void): void {
