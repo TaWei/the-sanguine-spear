@@ -1428,4 +1428,195 @@ describe('GameEngine', () => {
       expect(lord.isAlive).toBe(false);
     });
   });
+
+  describe('Objective save/load', () => {
+    it('snapshot persists seized tile state', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({
+        hp: 20, maxHp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      engine.loadLevel({
+        id: 'test',
+        name: 'Test',
+        cols: 10,
+        rows: 10,
+        terrain: [{ x: 5, y: 5, type: TerrainType.THRONE }],
+        units: [{ id: 'p1', name: 'Rowan', faction: Faction.PLAYER, unitClass: UnitClass.LORD, stats, x: 5, y: 5 }],
+        objectives: [{ type: 'seize' as const, seizeTiles: [{ x: 5, y: 5 }] }],
+      });
+      const unit = engine.getUnit(5, 5)!;
+      engine.moveUnit(unit, 5, 5);
+      const moveResult = engine.checkMoveObjective(unit);
+      expect(moveResult.victory).toBe(true);
+
+      const snap = engine.snapshot('test');
+      expect(snap.objectiveState?.seizedTiles).toEqual([{ x: 5, y: 5 }]);
+    });
+
+    it('restore rehydrates seized tile state', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({
+        hp: 20, maxHp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      engine.loadLevel({
+        id: 'test',
+        name: 'Test',
+        cols: 10,
+        rows: 10,
+        terrain: [{ x: 5, y: 5, type: TerrainType.THRONE }],
+        units: [{ id: 'p1', name: 'Rowan', faction: Faction.PLAYER, unitClass: UnitClass.LORD, stats, x: 3, y: 3 }],
+        objectives: [{ type: 'seize' as const, seizeTiles: [{ x: 5, y: 5 }, { x: 7, y: 7 }] }],
+      });
+
+      const snap = engine.snapshot('test');
+      snap.objectiveState = { seizedTiles: [{ x: 5, y: 5 }] };
+
+      const engine2 = new GameEngine(10, 10);
+      engine2.restore(snap, {
+        id: 'test',
+        name: 'Test',
+        cols: 10,
+        rows: 10,
+        terrain: [{ x: 5, y: 5, type: TerrainType.THRONE }],
+        units: [{ id: 'p1', name: 'Rowan', faction: Faction.PLAYER, unitClass: UnitClass.LORD, stats, x: 3, y: 3 }],
+        objectives: [{ type: 'seize' as const, seizeTiles: [{ x: 5, y: 5 }, { x: 7, y: 7 }] }],
+      });
+
+      // One tile already seized from save; seizing the second should trigger victory
+      const unit = engine2.getUnit(3, 3)!;
+      engine2.moveUnit(unit, 7, 7);
+      const result = engine2.checkMoveObjective(unit);
+      expect(result.victory).toBe(true);
+    });
+  });
+
+  describe('Defend objective integration', () => {
+    it('does not return victory during player phase even when turnNumber >= defendTurns', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({
+        hp: 20, maxHp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      engine.loadLevel({
+        id: 'test',
+        name: 'Test',
+        cols: 10,
+        rows: 10,
+        terrain: [],
+        units: [
+          { id: 'p1', name: 'Rowan', faction: Faction.PLAYER, unitClass: UnitClass.LORD, stats, x: 0, y: 0 },
+          { id: 'npc1', name: 'NPC', faction: Faction.ALLY, unitClass: UnitClass.SOLDIER, stats, x: 1, y: 1 },
+          { id: 'e1', name: 'Bandit', faction: Faction.ENEMY, unitClass: UnitClass.BRIGAND, stats, x: 5, y: 5 },
+        ],
+        objectives: [{ type: 'defend' as const, defendTargetId: 'npc1', defendTurns: 1 }],
+      });
+
+      // Turn 1, player phase — should NOT trigger victory mid-turn
+      engine.turnManager.turnNumber = 1;
+      const result = engine.checkObjectives();
+      expect(result.victory).toBe(false);
+      expect(result.ongoing).toBe(true);
+    });
+
+    it('returns victory during enemy phase when turnNumber >= defendTurns', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({
+        hp: 20, maxHp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      engine.loadLevel({
+        id: 'test',
+        name: 'Test',
+        cols: 10,
+        rows: 10,
+        terrain: [],
+        units: [
+          { id: 'p1', name: 'Rowan', faction: Faction.PLAYER, unitClass: UnitClass.LORD, stats, x: 0, y: 0 },
+          { id: 'npc1', name: 'NPC', faction: Faction.ALLY, unitClass: UnitClass.SOLDIER, stats, x: 1, y: 1 },
+          { id: 'e1', name: 'Bandit', faction: Faction.ENEMY, unitClass: UnitClass.BRIGAND, stats, x: 5, y: 5 },
+        ],
+        objectives: [{ type: 'defend' as const, defendTargetId: 'npc1', defendTurns: 1 }],
+      });
+
+      engine.turnManager.turnNumber = 1;
+      engine.turnManager.currentPhase = 'enemy';
+      const result = engine.checkObjectives();
+      expect(result.victory).toBe(true);
+    });
+
+    it('returns defeat immediately when defend target dies', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({
+        hp: 20, maxHp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      engine.loadLevel({
+        id: 'test',
+        name: 'Test',
+        cols: 10,
+        rows: 10,
+        terrain: [],
+        units: [
+          { id: 'p1', name: 'Rowan', faction: Faction.PLAYER, unitClass: UnitClass.LORD, stats, x: 0, y: 0 },
+          { id: 'npc1', name: 'NPC', faction: Faction.ALLY, unitClass: UnitClass.SOLDIER, stats, x: 1, y: 1 },
+          { id: 'e1', name: 'Bandit', faction: Faction.ENEMY, unitClass: UnitClass.BRIGAND, stats, x: 5, y: 5 },
+        ],
+        objectives: [{ type: 'defend' as const, defendTargetId: 'npc1', defendTurns: 5 }],
+      });
+
+      const npc = engine.getUnit(1, 1)!;
+      npc.takeDamage(999);
+      const result = engine.checkObjectives();
+      expect(result.defeat).toBe(true);
+      expect(result.victory).toBe(false);
+    });
+  });
+
+  describe('Escape objective integration', () => {
+    it('returns victory when escape unit reaches escape tile', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({
+        hp: 20, maxHp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      engine.loadLevel({
+        id: 'test',
+        name: 'Test',
+        cols: 10,
+        rows: 10,
+        terrain: [{ x: 3, y: 3, type: TerrainType.ESCAPE }],
+        units: [
+          { id: 'p1', name: 'Rowan', faction: Faction.PLAYER, unitClass: UnitClass.LORD, stats, x: 3, y: 3 },
+          { id: 'e1', name: 'Bandit', faction: Faction.ENEMY, unitClass: UnitClass.BRIGAND, stats, x: 5, y: 5 },
+        ],
+        objectives: [{ type: 'escape' as const, escapeUnitId: 'p1', escapeTiles: [{ x: 3, y: 3 }] }],
+      });
+
+      const unit = engine.getUnit(3, 3)!;
+      const result = engine.checkMoveObjective(unit);
+      expect(result.victory).toBe(true);
+      expect(result.message).toBe('Escaped with the secret report!');
+    });
+
+    it('returns ongoing when wrong unit reaches escape tile', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({
+        hp: 20, maxHp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      engine.loadLevel({
+        id: 'test',
+        name: 'Test',
+        cols: 10,
+        rows: 10,
+        terrain: [{ x: 3, y: 3, type: TerrainType.ESCAPE }],
+        units: [
+          { id: 'p1', name: 'Rowan', faction: Faction.PLAYER, unitClass: UnitClass.LORD, stats, x: 2, y: 2 },
+          { id: 'p2', name: 'Mage', faction: Faction.PLAYER, unitClass: UnitClass.MAGE, stats, x: 3, y: 3 },
+          { id: 'e1', name: 'Bandit', faction: Faction.ENEMY, unitClass: UnitClass.BRIGAND, stats, x: 5, y: 5 },
+        ],
+        objectives: [{ type: 'escape' as const, escapeUnitId: 'p1', escapeTiles: [{ x: 3, y: 3 }] }],
+      });
+
+      const mage = engine.getUnit(3, 3)!;
+      const result = engine.checkMoveObjective(mage);
+      expect(result.victory).toBe(false);
+      expect(result.ongoing).toBe(true);
+    });
+  });
 });

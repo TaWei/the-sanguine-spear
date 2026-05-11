@@ -43,7 +43,7 @@ export const TERRAIN_DEFS: Record<TerrainType, TerrainData> = {
   reef: { type: 'reef', moveCost: 2, defenseBonus: 2, avoidBonus: 15 },
   door: { type: 'door', moveCost: 99, defenseBonus: 0, avoidBonus: 0 },
   chest: { type: 'chest', moveCost: 1, defenseBonus: 0, avoidBonus: 0 },
-  throne: { type: 'throne', moveCost: 1, defenseBonus: 3, avoidBonus: 30, hazardDamage: 0 },
+  throne: { type: 'throne', moveCost: 1, defenseBonus: 2, avoidBonus: 0, hazardDamage: 0 },
   escape: { type: 'escape', moveCost: 1, defenseBonus: 0, avoidBonus: 0 },
   fort: { type: 'fort', moveCost: 1, defenseBonus: 2, avoidBonus: 20, hazardDamage: 0 },
   village: { type: 'village', moveCost: 1, defenseBonus: 1, avoidBonus: 10 },

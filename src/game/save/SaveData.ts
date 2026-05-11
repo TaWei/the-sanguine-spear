@@ -60,4 +60,8 @@ export interface SaveData {
   visitedVillages: string[];
   spawnedReinforcementIds: string[];
   supportPairs: SupportPair[];
+  /** Persisted objective state (e.g., seized tiles) */
+  objectiveState?: {
+    seizedTiles?: { x: number; y: number }[];
+  };
 }

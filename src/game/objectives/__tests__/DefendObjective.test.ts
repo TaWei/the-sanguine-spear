@@ -83,11 +83,22 @@ describe('DefendObjective', () => {
     expect(result.defeat).toBe(true);
   });
 
-  it('returns ongoing when surviving beyond the required turns', () => {
+  it('returns ongoing during player phase even when turnNumber >= requiredTurns', () => {
     const npc = createTestUnit('npc1', 'NPC', Faction.ALLY, 'soldier', 5, 5);
     const objective = new DefendObjective('npc1', 7);
 
-    const result = objective.check([npc], 10);
+    // Turn 7 during player phase — should not trigger victory mid-turn
+    const result = objective.check([npc], 7, 'player');
+
+    expect(result.victory).toBe(false);
+    expect(result.ongoing).toBe(true);
+  });
+
+  it('returns victory during enemy phase when turnNumber >= requiredTurns', () => {
+    const npc = createTestUnit('npc1', 'NPC', Faction.ALLY, 'soldier', 5, 5);
+    const objective = new DefendObjective('npc1', 7);
+
+    const result = objective.check([npc], 7, 'enemy');
 
     expect(result.victory).toBe(true);
   });

@@ -50,16 +50,16 @@ describe('SeizeObjective', () => {
     expect(result.ongoing).toBe(true);
   });
 
-  it('returns ongoing when a non-lord player unit is on the seize tile', () => {
+  it('returns victory when any player unit steps on the seize tile', () => {
     const soldier = createTestUnit('p1', 'Soldier', Faction.PLAYER, 'soldier', 5, 5);
     grid.placeUnit(soldier, 5, 5);
 
     const objective = new SeizeObjective([{ x: 5, y: 5 }]);
     const result = objective.check(soldier);
 
-    expect(result.victory).toBe(false);
+    expect(result.victory).toBe(true);
     expect(result.defeat).toBe(false);
-    expect(result.ongoing).toBe(true);
+    expect(result.ongoing).toBe(false);
   });
 
   it('returns ongoing when an enemy unit is on the seize tile', () => {

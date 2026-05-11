@@ -1,4 +1,5 @@
 import { Unit, Faction } from '../units/Unit';
+import type { GamePhase } from '../state/TurnManager';
 import type { ObjectiveResult } from './Objective';
 import type { SeizeObjective } from './SeizeObjective';
 import type { DefendObjective } from './DefendObjective';
@@ -24,10 +25,10 @@ export class LevelObjectives {
     this.config = config;
   }
 
-  check(turnNumber: number = 0): ObjectiveResult {
+  check(turnNumber: number = 0, phase?: GamePhase): ObjectiveResult {
     // Check sub-objectives first — any defeat is immediate
     if (this.config.defend) {
-      const result = this.config.defend.check(this.units, turnNumber);
+      const result = this.config.defend.check(this.units, turnNumber, phase);
       if (result.defeat) return result;
       if (result.victory) return result;
     }
@@ -39,20 +40,20 @@ export class LevelObjectives {
 
     // Defeat: all player units dead
     if (livePlayers.length === 0) {
-      return { victory: false, defeat: true, ongoing: false };
+      return { victory: false, defeat: true, ongoing: false, message: 'All player units have fallen...' };
     }
 
     // Ally survival check
     if (this.config.allyMustSurvive) {
       const liveAllies = this.units.filter((u) => u.faction === Faction.ALLY && u.isAlive);
       if (liveAllies.length === 0) {
-        return { victory: false, defeat: true, ongoing: false };
+        return { victory: false, defeat: true, ongoing: false, message: 'All allies have fallen...' };
       }
     }
 
     // Rout victory: all enemies dead (only if rout is enabled)
     if (routEnabled && liveEnemies.length === 0) {
-      return { victory: true, defeat: false, ongoing: false };
+      return { victory: true, defeat: false, ongoing: false, message: 'All enemies defeated!' };
     }
 
     return { victory: false, defeat: false, ongoing: true };

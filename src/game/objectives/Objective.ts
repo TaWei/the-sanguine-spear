@@ -5,6 +5,8 @@ export interface ObjectiveResult {
   victory: boolean;
   defeat: boolean;
   ongoing: boolean;
+  /** Descriptive message for victory/defeat screens */
+  message?: string;
 }
 
 export interface Objective {

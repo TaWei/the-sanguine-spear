@@ -3,24 +3,21 @@ import type { ObjectiveResult } from './Objective';
 
 export class EscapeObjective {
   private escapeUnitId: string;
-  private escapeX: number;
-  private escapeY: number;
+  private escapeTiles: { x: number; y: number }[];
 
-  constructor(escapeUnitId: string, escapeX: number, escapeY: number) {
+  constructor(escapeUnitId: string, escapeTiles: { x: number; y: number }[]) {
     this.escapeUnitId = escapeUnitId;
-    this.escapeX = escapeX;
-    this.escapeY = escapeY;
+    this.escapeTiles = escapeTiles;
   }
 
   /** Check if the given unit (which just moved) fulfills the escape condition */
   check(unit: Unit): ObjectiveResult {
     if (
       unit.id === this.escapeUnitId &&
-      unit.gridX === this.escapeX &&
-      unit.gridY === this.escapeY &&
-      unit.isAlive
+      unit.isAlive &&
+      this.escapeTiles.some((t) => t.x === unit.gridX && t.y === unit.gridY)
     ) {
-      return { victory: true, defeat: false, ongoing: false };
+      return { victory: true, defeat: false, ongoing: false, message: 'Escaped with the secret report!' };
     }
     return { victory: false, defeat: false, ongoing: true };
   }

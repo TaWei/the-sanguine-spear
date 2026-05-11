@@ -67,6 +67,20 @@ describe('Terrain', () => {
     expect(t.avoidBonus).toBe(15);
   });
 
+  it('throne has moveCost 1, defenseBonus 2, avoidBonus 0', () => {
+    const t = TERRAIN_DEFS[TerrainType.THRONE];
+    expect(t.moveCost).toBe(1);
+    expect(t.defenseBonus).toBe(2);
+    expect(t.avoidBonus).toBe(0);
+  });
+
+  it('escape has moveCost 1, defenseBonus 0, avoidBonus 0', () => {
+    const t = TERRAIN_DEFS[TerrainType.ESCAPE];
+    expect(t.moveCost).toBe(1);
+    expect(t.defenseBonus).toBe(0);
+    expect(t.avoidBonus).toBe(0);
+  });
+
   it('eleven terrain types are defined', () => {
     const types: TerrainType[] = ['plains', 'forest', 'mountain', 'water', 'wall', 'lava', 'cliff', 'shallow_water', 'deep_water', 'bridge', 'reef'];
     for (const type of types) {

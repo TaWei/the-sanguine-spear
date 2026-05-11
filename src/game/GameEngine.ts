@@ -165,6 +165,8 @@ export class GameEngine {
     const config: LevelObjectivesConfig = {};
     let hasNonRout = false;
     const seizeTiles: { x: number; y: number }[] = [];
+    const escapeTiles: { x: number; y: number }[] = [];
+    let escapeUnitId: string | undefined;
     for (const obj of objectives) {
       switch (obj.type) {
         case 'rout':
@@ -174,6 +176,10 @@ export class GameEngine {
           }
           break;
         case 'seize':
+          if (obj.seizeTiles) {
+            seizeTiles.push(...obj.seizeTiles);
+            hasNonRout = true;
+          }
           if (obj.seizeTile) {
             seizeTiles.push(obj.seizeTile);
             hasNonRout = true;
@@ -186,15 +192,25 @@ export class GameEngine {
           }
           break;
         case 'escape':
-          if (obj.escapeUnitId && obj.escapeTile) {
-            config.escape = new EscapeObjective(obj.escapeUnitId, obj.escapeTile.x, obj.escapeTile.y);
-            hasNonRout = true;
+          if (obj.escapeUnitId) {
+            escapeUnitId = obj.escapeUnitId;
+            if (obj.escapeTiles) {
+              escapeTiles.push(...obj.escapeTiles);
+              hasNonRout = true;
+            }
+            if (obj.escapeTile) {
+              escapeTiles.push(obj.escapeTile);
+              hasNonRout = true;
+            }
           }
           break;
       }
     }
     if (seizeTiles.length > 0) {
       config.seize = new SeizeObjective(seizeTiles);
+    }
+    if (escapeUnitId && escapeTiles.length > 0) {
+      config.escape = new EscapeObjective(escapeUnitId, escapeTiles);
     }
     // If objectives include non-rout types, disable rout by default unless explicitly enabled
     if (hasNonRout && config.routEnabled === undefined) {
@@ -209,6 +225,10 @@ export class GameEngine {
       for (let x = 0; x < this.grid.cols; x++) {
         terrain.push({ x, y, type: this.grid.getTerrain(x, y) });
       }
+    }
+    const objectiveState: SaveData['objectiveState'] = {};
+    if (this.objectivesConfig.seize) {
+      objectiveState.seizedTiles = this.objectivesConfig.seize.getSeizedTiles();
     }
     return {
       version: SAVE_VERSION,
@@ -227,6 +247,7 @@ export class GameEngine {
       visitedVillages: this.villageEngine.getVisitedVillages(),
       spawnedReinforcementIds: this.reinforcementEngine.getSpawnedGroupIds(),
       supportPairs: this.supportEngine.getSupportData(),
+      objectiveState: Object.keys(objectiveState).length > 0 ? objectiveState : undefined,
     };
   }
 
@@ -268,6 +289,11 @@ export class GameEngine {
       this.talkConfigs = def.talks ?? [];
       this.talkEngine.reset();
       this.reinforcementEngine.register(def.reinforcements ?? []);
+    }
+
+    // Restore objective state
+    if (data.objectiveState?.seizedTiles && this.objectivesConfig.seize) {
+      this.objectivesConfig.seize.setSeizedTiles(data.objectiveState.seizedTiles);
     }
 
     // Restore engine states
@@ -768,7 +794,10 @@ export class GameEngine {
   }
 
   checkObjectives(): ObjectiveResult {
-    return new LevelObjectives(this.units, this.objectivesConfig).check(this.turnManager.turnNumber);
+    return new LevelObjectives(this.units, this.objectivesConfig).check(
+      this.turnManager.turnNumber,
+      this.turnManager.currentPhase,
+    );
   }
 
   /** Check move-based objectives (seize/escape) after a unit moves */

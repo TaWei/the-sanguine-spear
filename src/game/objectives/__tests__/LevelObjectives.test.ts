@@ -111,7 +111,70 @@ describe('LevelObjectives', () => {
       expect(result.ongoing).toBe(true);
     });
 
-    it('returns victory with defend when surviving required turns', () => {
+    it('returns victory when the escape unit reaches the escape tile', () => {
+      const player = new Unit('p1', 'Hero', Faction.PLAYER, UnitClass.LORD, stats, 2, 8);
+      const enemy = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 1, 1);
+
+      const config: LevelObjectivesConfig = {
+        escape: new EscapeObjective('p1', [{ x: 2, y: 8 }]),
+        routEnabled: false,
+      };
+      const objectives = new LevelObjectives([player, enemy], config);
+
+      const result = objectives.checkMoveObjective(player);
+      expect(result.victory).toBe(true);
+      expect(result.message).toBe('Escaped with the secret report!');
+    });
+
+    it('returns ongoing when the wrong unit reaches the escape tile', () => {
+      const player = new Unit('p1', 'Hero', Faction.PLAYER, UnitClass.LORD, stats, 2, 8);
+      const mage = new Unit('p2', 'Mage', Faction.PLAYER, UnitClass.MAGE, stats, 1, 1);
+      const enemy = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 3, 3);
+
+      const config: LevelObjectivesConfig = {
+        escape: new EscapeObjective('p1', [{ x: 2, y: 8 }]),
+        routEnabled: false,
+      };
+      const objectives = new LevelObjectives([player, mage, enemy], config);
+
+      const result = objectives.checkMoveObjective(mage);
+      expect(result.victory).toBe(false);
+      expect(result.ongoing).toBe(true);
+    });
+
+    it('does not return defend victory during player phase', () => {
+      const player = new Unit('p1', 'Hero', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
+      const npc = new Unit('npc1', 'NPC', Faction.ALLY, UnitClass.SOLDIER, stats, 1, 1);
+      const enemy = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 2, 2);
+
+      const config: LevelObjectivesConfig = {
+        defend: new DefendObjective('npc1', 3),
+        routEnabled: false,
+      };
+      const objectives = new LevelObjectives([player, npc, enemy], config);
+
+      // Turn 3, player phase — defend victory should not trigger mid-turn
+      const result = objectives.check(3, 'player');
+      expect(result.victory).toBe(false);
+      expect(result.ongoing).toBe(true);
+    });
+
+    it('returns defend victory during enemy phase', () => {
+      const player = new Unit('p1', 'Hero', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
+      const npc = new Unit('npc1', 'NPC', Faction.ALLY, UnitClass.SOLDIER, stats, 1, 1);
+      const enemy = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 2, 2);
+
+      const config: LevelObjectivesConfig = {
+        defend: new DefendObjective('npc1', 3),
+        routEnabled: false,
+      };
+      const objectives = new LevelObjectives([player, npc, enemy], config);
+
+      const result = objectives.check(3, 'enemy');
+      expect(result.victory).toBe(true);
+    });
+
+    it('returns victory with defend when surviving required turns (legacy no-phase)', () => {
       const player = new Unit('p1', 'Hero', Faction.PLAYER, UnitClass.LORD, stats, 0, 0);
       const npc = new Unit('npc1', 'NPC', Faction.ALLY, UnitClass.SOLDIER, stats, 1, 1);
       const enemy = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 2, 2);

@@ -9,12 +9,21 @@ export class SeizeObjective {
     this.tiles = tiles.map((t) => ({ ...t, seized: false }));
   }
 
+  getSeizedTiles(): { x: number; y: number }[] {
+    return this.tiles.filter((t) => t.seized).map((t) => ({ x: t.x, y: t.y }));
+  }
+
+  setSeizedTiles(coords: { x: number; y: number }[]): void {
+    for (const tile of this.tiles) {
+      tile.seized = coords.some((c) => c.x === tile.x && c.y === tile.y);
+    }
+  }
+
   /** Check if the given unit (which just moved) fulfills the seize condition */
   check(unit: Unit): ObjectiveResult {
     if (
-      unit.unitClass === 'lord' &&
-      unit.isAlive &&
-      (unit.faction === Faction.PLAYER || unit.faction === Faction.ALLY)
+      (unit.faction === Faction.PLAYER || unit.faction === Faction.ALLY) &&
+      unit.isAlive
     ) {
       const tile = this.tiles.find(
         (t) => t.x === unit.gridX && t.y === unit.gridY && !t.seized,
@@ -24,7 +33,7 @@ export class SeizeObjective {
       }
     }
     if (this.tiles.every((t) => t.seized)) {
-      return { victory: true, defeat: false, ongoing: false };
+      return { victory: true, defeat: false, ongoing: false, message: 'Seized the throne!' };
     }
     return { victory: false, defeat: false, ongoing: true };
   }

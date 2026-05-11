@@ -30,7 +30,7 @@ describe('EscapeObjective', () => {
     const unit = createTestUnit('p1', 'Hero', Faction.PLAYER, 'lord', 0, 5);
     grid.placeUnit(unit, 0, 5);
 
-    const objective = new EscapeObjective('p1', 0, 5);
+    const objective = new EscapeObjective('p1', [{ x: 0, y: 5 }]);
     const result = objective.check(unit);
 
     expect(result.victory).toBe(true);
@@ -42,7 +42,7 @@ describe('EscapeObjective', () => {
     const unit = createTestUnit('p1', 'Hero', Faction.PLAYER, 'lord', 3, 3);
     grid.placeUnit(unit, 3, 3);
 
-    const objective = new EscapeObjective('p1', 0, 5);
+    const objective = new EscapeObjective('p1', [{ x: 0, y: 5 }]);
     const result = objective.check(unit);
 
     expect(result.victory).toBe(false);
@@ -56,7 +56,7 @@ describe('EscapeObjective', () => {
     grid.placeUnit(wrongUnit, 0, 5);
     grid.placeUnit(escapeUnit, 1, 1);
 
-    const objective = new EscapeObjective('p1', 0, 5);
+    const objective = new EscapeObjective('p1', [{ x: 0, y: 5 }]);
     const result = objective.check(wrongUnit);
 
     expect(result.victory).toBe(false);
@@ -68,10 +68,41 @@ describe('EscapeObjective', () => {
     unit.takeDamage(20); // kill
     grid.placeUnit(unit, 0, 5);
 
-    const objective = new EscapeObjective('p1', 0, 5);
+    const objective = new EscapeObjective('p1', [{ x: 0, y: 5 }]);
     const result = objective.check(unit);
 
     // Dead unit can't escape — this should be detected as defeat by the composite
+    expect(result.victory).toBe(false);
+    expect(result.ongoing).toBe(true);
+  });
+
+  it('returns victory when the escape unit reaches any of multiple escape tiles', () => {
+    const unit = createTestUnit('p1', 'Hero', Faction.PLAYER, 'lord', 2, 8);
+    grid.placeUnit(unit, 2, 8);
+
+    const objective = new EscapeObjective('p1', [
+      { x: 0, y: 5 },
+      { x: 2, y: 8 },
+      { x: 9, y: 9 },
+    ]);
+    const result = objective.check(unit);
+
+    expect(result.victory).toBe(true);
+    expect(result.defeat).toBe(false);
+    expect(result.ongoing).toBe(false);
+  });
+
+  it('returns ongoing when the escape unit is not on any escape tile', () => {
+    const unit = createTestUnit('p1', 'Hero', Faction.PLAYER, 'lord', 3, 3);
+    grid.placeUnit(unit, 3, 3);
+
+    const objective = new EscapeObjective('p1', [
+      { x: 0, y: 5 },
+      { x: 2, y: 8 },
+      { x: 9, y: 9 },
+    ]);
+    const result = objective.check(unit);
+
     expect(result.victory).toBe(false);
     expect(result.ongoing).toBe(true);
   });
