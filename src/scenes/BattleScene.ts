@@ -68,6 +68,8 @@ export class BattleScene extends Phaser.Scene {
   private menuTexts: Phaser.GameObjects.Text[] = [];
   private enemyPreviewTexts: Phaser.GameObjects.GameObject[] = [];
   private battleOverlay: Phaser.GameObjects.Container | null = null;
+  private attBattlePanel: Phaser.GameObjects.Container | null = null;
+  private defBattlePanel: Phaser.GameObjects.Container | null = null;
   private battleDisplayState: BattleDisplayState | null = null;
   private inBattleMode = false;
   private pendingBattleCallback: (() => void) | null = null;
@@ -103,6 +105,9 @@ export class BattleScene extends Phaser.Scene {
   private preCutsceneInputEnabled = true;
   private dragDetector = new DragDetector(5);
   private fogRenderer: FogTileRenderer | null = null;
+  private endTurnBtn: Phaser.GameObjects.Text | null = null;
+  private menuBtn: Phaser.GameObjects.Text | null = null;
+  private menuConfirmationOverlay: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -110,6 +115,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(data?: { levelId?: string; saveSlot?: string }): void {
+    // Reset animation/state flags on scene creation / restart
+    this.bannerShownForTurn = 0;
+    this.isAnimatingMovement = false;
+    this.inBattleMode = false;
+    this.inputEnabled = true;
+
     this.cameras.main.fadeIn(500, 0, 0, 0);
 
     const levelId = data?.levelId ?? 'level-1';
@@ -127,6 +138,7 @@ export class BattleScene extends Phaser.Scene {
         throw new Error(`Save slot not found: ${data.saveSlot}`);
       }
       this.engine.restore(saveData, level);
+      this.updatePhaseText();
     } else {
       this.engine.loadLevel(level);
     }
@@ -534,6 +546,49 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
+    // Auto-attack: selected unit + clicked enemy within movement+attack range
+    if (this.selectedUnit && clickedUnit?.faction === Faction.ENEMY) {
+      const attackSquare = this.engine.findBestAttackSquare(this.selectedUnit, clickedUnit);
+      if (attackSquare) {
+        const unitToMove = this.selectedUnit;
+        this.clearEnemyPreview();
+        if (attackSquare.x === unitToMove.gridX && attackSquare.y === unitToMove.gridY) {
+          // Already in range — enter target selection without moving
+          unitToMove.state.transition(UNIT_STATE.MOVING);
+          unitToMove.state.transition(UNIT_STATE.MENU);
+          this.preMovePosition = null;
+          this.enterAutoAttackMode(unitToMove, clickedUnit);
+        } else {
+          this.preMovePosition = { x: unitToMove.gridX, y: unitToMove.gridY };
+          const path = this.engine.findPath(unitToMove, attackSquare.x, attackSquare.y);
+          if (!path) {
+            return;
+          }
+          this.pathGraphics.clear();
+          this.animatePathMovement(unitToMove, path, () => {
+            this.engine.moveUnit(unitToMove, attackSquare.x, attackSquare.y);
+            this.engine.updateFogOfWar();
+            this.syncTileColors();
+            this.syncUnitSprites();
+            unitToMove.state.transition(UNIT_STATE.MOVING);
+            const moveObj = this.engine.checkMoveObjective(unitToMove);
+            if (moveObj.victory) {
+              this.showVictoryScreen();
+              return;
+            }
+            if (moveObj.defeat) {
+              this.showDefeatScreen();
+              return;
+            }
+            unitToMove.state.transition(UNIT_STATE.MENU);
+            this.enterAutoAttackMode(unitToMove, clickedUnit);
+          });
+        }
+        return;
+      }
+      // Fall through to enemy preview if unreachable
+    }
+
     // If clicking on already-selected unit, open menu without moving
     if (clickedUnit && clickedUnit === this.selectedUnit && !clickedUnit.hasActed) {
       this.moveGraphics.clear();
@@ -569,6 +624,22 @@ export class BattleScene extends Phaser.Scene {
       this.pathGraphics.clear();
       return;
     }
+
+    // Show path to best attack square when hovering over a reachable enemy
+    const hoveredUnit = this.engine.getUnit(gx, gy);
+    if (hoveredUnit && hoveredUnit.faction === Faction.ENEMY) {
+      const attackSquare = this.engine.findBestAttackSquare(this.selectedUnit, hoveredUnit);
+      if (attackSquare && !(attackSquare.x === this.selectedUnit.gridX && attackSquare.y === this.selectedUnit.gridY)) {
+        const path = this.engine.findPath(this.selectedUnit, attackSquare.x, attackSquare.y);
+        if (path) {
+          this.drawPathPreview(path);
+          return;
+        }
+      }
+      this.pathGraphics.clear();
+      return;
+    }
+
     const range = this.engine.getMoveRange(this.selectedUnit);
     const key = `${String(gx)},${String(gy)}`;
     if (!range.has(key) || this.engine.getUnit(gx, gy)) {
@@ -787,7 +858,7 @@ export class BattleScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(100);
 
-    const endTurn = this.add
+    this.endTurnBtn = this.add
       .text(16, 60, '[ End Turn ]', {
         fontSize: '16px',
         color: '#ecf0f1',
@@ -798,8 +869,28 @@ export class BattleScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .setDepth(100);
 
-    endTurn.on('pointerdown', () => {
+    this.endTurnBtn.on('pointerdown', () => {
+      if (!this.inputEnabled) return;
+      if (!this.engine.turnManager.isPlayerPhase()) return;
       this.triggerEndTurn();
+    });
+
+    this.menuBtn = this.add
+      .text(16, 96, '[ Menu ]', {
+        fontSize: '16px',
+        color: '#ecf0f1',
+        backgroundColor: '#2c3e50',
+        padding: { x: 10, y: 6 },
+      })
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(100);
+
+    this.menuBtn.on('pointerover', () => this.menuBtn!.setStyle({ color: '#f1c40f' }));
+    this.menuBtn.on('pointerout', () => this.menuBtn!.setStyle({ color: '#ecf0f1' }));
+    this.menuBtn.on('pointerdown', () => {
+      if (!this.inputEnabled) return;
+      this.showMenuConfirmation();
     });
 
     this.saveBtn = this.add
@@ -847,8 +938,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateSaveBtnVisibility(): void {
-    if (!this.saveBtn) return;
-    const canSave =
+    const canInteract =
       this.engine.turnManager.isPlayerPhase() &&
       !this.inBattleMode &&
       !this.battleMenu.isVisible &&
@@ -858,11 +948,22 @@ export class BattleScene extends Phaser.Scene {
       !this.statusOverlay &&
       !this.itemOverlay &&
       !this.tradeOverlay;
-    this.saveBtn.setVisible(canSave);
+    if (this.saveBtn) {
+      this.saveBtn.setVisible(canInteract);
+    }
+    if (this.endTurnBtn) {
+      this.endTurnBtn.setVisible(canInteract);
+    }
+    if (this.menuBtn) {
+      this.menuBtn.setVisible(canInteract);
+    }
   }
 
   private triggerEndTurn(): void {
     if (this.inBattleMode || this.isAnimatingMovement) {
+      return;
+    }
+    if (!this.engine.turnManager.isPlayerPhase()) {
       return;
     }
 
@@ -1361,6 +1462,28 @@ export class BattleScene extends Phaser.Scene {
       tradeText.destroy();
     }
     this.menuTexts.push(...texts);
+    this.updateSaveBtnVisibility();
+  }
+
+  private enterAutoAttackMode(unit: Unit, _targetEnemy: Unit): void {
+    this.moveGraphics.clear();
+    this.pathGraphics.clear();
+    this.selectedUnit = null;
+
+    const enemies = this.engine.getAdjacentEnemies(unit);
+    const allies = this.engine.getAdjacentAllies(unit);
+    const staff = this.engine.getStaffForUnit(unit);
+    const healTargets = staff ? this.engine.getHealTargets(unit) : [];
+
+    this.battleMenu.show(unit, enemies, healTargets, allies);
+    this.battleMenu.selectAction(MenuAction.FIGHT);
+
+    if (this.battleMenu.state === MenuState.CHOOSE_WEAPON) {
+      this.showWeaponSelection(unit);
+    } else {
+      this.highlightEnemyTargets(enemies);
+    }
+
     this.updateSaveBtnVisibility();
   }
 
@@ -2093,14 +2216,14 @@ export class BattleScene extends Phaser.Scene {
     // Attacker panel (left)
     const attX = this.cameras.main.width * 0.25;
     const attY = this.cameras.main.height * 0.5;
-    const attPanel = this.createUnitBattlePanel(attacker, attX, attY, 0x3498db, preview.attacker, attackerInitialHp);
-    overlay.add(attPanel);
+    this.attBattlePanel = this.createUnitBattlePanel(attacker, attX, attY, 0x3498db, preview.attacker, attackerInitialHp);
+    overlay.add(this.attBattlePanel);
 
     // Defender panel (right)
     const defX = this.cameras.main.width * 0.75;
     const defY = this.cameras.main.height * 0.5;
-    const defPanel = this.createUnitBattlePanel(defender, defX, defY, 0xe74c3c, preview.defender, defenderInitialHp);
-    overlay.add(defPanel);
+    this.defBattlePanel = this.createUnitBattlePanel(defender, defX, defY, 0xe74c3c, preview.defender, defenderInitialHp);
+    overlay.add(this.defBattlePanel);
 
     // VS label
     const vsText = this.add
@@ -2206,7 +2329,7 @@ export class BattleScene extends Phaser.Scene {
     panel.add(hpBg);
 
     // HP bar fill (uses initialHp so the panel reflects pre-combat state)
-    const displayHp = initialHp ?? unit.stats.hp;
+    const displayHp = Math.max(0, Math.min(initialHp ?? unit.stats.hp, unit.stats.maxHp));
     const hpRatio = displayHp / unit.stats.maxHp;
     const hpColor = hpRatio > 0.5 ? 0x2ecc71 : hpRatio > 0.25 ? 0xf1c40f : 0xe74c3c;
     const hpFill = this.add.rectangle(-50 + (120 * hpRatio) / 2, 10, 120 * hpRatio, 12, hpColor);
@@ -2358,9 +2481,8 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     const isLeft = unit.id === this.battleDisplayState.attacker.id;
-    const panelIndex = isLeft ? 1 : 2; // overlay children: bg, attPanel, defPanel, vsText
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const panel = this.battleOverlay.getAt(panelIndex) as Phaser.GameObjects.Container;
+    const panel = isLeft ? this.attBattlePanel : this.defBattlePanel;
+    if (!panel) return;
 
     const hpRatio = Math.max(0, currentHp / unit.stats.maxHp);
     const hpColor = hpRatio > 0.5 ? 0x2ecc71 : hpRatio > 0.25 ? 0xf1c40f : 0xe74c3c;
@@ -2598,6 +2720,82 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private showMenuConfirmation(): void {
+    if (this.menuConfirmationOverlay) return;
+    this.inputEnabled = false;
+    const overlay = this.add.container(0, 0);
+    overlay.setScrollFactor(0);
+    overlay.setDepth(200);
+    this.menuConfirmationOverlay = overlay;
+
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7,
+    );
+    overlay.add(bg);
+
+    const panel = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      320,
+      160,
+      0x2c3e50,
+      0.95,
+    );
+    overlay.add(panel);
+
+    const title = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height / 2 - 40, 'Return to Main Menu?', {
+        fontSize: '20px',
+        color: '#ecf0f1',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    overlay.add(title);
+
+    const yesBtn = this.add
+      .text(this.cameras.main.width / 2 - 60, this.cameras.main.height / 2 + 20, '[ Yes ]', {
+        fontSize: '18px',
+        color: '#ffffff',
+        backgroundColor: '#c0392b',
+        padding: { x: 12, y: 6 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    overlay.add(yesBtn);
+
+    const noBtn = this.add
+      .text(this.cameras.main.width / 2 + 60, this.cameras.main.height / 2 + 20, '[ No ]', {
+        fontSize: '18px',
+        color: '#ffffff',
+        backgroundColor: '#27ae60',
+        padding: { x: 12, y: 6 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    overlay.add(noBtn);
+
+    yesBtn.on('pointerdown', () => {
+      this.scene.start('MainMenuScene');
+    });
+
+    noBtn.on('pointerdown', () => {
+      this.hideMenuConfirmation();
+    });
+  }
+
+  private hideMenuConfirmation(): void {
+    if (this.menuConfirmationOverlay) {
+      this.menuConfirmationOverlay.destroy();
+      this.menuConfirmationOverlay = null;
+    }
+    this.inputEnabled = true;
+  }
+
   private showTurnBanner(turnNumber: number, onComplete: () => void): void {
     this.inputEnabled = false;
     const overlay = this.add.container(0, 0);
@@ -2651,6 +2849,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private beginPlayerPhase(): void {
+    if (!this.engine.turnManager.isPlayerPhase()) {
+      return;
+    }
     this.playCutsceneIfTriggered({ eventType: 'on_turn_start', faction: 'player' }, () => {
       const rowan = this.engine.getAllUnits().find((u) => u.id === 'rowan' && u.isAlive);
       if (rowan) {

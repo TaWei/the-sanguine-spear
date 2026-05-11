@@ -19,4 +19,6 @@ const config: Phaser.Types.Core.GameConfig = {
   pixelArt: true,
 };
 
-new Phaser.Game(config);
+window.addEventListener('DOMContentLoaded', () => {
+  new Phaser.Game(config);
+});

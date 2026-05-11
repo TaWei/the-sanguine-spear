@@ -552,6 +552,9 @@ export class GameEngine {
     const item = unit.inventory.items[index] as StaffItem;
     // Look up STAFF_DB to propagate dynamic getRange (Physic etc.)
     const dbEntry = STAFF_DB[item.name];
+    if (!dbEntry) {
+      console.warn(`Staff "${item.name}" not found in STAFF_DB — getRange will be undefined`);
+    }
     return {
       data: {
         name: item.name,
@@ -697,6 +700,28 @@ export class GameEngine {
     });
 
     return threatened;
+  }
+
+  findBestAttackSquare(unit: Unit, enemy: Unit): { x: number; y: number } | null {
+    const moveRange = computeMoveRange(unit, this.grid);
+    const weapon = this.getWeaponForUnit(unit);
+    let bestTile: { x: number; y: number } | null = null;
+    let bestCost = Infinity;
+    let bestDistToEnemy = Infinity;
+
+    for (const [key, cost] of moveRange) {
+      const [x, y] = key.split(',').map(Number);
+      const dist = Math.abs(x - enemy.gridX) + Math.abs(y - enemy.gridY);
+      if (dist < weapon.minRange || dist > weapon.maxRange) {
+        continue;
+      }
+      if (cost < bestCost || (cost === bestCost && dist < bestDistToEnemy)) {
+        bestCost = cost;
+        bestDistToEnemy = dist;
+        bestTile = { x, y };
+      }
+    }
+    return bestTile;
   }
 
   endTurn(): HazardReport {

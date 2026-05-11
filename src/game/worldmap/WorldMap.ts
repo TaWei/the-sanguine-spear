@@ -29,8 +29,10 @@ export class WorldMap {
         this.state.chapters[node.id] = 'LOCKED';
       }
     }
-    // Chapter 1 is always available
-    this.state.chapters['chapter-1'] = 'AVAILABLE';
+    // First chapter in the node list is always available
+    if (this.nodes.length > 0) {
+      this.state.chapters[this.nodes[0].id] = 'AVAILABLE';
+    }
   }
 
   getAvailableChapters(): string[] {

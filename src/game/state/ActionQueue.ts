@@ -26,8 +26,17 @@ export interface Action {
 
 export class ActionQueue {
   private actions: Action[] = [];
+  private readonly maxSize: number;
+
+  constructor(maxSize = 1000) {
+    this.maxSize = maxSize;
+  }
 
   enqueue(action: Action): void {
+    if (this.actions.length >= this.maxSize) {
+      // Drop oldest action to prevent unbounded growth
+      this.actions.shift();
+    }
     this.actions.push(action);
   }
 

@@ -10,3 +10,4 @@ export type { StatusDisplay } from './StatusWindow';
 export { LevelUpDisplay, LEVEL_UP_PHASE } from './LevelUpDisplay';
 export { DragDetector } from './DragDetector';
 export { TurnBannerTiming, BANNER_PHASE } from './TurnBannerTiming';
+export { ConfirmationDialog } from './ConfirmationDialog';

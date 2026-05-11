@@ -8,7 +8,7 @@ export type UnitClassType =
   | 'pegasus_knight'
   | 'soldier'
   | 'brigand';
-export type TerrainType = 'plains' | 'forest' | 'mountain' | 'water' | 'wall';
+export type TerrainType = 'plains' | 'forest' | 'mountain' | 'water' | 'wall' | 'lava' | 'cliff' | 'shallow_water' | 'deep_water' | 'bridge' | 'reef' | 'door' | 'chest' | 'throne' | 'escape' | 'fort' | 'village' | 'gate';
 
 export interface UnitStats {
   hp: number;
