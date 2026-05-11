@@ -169,6 +169,16 @@ export class BattleMenu {
     this._state = MenuState.CHOOSE_ACTION;
   }
 
+  cancelTargetSelection(): void {
+    if (this._state !== MenuState.CHOOSE_TARGET) {
+      throw new Error(`Cannot cancel target selection in state ${this._state}`);
+    }
+    this._selectedTarget = null;
+    this._selectedAction = null;
+    this._selectedWeaponIndex = -1;
+    this._state = MenuState.CHOOSE_ACTION;
+  }
+
   selectTradeTarget(target: Unit): void {
     if (this._state !== MenuState.CHOOSE_TRADE_TARGET) {
       throw new Error(`Cannot select trade target in state ${this._state}`);

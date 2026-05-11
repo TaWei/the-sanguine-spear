@@ -80,7 +80,7 @@ describe('BattleDisplayState', () => {
     expect(state.defenderInitialHp).toBe(26);
   });
 
-  it('advances through phases', () => {
+  it('advances through phases for single attack', () => {
     const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
     const defender = new Unit(
       'e1',
@@ -97,17 +97,17 @@ describe('BattleDisplayState', () => {
 
     expect(state.canAdvance()).toBe(true);
     state.advance();
-    expect(state.phase).toBe(BattlePhase.ATTACKER_STRIKE);
+    expect(state.phase).toBe(BattlePhase.STRIKE);
 
     state.advance();
-    expect(state.phase).toBe(BattlePhase.DEFENDER_RECOIL);
+    expect(state.phase).toBe(BattlePhase.RECOIL);
 
     state.advance();
     expect(state.phase).toBe(BattlePhase.DONE);
     expect(state.canAdvance()).toBe(false);
   });
 
-  it('includes counterattack phases when log has 2 entries', () => {
+  it('advances through phases for attack + counter', () => {
     const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
     const defender = new Unit(
       'e1',
@@ -124,15 +124,15 @@ describe('BattleDisplayState', () => {
     ];
     const state = new BattleDisplayState(attacker, defender, log);
 
-    state.advance(); // ATTACKER_STRIKE
-    state.advance(); // DEFENDER_RECOIL
-    state.advance(); // DEFENDER_COUNTER
-    state.advance(); // ATTACKER_RECOIL
+    state.advance(); // STRIKE (log[0])
+    state.advance(); // RECOIL
+    state.advance(); // STRIKE (log[1])
+    state.advance(); // RECOIL
     state.advance(); // DONE
     expect(state.phase).toBe(BattlePhase.DONE);
   });
 
-  it('skips counter phases when there is no counterattack', () => {
+  it('advances through phases for attack + counter + follow-up', () => {
     const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, { ...stats }, 5, 5);
     const defender = new Unit(
       'e1',
@@ -143,12 +143,23 @@ describe('BattleDisplayState', () => {
       6,
       5,
     );
-    const log = [makeLogEntry(attacker, defender, 8, true)];
+    const log = [
+      makeLogEntry(attacker, defender, 8, true),
+      makeLogEntry(defender, attacker, 6, true),
+      makeLogEntry(attacker, defender, 8, true), // follow-up
+    ];
     const state = new BattleDisplayState(attacker, defender, log);
 
-    state.advance(); // ATTACKER_STRIKE
-    state.advance(); // DEFENDER_RECOIL
-    state.advance(); // skips to DONE
+    state.advance(); // STRIKE (log[0])
+    expect(state.phase).toBe(BattlePhase.STRIKE);
+    state.advance(); // RECOIL
+    state.advance(); // STRIKE (log[1])
+    expect(state.phase).toBe(BattlePhase.STRIKE);
+    state.advance(); // RECOIL
+    state.advance(); // STRIKE (log[2])
+    expect(state.phase).toBe(BattlePhase.STRIKE);
+    state.advance(); // RECOIL
+    state.advance(); // DONE
     expect(state.phase).toBe(BattlePhase.DONE);
   });
 
@@ -169,11 +180,11 @@ describe('BattleDisplayState', () => {
     ];
     const state = new BattleDisplayState(attacker, defender, log);
 
-    state.advance(); // ATTACKER_STRIKE -> log[0]
+    state.advance(); // STRIKE -> log[0]
     expect(state.currentLogEntry).toBe(log[0]);
 
-    state.advance(); // DEFENDER_RECOIL
-    state.advance(); // DEFENDER_COUNTER -> log[1]
+    state.advance(); // RECOIL
+    state.advance(); // STRIKE -> log[1]
     expect(state.currentLogEntry).toBe(log[1]);
   });
 

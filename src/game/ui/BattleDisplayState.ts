@@ -3,22 +3,11 @@ import { Unit } from '../units/Unit';
 
 export const BattlePhase = {
   INTRO: 'intro',
-  ATTACKER_STRIKE: 'attacker_strike',
-  DEFENDER_RECOIL: 'defender_recoil',
-  DEFENDER_COUNTER: 'defender_counter',
-  ATTACKER_RECOIL: 'attacker_recoil',
+  STRIKE: 'strike',
+  RECOIL: 'recoil',
   DONE: 'done',
 } as const;
 export type BattlePhase = (typeof BattlePhase)[keyof typeof BattlePhase];
-
-const PHASE_ORDER: BattlePhase[] = [
-  BattlePhase.INTRO,
-  BattlePhase.ATTACKER_STRIKE,
-  BattlePhase.DEFENDER_RECOIL,
-  BattlePhase.DEFENDER_COUNTER,
-  BattlePhase.ATTACKER_RECOIL,
-  BattlePhase.DONE,
-];
 
 export class BattleDisplayState {
   readonly attackerInitialHp: number;
@@ -28,6 +17,7 @@ export class BattleDisplayState {
   private log: CombatLogEntry[];
   private index = 0;
   private appliedEntries = new Set<number>();
+  private phases: BattlePhase[];
 
   constructor(
     public readonly attacker: Unit,
@@ -41,6 +31,13 @@ export class BattleDisplayState {
     this.attackerCurrentHp = this.attackerInitialHp;
     this.defenderCurrentHp = this.defenderInitialHp;
     this.log = log;
+
+    this.phases = [BattlePhase.INTRO];
+    for (let i = 0; i < log.length; i++) {
+      this.phases.push(BattlePhase.STRIKE);
+      this.phases.push(BattlePhase.RECOIL);
+    }
+    this.phases.push(BattlePhase.DONE);
   }
 
   applyLogEntry(entry: CombatLogEntry): void {
@@ -52,43 +49,33 @@ export class BattleDisplayState {
     if (!entry.hit) {
       return;
     }
-    if (entry.defender === this.attacker) {
+    if (entry.defender.id === this.attacker.id) {
       this.attackerCurrentHp = Math.max(0, this.attackerCurrentHp - entry.damage);
-    } else if (entry.defender === this.defender) {
+    } else if (entry.defender.id === this.defender.id) {
       this.defenderCurrentHp = Math.max(0, this.defenderCurrentHp - entry.damage);
     }
   }
 
   get phase(): BattlePhase {
-    return PHASE_ORDER[this.index];
+    return this.phases[this.index];
   }
 
   get currentLogEntry(): CombatLogEntry | null {
-    if (this.phase === BattlePhase.ATTACKER_STRIKE || this.phase === BattlePhase.DEFENDER_RECOIL) {
-      return this.log[0] ?? null;
-    }
-    if (this.phase === BattlePhase.DEFENDER_COUNTER || this.phase === BattlePhase.ATTACKER_RECOIL) {
-      return this.log[1] ?? null;
+    if (this.phase === BattlePhase.STRIKE || this.phase === BattlePhase.RECOIL) {
+      const logIndex = Math.floor((this.index - 1) / 2);
+      return this.log[logIndex] ?? null;
     }
     return null;
   }
 
   canAdvance(): boolean {
-    return this.index < PHASE_ORDER.length - 1;
+    return this.index < this.phases.length - 1;
   }
 
   advance(): void {
     if (!this.canAdvance()) {
       return;
     }
-
-    // Skip counter phases if there is no counterattack log entry
-    const next = PHASE_ORDER[this.index + 1];
-    if (next === BattlePhase.DEFENDER_COUNTER && this.log.length < 2) {
-      this.index = PHASE_ORDER.length - 1; // jump to DONE
-      return;
-    }
-
     this.index++;
   }
 }

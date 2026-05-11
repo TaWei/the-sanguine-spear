@@ -110,6 +110,8 @@ export class BattleScene extends Phaser.Scene {
   private menuBtn: Phaser.GameObjects.Text | null = null;
   private menuConfirmationOverlay: Phaser.GameObjects.Container | null = null;
   private combatPreviewOverlay: Phaser.GameObjects.Container | null = null;
+  private combatPreviewConfirmMode: boolean = false;
+  private pendingCombatTarget: Unit | null = null;
 
   constructor() {
     super({ key: 'BattleScene' });
@@ -626,6 +628,7 @@ export class BattleScene extends Phaser.Scene {
   private handleTileHover(gx: number, gy: number): void {
     // Combat preview during target selection
     if (this.battleMenu.state === MenuState.CHOOSE_TARGET && this.battleMenu.unit) {
+      if (this.combatPreviewConfirmMode) return;
       const hoveredUnit = this.engine.getUnit(gx, gy);
       const validTarget = this.battleMenu.adjacentEnemies.find((e) => e.id === hoveredUnit?.id);
       if (validTarget) {
@@ -970,8 +973,18 @@ export class BattleScene extends Phaser.Scene {
     if (this.endTurnBtn) {
       this.endTurnBtn.setVisible(canInteract);
     }
+    const menuVisible =
+      this.engine.turnManager.isPlayerPhase() &&
+      !this.inBattleMode &&
+      !this.isAnimatingMovement &&
+      !this.levelUpSequence &&
+      !this.promotionSequence &&
+      !this.statusOverlay &&
+      !this.itemOverlay &&
+      !this.tradeOverlay &&
+      !this.menuConfirmationOverlay;
     if (this.menuBtn) {
-      this.menuBtn.setVisible(canInteract);
+      this.menuBtn.setVisible(menuVisible);
     }
   }
 
@@ -2149,27 +2162,36 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
       if (validTarget) {
+        if (this.combatPreviewConfirmMode) {
+          if (this.pendingCombatTarget?.id === validTarget.id) {
+            // Already confirming this target — ignore repeated clicks
+            return;
+          }
+          // Switch to a different enemy
+          this.pendingCombatTarget = validTarget;
+          this.showCombatPreviewWithConfirm(unit, validTarget);
+          return;
+        }
+        // Enter confirm mode
+        this.combatPreviewConfirmMode = true;
+        this.pendingCombatTarget = validTarget;
+        this.showCombatPreviewWithConfirm(unit, validTarget);
+        return;
+      } else {
+        // Clicked a non-target tile
+        if (this.combatPreviewConfirmMode) {
+          // Exit confirm mode, stay in CHOOSE_TARGET
+          this.combatPreviewConfirmMode = false;
+          this.pendingCombatTarget = null;
+          this.hideCombatPreview();
+          return;
+        }
+        // Cancel target selection and return to action menu
         this.hideCombatPreview();
-        this.battleMenu.selectTarget(validTarget);
-        this.clearMenuTexts();
         this.moveGraphics.clear();
         this.pathGraphics.clear();
-        const isFirstCombat = !this.engine.getFirstCombatOccurred();
-        this.playCutsceneIfTriggered(
-          { eventType: 'on_attack', attackerId: unit.id, defenderId: validTarget.id },
-          () => {
-            if (isFirstCombat) {
-              this.playCutsceneIfTriggered({ eventType: 'on_first_combat' }, () => {
-                this.engine.markFirstCombat();
-                this.startBattleMode(unit, validTarget);
-              });
-            } else {
-              this.startBattleMode(unit, validTarget);
-            }
-          },
-        );
-      } else {
-        // Clicked a non-target tile — don't cancel; wait for actual enemy click
+        this.battleMenu.cancelTargetSelection();
+        this.showPostMoveMenu(unit);
         return;
       }
     } else if (this.battleMenu.state === MenuState.CHOOSE_HEAL_TARGET) {
@@ -2183,7 +2205,11 @@ export class BattleScene extends Phaser.Scene {
       if (validTarget) {
         this.resolveStaffHeal(unit, validTarget);
       } else {
-        // Clicked a non-target tile — don't cancel; wait for actual ally click
+        // Clicked a non-target tile — cancel heal selection and return to action menu
+        this.moveGraphics.clear();
+        this.pathGraphics.clear();
+        this.battleMenu.cancelHealSelection();
+        this.showPostMoveMenu(unit);
         return;
       }
     }
@@ -2380,12 +2406,9 @@ export class BattleScene extends Phaser.Scene {
     state.advance();
     const entry = state.currentLogEntry;
 
-    if (
-      state.phase === BattlePhase.ATTACKER_STRIKE ||
-      state.phase === BattlePhase.DEFENDER_COUNTER
-    ) {
-      // Flash the attacker
-      const isCounter = state.phase === BattlePhase.DEFENDER_COUNTER;
+    if (state.phase === BattlePhase.STRIKE) {
+      // Determine target based on who is attacking in this log entry
+      const isCounter = entry?.attacker.id === state.defender.id;
       const target = isCounter ? state.attacker : state.defender;
 
       // Camera shake on hit
@@ -2407,10 +2430,7 @@ export class BattleScene extends Phaser.Scene {
           this.runBattleAnimation();
         });
       });
-    } else if (
-      state.phase === BattlePhase.DEFENDER_RECOIL ||
-      state.phase === BattlePhase.ATTACKER_RECOIL
-    ) {
+    } else if (state.phase === BattlePhase.RECOIL) {
       // Recoil phase — just advance after brief pause
       this.time.delayedCall(300, () => {
         this.runBattleAnimation();
@@ -2890,6 +2910,134 @@ export class BattleScene extends Phaser.Scene {
     const wepY = rowY + 24 + stats.length * rowH + 8;
     overlay.add(this.add.text(leftX, wepY, attWeapon.name, { fontSize: '11px', color: '#f1c40f' }).setOrigin(0, 0));
     overlay.add(this.add.text(rightX, wepY, defWeapon.name, { fontSize: '11px', color: '#f1c40f' }).setOrigin(1, 0));
+  }
+
+  private showCombatPreviewWithConfirm(attacker: Unit, defender: Unit): void {
+    this.hideCombatPreview();
+
+    const overlay = this.add.container(0, 0);
+    (overlay as any).__defenderId = defender.id;
+    this.combatPreviewOverlay = overlay;
+    overlay.setScrollFactor(0);
+    overlay.setDepth(100);
+
+    const w = 280;
+    const h = 260;
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height * 0.35;
+
+    const bg = this.add.rectangle(cx, cy, w, h, 0x000000, 0.85);
+    bg.setStrokeStyle(2, 0xffffff);
+    overlay.add(bg);
+
+    const preview = this.engine.getCombatPreview(attacker, defender, this.battleMenu.selectedWeaponIndex ?? undefined);
+
+    // Weapon triangle indicator
+    const attWeapon = this.engine.getWeaponForUnit(attacker, this.battleMenu.selectedWeaponIndex ?? undefined);
+    const defWeapon = this.engine.getWeaponForUnit(defender);
+    const triangleMod = getWeaponTriangleMod(attWeapon.type, defWeapon.type);
+    let triangleText = '';
+    let triangleColor = '#ffffff';
+    if (triangleMod.hitBonus > 0) {
+      triangleText = 'Advantage';
+      triangleColor = '#2ecc71';
+    } else if (triangleMod.hitBonus < 0) {
+      triangleText = 'Disadvantage';
+      triangleColor = '#e74c3c';
+    } else {
+      triangleText = 'Neutral';
+      triangleColor = '#bdc3c7';
+    }
+
+    const triLabel = this.add.text(cx, cy - h / 2 + 16, triangleText, {
+      fontSize: '14px',
+      color: triangleColor,
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+    overlay.add(triLabel);
+
+    const leftX = cx - w / 2 + 16;
+    const rightX = cx + w / 2 - 16;
+    const rowY = cy - h / 2 + 44;
+    const rowH = 22;
+
+    // Headers
+    overlay.add(this.add.text(leftX, rowY, attacker.name, { fontSize: '13px', color: '#3498db' }).setOrigin(0, 0));
+    overlay.add(this.add.text(rightX, rowY, defender.name, { fontSize: '13px', color: '#e74c3c' }).setOrigin(1, 0));
+
+    const stats = [
+      { label: 'Dmg', att: preview.attacker.damage, def: preview.defender?.damage ?? '-' },
+      { label: 'Hit', att: preview.attacker.hit + '%', def: preview.defender ? preview.defender.hit + '%' : '-' },
+      { label: 'Crit', att: preview.attacker.crit + '%', def: preview.defender ? preview.defender.crit + '%' : '-' },
+      { label: '2x', att: preview.attacker.doubleAttack ? 'Yes' : 'No', def: preview.defender?.doubleAttack ? 'Yes' : 'No' },
+    ];
+
+    for (let i = 0; i < stats.length; i++) {
+      const y = rowY + 24 + i * rowH;
+      overlay.add(this.add.text(leftX, y, stats[i].label, { fontSize: '12px', color: '#aaaaaa' }).setOrigin(0, 0));
+      overlay.add(this.add.text(leftX + 70, y, String(stats[i].att), { fontSize: '12px', color: '#ffffff' }).setOrigin(1, 0));
+      overlay.add(this.add.text(rightX, y, stats[i].label, { fontSize: '12px', color: '#aaaaaa' }).setOrigin(1, 0));
+      overlay.add(this.add.text(rightX - 70, y, String(stats[i].def), { fontSize: '12px', color: '#ffffff' }).setOrigin(0, 0));
+    }
+
+    // Weapon names
+    const wepY = rowY + 24 + stats.length * rowH + 8;
+    overlay.add(this.add.text(leftX, wepY, attWeapon.name, { fontSize: '11px', color: '#f1c40f' }).setOrigin(0, 0));
+    overlay.add(this.add.text(rightX, wepY, defWeapon.name, { fontSize: '11px', color: '#f1c40f' }).setOrigin(1, 0));
+
+    // Confirm / Cancel buttons
+    const btnY = cy + h / 2 - 28;
+    const confirmBtn = this.add.text(cx - 50, btnY, 'Confirm', {
+      fontSize: '14px',
+      color: '#2ecc71',
+      fontStyle: 'bold',
+      backgroundColor: '#000000',
+      padding: { x: 8, y: 4 },
+    }).setOrigin(0.5).setInteractive();
+
+    const cancelBtn = this.add.text(cx + 50, btnY, 'Cancel', {
+      fontSize: '14px',
+      color: '#e74c3c',
+      fontStyle: 'bold',
+      backgroundColor: '#000000',
+      padding: { x: 8, y: 4 },
+    }).setOrigin(0.5).setInteractive();
+
+    confirmBtn.on('pointerover', () => confirmBtn.setStyle({ color: '#27ae60' }));
+    confirmBtn.on('pointerout', () => confirmBtn.setStyle({ color: '#2ecc71' }));
+    confirmBtn.on('pointerdown', () => {
+      this.combatPreviewConfirmMode = false;
+      this.pendingCombatTarget = null;
+      this.hideCombatPreview();
+      this.battleMenu.selectTarget(defender);
+      this.clearMenuTexts();
+      this.moveGraphics.clear();
+      this.pathGraphics.clear();
+      const isFirstCombat = !this.engine.getFirstCombatOccurred();
+      this.playCutsceneIfTriggered(
+        { eventType: 'on_attack', attackerId: attacker.id, defenderId: defender.id },
+        () => {
+          if (isFirstCombat) {
+            this.playCutsceneIfTriggered({ eventType: 'on_first_combat' }, () => {
+              this.engine.markFirstCombat();
+              this.startBattleMode(attacker, defender);
+            });
+          } else {
+            this.startBattleMode(attacker, defender);
+          }
+        },
+      );
+    });
+
+    cancelBtn.on('pointerover', () => cancelBtn.setStyle({ color: '#c0392b' }));
+    cancelBtn.on('pointerout', () => cancelBtn.setStyle({ color: '#e74c3c' }));
+    cancelBtn.on('pointerdown', () => {
+      this.combatPreviewConfirmMode = false;
+      this.pendingCombatTarget = null;
+      this.hideCombatPreview();
+    });
+
+    overlay.add([confirmBtn, cancelBtn]);
   }
 
   private hideCombatPreview(): void {
