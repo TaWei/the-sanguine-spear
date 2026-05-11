@@ -10,6 +10,7 @@ import type { AiPersonality } from '../ai/Personality';
 import type { WeaponRankData } from '../combat/WeaponRank';
 import type { WeaponType } from '../combat/Weapons';
 import type { SupportPair } from '../support/SupportEngine';
+import type { PairUpState } from '../units/PairUpState';
 
 export const SAVE_VERSION = 1;
 
@@ -38,6 +39,7 @@ export interface UnitSnapshot {
   weaponRanks: Record<WeaponType, WeaponRankData>;
   rescuedUnitId: string | null;
   rescuedById: string | null;
+  pairUpState: { leadUnitId: string | null; guardUnitId: string | null };
 }
 
 export interface SaveData {

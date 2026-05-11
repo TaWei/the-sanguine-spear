@@ -54,6 +54,7 @@ import { ReinforcementEngine } from './reinforcements/ReinforcementEngine';
 import { VillageEngine } from './village/VillageEngine';
 import { FortEngine } from './village/FortEngine';
 import { SupportEngine } from './support/SupportEngine';
+import { canPair as canPairUp, pairUp as doPairUp, breakPair as doBreakPair, getCombinationAttacker, getGuardDefenseBonus } from './units/PairUpRules';
 
 export class GameEngine {
   grid: Grid;
@@ -238,7 +239,10 @@ export class GameEngine {
     for (const snap of data.units) {
       const unit = deserializeUnit(snap);
       this.units.push(unit);
-      this.grid.placeUnit(unit, unit.gridX, unit.gridY);
+      // Paired guards share the lead's tile — don't place them separately on the grid
+      if (!unit.pairUpState.leadUnitId) {
+        this.grid.placeUnit(unit, unit.gridX, unit.gridY);
+      }
     }
 
     // Restore rescue relationships (second pass after all units exist)
@@ -278,6 +282,14 @@ export class GameEngine {
     if (this.fogOfWar.isEnabled()) {
       this.fogOfWar.update(this.units, this.grid);
     }
+  }
+
+  save(levelId: string): SaveData {
+    return this.snapshot(levelId);
+  }
+
+  load(data: SaveData, def?: LevelDefinition): void {
+    this.restore(data, def);
   }
 
   getUnit(x: number, y: number): Unit | null {
@@ -395,6 +407,56 @@ export class GameEngine {
     return dx + dy === 1;
   }
 
+  // ---- Pair Up ----
+
+  canPair(leader: Unit, guard: Unit): boolean {
+    if (!this.areAdjacent(leader, guard)) return false;
+    return canPairUp(leader, guard);
+  }
+
+  pairUp(leader: Unit, guard: Unit): void {
+    if (!this.canPair(leader, guard)) {
+      throw new Error(`${leader.name} cannot pair with ${guard.name}`);
+    }
+    doPairUp(leader, guard);
+    // Remove guard from grid so they share the lead's tile
+    this.grid.removeUnit(guard.gridX, guard.gridY);
+    guard.moveTo(leader.gridX, leader.gridY);
+  }
+
+  breakPair(unit: Unit): void {
+    if (!unit.pairUpState.isPaired()) {
+      return;
+    }
+    const partnerId = unit.pairUpState.leadUnitId ?? unit.pairUpState.guardUnitId;
+    const partner = this.units.find((u) => u.id === partnerId);
+
+    // Determine lead and guard before clearing state
+    const lead = unit.pairUpState.guardUnitId ? unit : partner;
+    const guard = unit.pairUpState.leadUnitId ? unit : partner;
+
+    doBreakPair(unit, this.units);
+
+    // Place guard on an adjacent empty tile
+    if (lead && guard) {
+      const directions = [
+        { dx: 0, dy: -1 },
+        { dx: 0, dy: 1 },
+        { dx: -1, dy: 0 },
+        { dx: 1, dy: 0 },
+      ];
+      for (const { dx, dy } of directions) {
+        const nx = lead.gridX + dx;
+        const ny = lead.gridY + dy;
+        if (this.grid.isInBounds(nx, ny) && !this.grid.isOccupied(nx, ny)) {
+          guard.moveTo(nx, ny);
+          this.grid.placeUnit(guard, nx, ny);
+          break;
+        }
+      }
+    }
+  }
+
   // ---- Adjacent allies ----
 
   getAdjacentAllies(unit: Unit): Unit[] {
@@ -416,6 +478,10 @@ export class GameEngine {
       }
     }
     return allies;
+  }
+
+  getPairableAllies(unit: Unit): Unit[] {
+    return this.getAdjacentAllies(unit).filter((ally) => canPairUp(unit, ally));
   }
 
   getMoveRange(unit: Unit): Map<string, number> {
@@ -443,6 +509,14 @@ export class GameEngine {
     this.grid.removeUnit(oldX, oldY);
     unit.moveTo(x, y);
     this.grid.placeUnit(unit, x, y);
+
+    // If this unit is a lead with a paired guard, move the guard too
+    if (unit.pairUpState.guardUnitId) {
+      const guard = this.units.find((u) => u.id === unit.pairUpState.guardUnitId);
+      if (guard) {
+        guard.moveTo(x, y);
+      }
+    }
   }
 
   setTerrain(x: number, y: number, type: TerrainType): void {
@@ -606,6 +680,37 @@ export class GameEngine {
     const attTracker = this._createDurabilityTracker(attacker, attackerWeaponIndex);
     const defTracker = this._createDurabilityTracker(defender);
 
+    // Check for combination attacker from paired guard
+    let combinationAttacker: Unit | undefined;
+    let comboWeapon: WeaponData | undefined;
+    let comboTracker: DurabilityTracker | undefined;
+    if (attacker.pairUpState.guardUnitId) {
+      const guard = this.units.find((u) => u.id === attacker.pairUpState.guardUnitId);
+      if (guard) {
+        combinationAttacker = getCombinationAttacker(attacker, guard, defender, this.grid) ?? undefined;
+        if (combinationAttacker) {
+          comboWeapon = this.getWeaponForUnit(combinationAttacker);
+          comboTracker = this._createDurabilityTracker(combinationAttacker);
+        }
+      }
+    }
+
+    // Compute guard defense bonuses for both sides
+    let defenderGuardDefenseBonus = 0;
+    if (defender.pairUpState.guardUnitId) {
+      const guard = this.units.find((u) => u.id === defender.pairUpState.guardUnitId);
+      if (guard) {
+        defenderGuardDefenseBonus = getGuardDefenseBonus(guard, defender);
+      }
+    }
+    let attackerGuardDefenseBonus = 0;
+    if (attacker.pairUpState.guardUnitId) {
+      const guard = this.units.find((u) => u.id === attacker.pairUpState.guardUnitId);
+      if (guard) {
+        attackerGuardDefenseBonus = getGuardDefenseBonus(guard, attacker);
+      }
+    }
+
     const result = combat.resolveCombat(
       attacker,
       defender,
@@ -614,11 +719,19 @@ export class GameEngine {
       rng,
       attTracker,
       defTracker,
+      combinationAttacker,
+      comboWeapon,
+      comboTracker,
+      defenderGuardDefenseBonus,
+      attackerGuardDefenseBonus,
     );
 
     // Sync durability back to inventory
     this._syncWeaponDurability(attacker, attackerWeaponIndex, attTracker);
     this._syncWeaponDurability(defender, undefined, defTracker);
+    if (combinationAttacker && comboTracker) {
+      this._syncWeaponDurability(combinationAttacker, undefined, comboTracker);
+    }
 
     return result;
   }
@@ -631,7 +744,27 @@ export class GameEngine {
     const combat = new CombatEngine(this.grid);
     const attWeapon = this.getWeaponForUnit(attacker, attackerWeaponIndex);
     const defWeapon = this.getWeaponForUnit(defender);
-    return combat.previewCombat(attacker, defender, attWeapon, defWeapon);
+
+    // Compute guard defense bonuses for preview
+    let defenderGuardDefenseBonus = 0;
+    if (defender.pairUpState.guardUnitId) {
+      const guard = this.units.find((u) => u.id === defender.pairUpState.guardUnitId);
+      if (guard) {
+        defenderGuardDefenseBonus = getGuardDefenseBonus(guard, defender);
+      }
+    }
+    let attackerGuardDefenseBonus = 0;
+    if (attacker.pairUpState.guardUnitId) {
+      const guard = this.units.find((u) => u.id === attacker.pairUpState.guardUnitId);
+      if (guard) {
+        attackerGuardDefenseBonus = getGuardDefenseBonus(guard, attacker);
+      }
+    }
+
+    return combat.previewCombat(
+      attacker, defender, attWeapon, defWeapon,
+      defenderGuardDefenseBonus, attackerGuardDefenseBonus,
+    );
   }
 
   checkObjectives(): ObjectiveResult {
@@ -872,6 +1005,29 @@ export class GameEngine {
 
   talk(initiator: Unit, target: Unit): { success: boolean; reason?: string; recruitItems?: { name: string }[] } {
     return this.talkEngine.talk(initiator, target, this.talkConfigs);
+  }
+
+  resolveTalk(initiator: Unit, target: Unit): { success: boolean; reason?: string; recruitItems?: { name: string }[]; cutsceneId?: string } {
+    if (!this.canTalk(initiator, target)) {
+      return { success: false, reason: 'Cannot talk to this unit' };
+    }
+
+    const talkResult = this.talkEngine.talk(initiator, target, this.talkConfigs);
+    if (!talkResult.success) {
+      return talkResult;
+    }
+
+    // Evaluate cutscene trigger
+    const trigger = this.triggerEngine.evaluate({
+      eventType: 'on_talk',
+      recruiterId: initiator.id,
+      recruitId: target.id,
+    });
+
+    return {
+      ...talkResult,
+      cutsceneId: trigger?.cutsceneId,
+    };
   }
 
   getTalkableUnits(unit: Unit): Unit[] {

@@ -7,6 +7,7 @@ import type { AiPersonality } from '../ai/Personality';
 import { createWeaponRank, wexpToRank } from '../combat/WeaponRank';
 import type { WeaponRankData } from '../combat/WeaponRank';
 import type { WeaponType } from '../combat/Weapons';
+import { PairUpState } from './PairUpState';
 
 // Re-export from UnitClass module
 export { UnitClass } from './UnitClass';
@@ -51,6 +52,7 @@ export class Unit {
   readonly inventory: Inventory;
   private _stats: UnitStats;
   readonly state: UnitState = new UnitState();
+  readonly pairUpState: PairUpState = new PairUpState();
   private _gridX: number;
   private _gridY: number;
   private _level: number;

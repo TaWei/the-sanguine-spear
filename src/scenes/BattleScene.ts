@@ -102,6 +102,8 @@ export class BattleScene extends Phaser.Scene {
   private saveMenuContainer: Phaser.GameObjects.Container | null = null;
   private tradeMenu: TradeMenu = new TradeMenu();
   private tradeOverlay: Phaser.GameObjects.Container | null = null;
+  private pairOverlay: Phaser.GameObjects.Container | null = null;
+  private talkOverlay: Phaser.GameObjects.Container | null = null;
   private goldText: Phaser.GameObjects.Text | null = null;
   private preCutsceneInputEnabled = true;
   private dragDetector = new DragDetector(5);
@@ -1295,6 +1297,8 @@ export class BattleScene extends Phaser.Scene {
 
     const enemies = this.engine.getAdjacentEnemies(unit);
     const allies = this.engine.getAdjacentAllies(unit);
+    const pairableAllies = this.engine.getPairableAllies(unit);
+    const talkableUnits = this.engine.getTalkableUnits(unit);
 
     const px = this.offsetX + unit.gridX * TILE_SIZE + TILE_SIZE / 2;
     const py = this.offsetY + unit.gridY * TILE_SIZE - TILE_SIZE;
@@ -1303,10 +1307,14 @@ export class BattleScene extends Phaser.Scene {
     const healTargets = staff ? this.engine.getHealTargets(unit) : [];
     const hasStaff = staff !== null && healTargets.length > 0;
 
-    this.battleMenu.show(unit, enemies, healTargets, allies);
+    this.battleMenu.show(unit, enemies, healTargets, allies, pairableAllies, talkableUnits);
 
+    const texts: Phaser.GameObjects.Text[] = [];
+    let currentY = py;
+
+    // Fight
     const fightText = this.add
-      .text(px, py, '[ Fight ]', {
+      .text(px, currentY, '[ Fight ]', {
         fontSize: '21px',
         color: '#ffffff',
         backgroundColor: enemies.length > 0 ? '#c0392b' : '#7f8c8d',
@@ -1337,13 +1345,14 @@ export class BattleScene extends Phaser.Scene {
         },
       );
     }
+    texts.push(fightText);
+    currentY += 36;
 
-    const baseY = hasStaff ? 36 : 0;
-
+    // Staff
     let staffText: Phaser.GameObjects.Text | null = null;
     if (hasStaff) {
       staffText = this.add
-        .text(px, py + 36, '[ Staff ]', {
+        .text(px, currentY, '[ Staff ]', {
           fontSize: '21px',
           color: '#ffffff',
           backgroundColor: '#27ae60',
@@ -1367,10 +1376,13 @@ export class BattleScene extends Phaser.Scene {
           this.highlightHealTargets(healTargets);
         },
       );
+      texts.push(staffText);
+      currentY += 36;
     }
 
+    // Status
     const statusText = this.add
-      .text(px, py + 36 + baseY, '[ Status ]', {
+      .text(px, currentY, '[ Status ]', {
         fontSize: '21px',
         color: '#ffffff',
         backgroundColor: '#27ae60',
@@ -1395,9 +1407,12 @@ export class BattleScene extends Phaser.Scene {
         this.showStatusWindow(unit);
       },
     );
+    texts.push(statusText);
+    currentY += 36;
 
+    // Items
     const itemsText = this.add
-      .text(px, py + 72 + baseY, '[ Items ]', {
+      .text(px, currentY, '[ Items ]', {
         fontSize: '21px',
         color: '#ffffff',
         backgroundColor: '#8e44ad',
@@ -1422,9 +1437,12 @@ export class BattleScene extends Phaser.Scene {
         this.showItemMenu(unit);
       },
     );
+    texts.push(itemsText);
+    currentY += 36;
 
+    // Trade
     const tradeText = this.add
-      .text(px, py + 108 + baseY, '[ Trade ]', {
+      .text(px, currentY, '[ Trade ]', {
         fontSize: '21px',
         color: '#ffffff',
         backgroundColor: allies.length > 0 ? '#f39c12' : '#7f8c8d',
@@ -1450,10 +1468,110 @@ export class BattleScene extends Phaser.Scene {
           this.showTradeTargetSelection(unit, allies);
         },
       );
+      texts.push(tradeText);
+      currentY += 36;
+    } else {
+      tradeText.destroy();
     }
 
+    // Pair Up / Separate
+    let pairText: Phaser.GameObjects.Text | null = null;
+    if (pairableAllies.length > 0) {
+      pairText = this.add
+        .text(px, currentY, '[ Pair Up ]', {
+          fontSize: '21px',
+          color: '#ffffff',
+          backgroundColor: '#2980b9',
+          padding: { x: 12, y: 6 },
+        })
+        .setOrigin(0.5)
+        .setDepth(100)
+        .setInteractive({ useHandCursor: true });
+      pairText.on(
+        'pointerdown',
+        (
+          _pointer: Phaser.Input.Pointer,
+          _localX: number,
+          _localY: number,
+          event: Phaser.Types.Input.EventData,
+        ) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          event.stopPropagation();
+          this.battleMenu.selectAction(MenuAction.PAIR_UP);
+          this.clearMenuTexts();
+          this.showPairTargetSelection(unit, pairableAllies);
+        },
+      );
+      texts.push(pairText);
+      currentY += 36;
+    } else if (unit.pairUpState.isPaired()) {
+      pairText = this.add
+        .text(px, currentY, '[ Separate ]', {
+          fontSize: '21px',
+          color: '#ffffff',
+          backgroundColor: '#e67e22',
+          padding: { x: 12, y: 6 },
+        })
+        .setOrigin(0.5)
+        .setDepth(100)
+        .setInteractive({ useHandCursor: true });
+      pairText.on(
+        'pointerdown',
+        (
+          _pointer: Phaser.Input.Pointer,
+          _localX: number,
+          _localY: number,
+          event: Phaser.Types.Input.EventData,
+        ) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          event.stopPropagation();
+          this.battleMenu.selectAction(MenuAction.SEPARATE);
+          this.clearMenuTexts();
+          this.engine.breakPair(unit);
+          unit.state.transition(UNIT_STATE.EXHAUSTED);
+          this.syncUnitSprites();
+          this.checkAutoEndTurn();
+        },
+      );
+      texts.push(pairText);
+      currentY += 36;
+    }
+
+    // Talk
+    let talkText: Phaser.GameObjects.Text | null = null;
+    if (talkableUnits.length > 0) {
+      talkText = this.add
+        .text(px, currentY, '[ Talk ]', {
+          fontSize: '21px',
+          color: '#ffffff',
+          backgroundColor: '#9b59b6',
+          padding: { x: 12, y: 6 },
+        })
+        .setOrigin(0.5)
+        .setDepth(100)
+        .setInteractive({ useHandCursor: true });
+      talkText.on(
+        'pointerdown',
+        (
+          _pointer: Phaser.Input.Pointer,
+          _localX: number,
+          _localY: number,
+          event: Phaser.Types.Input.EventData,
+        ) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+          event.stopPropagation();
+          this.battleMenu.selectAction(MenuAction.TALK);
+          this.clearMenuTexts();
+          this.showTalkTargetSelection(unit, talkableUnits);
+        },
+      );
+      texts.push(talkText);
+      currentY += 36;
+    }
+
+    // End Turn
     const endText = this.add
-      .text(px, py + 108 + baseY + (allies.length > 0 ? 36 : 0), '[ End Turn ]', {
+      .text(px, currentY, '[ End Turn ]', {
         fontSize: '21px',
         color: '#ffffff',
         backgroundColor: '#2c3e50',
@@ -1480,16 +1598,8 @@ export class BattleScene extends Phaser.Scene {
         this.checkAutoEndTurn();
       },
     );
+    texts.push(endText);
 
-    const texts: Phaser.GameObjects.Text[] = [fightText, endText, statusText, itemsText];
-    if (staffText) {
-      texts.splice(1, 0, staffText);
-    }
-    if (allies.length > 0) {
-      texts.splice(texts.indexOf(endText), 0, tradeText);
-    } else {
-      tradeText.destroy();
-    }
     this.menuTexts.push(...texts);
     this.updateSaveBtnVisibility();
   }
@@ -1577,6 +1687,171 @@ export class BattleScene extends Phaser.Scene {
       this.showPostMoveMenu(unit);
     });
     overlay.add(cancelText);
+  }
+
+  private showPairTargetSelection(unit: Unit, pairableAllies: Unit[]): void {
+    this.inputEnabled = false;
+    const overlay = this.add.container(0, 0);
+    this.pairOverlay = overlay;
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7,
+    );
+    overlay.add(bg);
+
+    const titleText = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.2, 'Pair Up with', {
+        fontSize: '24px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    overlay.add(titleText);
+
+    for (let i = 0; i < pairableAllies.length; i++) {
+      const ally = pairableAllies[i];
+      const y = this.cameras.main.height * 0.35 + i * 48;
+      const allyText = this.add
+        .text(this.cameras.main.width / 2, y, ally.name, {
+          fontSize: '18px',
+          color: '#ffffff',
+          backgroundColor: '#2980b9',
+          padding: { x: 12, y: 6 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      allyText.on('pointerdown', () => {
+        this.battleMenu.selectPairTarget(ally);
+        this.pairOverlay?.destroy();
+        this.pairOverlay = null;
+        this.engine.pairUp(unit, ally);
+        unit.state.transition(UNIT_STATE.EXHAUSTED);
+        this.inputEnabled = true;
+        this.syncUnitSprites();
+        this.checkAutoEndTurn();
+      });
+      overlay.add(allyText);
+    }
+
+    const cancelText = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.8, '[ Cancel ]', {
+        fontSize: '16px',
+        color: '#ffffff',
+        backgroundColor: '#e74c3c',
+        padding: { x: 12, y: 6 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    cancelText.on('pointerdown', () => {
+      this.battleMenu.cancelPairSelection();
+      this.pairOverlay?.destroy();
+      this.pairOverlay = null;
+      this.inputEnabled = true;
+      this.showPostMoveMenu(unit);
+    });
+    overlay.add(cancelText);
+
+    this.input.keyboard?.once('keydown-ESC', () => {
+      this.battleMenu.cancelPairSelection();
+      this.pairOverlay?.destroy();
+      this.pairOverlay = null;
+      this.inputEnabled = true;
+      this.showPostMoveMenu(unit);
+    });
+  }
+
+  private showTalkTargetSelection(unit: Unit, talkableUnits: Unit[]): void {
+    this.inputEnabled = false;
+    const overlay = this.add.container(0, 0);
+    this.talkOverlay = overlay;
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.7,
+    );
+    overlay.add(bg);
+
+    const titleText = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.2, 'Talk to', {
+        fontSize: '24px',
+        color: '#ffffff',
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5);
+    overlay.add(titleText);
+
+    for (let i = 0; i < talkableUnits.length; i++) {
+      const target = talkableUnits[i];
+      const y = this.cameras.main.height * 0.35 + i * 48;
+      const targetText = this.add
+        .text(this.cameras.main.width / 2, y, target.name, {
+          fontSize: '18px',
+          color: '#ffffff',
+          backgroundColor: '#9b59b6',
+          padding: { x: 12, y: 6 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+      targetText.on('pointerdown', () => {
+        this.battleMenu.selectTalkTarget(target);
+        this.talkOverlay?.destroy();
+        this.talkOverlay = null;
+        const result = this.engine.resolveTalk(unit, target);
+        if (result.success) {
+          unit.state.transition(UNIT_STATE.EXHAUSTED);
+          this.syncUnitSprites();
+          if (result.cutsceneId && hasCutscene(result.cutsceneId)) {
+            this.preCutsceneInputEnabled = this.inputEnabled;
+            this.inputEnabled = false;
+            this.scene.launch('CutsceneScene', {
+              cutsceneId: result.cutsceneId,
+              overlay: true,
+              onComplete: () => {
+                this.inputEnabled = this.preCutsceneInputEnabled;
+                this.checkAutoEndTurn();
+              },
+            });
+            return;
+          }
+        }
+        this.inputEnabled = true;
+        this.checkAutoEndTurn();
+      });
+      overlay.add(targetText);
+    }
+
+    const cancelText = this.add
+      .text(this.cameras.main.width / 2, this.cameras.main.height * 0.8, '[ Cancel ]', {
+        fontSize: '16px',
+        color: '#ffffff',
+        backgroundColor: '#e74c3c',
+        padding: { x: 12, y: 6 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    cancelText.on('pointerdown', () => {
+      this.battleMenu.cancelTalkSelection();
+      this.talkOverlay?.destroy();
+      this.talkOverlay = null;
+      this.inputEnabled = true;
+      this.showPostMoveMenu(unit);
+    });
+    overlay.add(cancelText);
+
+    this.input.keyboard?.once('keydown-ESC', () => {
+      this.battleMenu.cancelTalkSelection();
+      this.talkOverlay?.destroy();
+      this.talkOverlay = null;
+      this.inputEnabled = true;
+      this.showPostMoveMenu(unit);
+    });
   }
 
   private showTradeMenu(leftUnit: Unit, rightUnit: Unit): void {

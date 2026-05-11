@@ -133,6 +133,51 @@ describe('CutsceneTriggerEngine', () => {
     expect(engine.evaluate({ eventType: 'on_boss_encounter', bossId: 'other' })).toBeNull();
   });
 
+  it('matches on_talk with specific recruiter and recruit', () => {
+    engine.register([
+      {
+        id: 't1',
+        cutsceneId: 'cs_recruit',
+        condition: { type: 'on_talk', recruiterId: 'hero', recruitId: 'bandit' },
+        oneShot: true,
+      },
+    ]);
+    expect(
+      engine.evaluate({ eventType: 'on_talk', recruiterId: 'hero', recruitId: 'bandit' })!.cutsceneId,
+    ).toBe('cs_recruit');
+    expect(engine.evaluate({ eventType: 'on_talk', recruiterId: 'hero', recruitId: 'other' })).toBeNull();
+    expect(engine.evaluate({ eventType: 'on_talk', recruiterId: 'other', recruitId: 'bandit' })).toBeNull();
+  });
+
+  it('matches on_talk with wildcard ids', () => {
+    engine.register([
+      {
+        id: 't1',
+        cutsceneId: 'cs_recruit',
+        condition: { type: 'on_talk' },
+        oneShot: false,
+      },
+    ]);
+    expect(engine.evaluate({ eventType: 'on_talk', recruiterId: 'any', recruitId: 'thing' })!.cutsceneId).toBe(
+      'cs_recruit',
+    );
+  });
+
+  it('consumes one-shot on_talk trigger after first match', () => {
+    engine.register([
+      {
+        id: 't1',
+        cutsceneId: 'cs_recruit',
+        condition: { type: 'on_talk', recruiterId: 'hero', recruitId: 'bandit' },
+        oneShot: true,
+      },
+    ]);
+    expect(engine.evaluate({ eventType: 'on_talk', recruiterId: 'hero', recruitId: 'bandit' })!.cutsceneId).toBe(
+      'cs_recruit',
+    );
+    expect(engine.evaluate({ eventType: 'on_talk', recruiterId: 'hero', recruitId: 'bandit' })).toBeNull();
+  });
+
   it('consumes one-shot triggers after first match', () => {
     engine.register([
       {

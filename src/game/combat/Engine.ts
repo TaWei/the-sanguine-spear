@@ -57,6 +57,8 @@ export interface CombatResult {
   attackerWeaponUsed: boolean;
   /** Whether the defender's weapon durability was consumed (at least 1 use) */
   defenderWeaponUsed: boolean;
+  /** Whether the combination attacker's weapon durability was consumed (at least 1 use) */
+  comboWeaponUsed: boolean;
 }
 
 export interface AttackPreview {
@@ -86,10 +88,16 @@ export class CombatEngine {
     rng: () => number = Math.random,
     attTracker?: DurabilityTracker,
     defTracker?: DurabilityTracker,
+    combinationAttacker?: Unit,
+    comboWeapon?: WeaponData,
+    comboTracker?: DurabilityTracker,
+    defenderGuardDefenseBonus = 0,
+    attackerGuardDefenseBonus = 0,
   ): CombatResult {
     const log: CombatLogEntry[] = [];
     let attackerWeaponUsed = false;
     let defenderWeaponUsed = false;
+    let comboWeaponUsed = false;
 
     // Helper: perform attacks (Brave weapons fire consecutiveAttacks times)
     const performAttacks = (
@@ -98,6 +106,7 @@ export class CombatEngine {
       wpn: WeaponData,
       defWpn: WeaponData,
       tracker?: DurabilityTracker,
+      guardBonus = 0,
     ): CombatLogEntry[] => {
       const entries: CombatLogEntry[] = [];
       const count = wpn.consecutiveAttacks ?? 1;
@@ -107,7 +116,7 @@ export class CombatEngine {
         if (tracker && tracker.isBroken) break;
         if (!att.isAlive || !def.isAlive) break;
 
-        const entry = this.resolveHit(att, def, wpn, defWpn, rng);
+        const entry = this.resolveHit(att, def, wpn, defWpn, rng, guardBonus);
         if (entry.hit) {
           def.takeDamage(entry.damage);
         }
@@ -129,15 +138,22 @@ export class CombatEngine {
     const defenderDoubles = defAS - attAS >= 4;
 
     // === Attacker's first attack(s) ===
-    const a1entries = performAttacks(attacker, defender, attackerWeapon, defenderWeapon, attTracker);
+    const a1entries = performAttacks(attacker, defender, attackerWeapon, defenderWeapon, attTracker, defenderGuardDefenseBonus);
     log.push(...a1entries);
     if (a1entries.length > 0 && attTracker?.wasUsed) attackerWeaponUsed = true;
+
+    // === Combination attack from paired guard ===
+    if (combinationAttacker && comboWeapon && defender.isAlive) {
+      const cEntries = performAttacks(combinationAttacker, defender, comboWeapon, defenderWeapon, comboTracker, defenderGuardDefenseBonus);
+      log.push(...cEntries);
+      if (cEntries.length > 0 && comboTracker?.wasUsed) comboWeaponUsed = true;
+    }
 
     // Check if defender died before counter
     if (!defender.isAlive) {
       const attackerHit = log.some((e) => e.attacker === attacker && e.hit);
       const expAward = calcCombatExp(attacker.level, defender.level, attackerHit, true);
-      return { log, attackerDied: false, defenderDied: true, expAward, attackerWeaponUsed, defenderWeaponUsed };
+      return { log, attackerDied: false, defenderDied: true, expAward, attackerWeaponUsed, defenderWeaponUsed, comboWeaponUsed };
     }
 
     // === Defender's counterattack(s) ===
@@ -145,20 +161,20 @@ export class CombatEngine {
       this.isInRange(defender.gridX, defender.gridY, attacker.gridX, attacker.gridY, defenderWeapon)
     ) {
       // First counter
-      const d1entries = performAttacks(defender, attacker, defenderWeapon, attackerWeapon, defTracker);
+      const d1entries = performAttacks(defender, attacker, defenderWeapon, attackerWeapon, defTracker, attackerGuardDefenseBonus);
       log.push(...d1entries);
       if (d1entries.length > 0 && defTracker?.wasUsed) defenderWeaponUsed = true;
 
       // Defender follow-up (if eligible, attacker alive, weapon not broken)
       if (defenderDoubles && attacker.isAlive) {
-        const d2entries = performAttacks(defender, attacker, defenderWeapon, attackerWeapon, defTracker);
+        const d2entries = performAttacks(defender, attacker, defenderWeapon, attackerWeapon, defTracker, attackerGuardDefenseBonus);
         log.push(...d2entries);
       }
     }
 
     // === Attacker follow-up (GBA FE order: attacker → counter → attacker follow-up) ===
     if (attackerDoubles && attacker.isAlive && defender.isAlive) {
-      const a2entries = performAttacks(attacker, defender, attackerWeapon, defenderWeapon, attTracker);
+      const a2entries = performAttacks(attacker, defender, attackerWeapon, defenderWeapon, attTracker, defenderGuardDefenseBonus);
       log.push(...a2entries);
     }
 
@@ -175,7 +191,7 @@ export class CombatEngine {
       this.awardCombatWeaponExp(defender, defenderWeapon);
     }
 
-    return { log, attackerDied, defenderDied, expAward, attackerWeaponUsed, defenderWeaponUsed };
+    return { log, attackerDied, defenderDied, expAward, attackerWeaponUsed, defenderWeaponUsed, comboWeaponUsed };
   }
 
   private awardCombatWeaponExp(unit: Unit, weapon: WeaponData): void {
@@ -189,14 +205,20 @@ export class CombatEngine {
     defender: Unit,
     attackerWeapon: WeaponData,
     defenderWeapon: WeaponData,
+    defenderGuardDefenseBonus = 0,
+    attackerGuardDefenseBonus = 0,
   ): CombatPreview {
-    const attackerPreview = this.previewAttack(attacker, defender, attackerWeapon, defenderWeapon);
+    const attackerPreview = this.previewAttack(
+      attacker, defender, attackerWeapon, defenderWeapon, defenderGuardDefenseBonus,
+    );
 
     let defenderPreview: AttackPreview | null = null;
     if (
       this.isInRange(defender.gridX, defender.gridY, attacker.gridX, attacker.gridY, defenderWeapon)
     ) {
-      defenderPreview = this.previewAttack(defender, attacker, defenderWeapon, attackerWeapon);
+      defenderPreview = this.previewAttack(
+        defender, attacker, defenderWeapon, attackerWeapon, attackerGuardDefenseBonus,
+      );
     }
 
     return { attacker: attackerPreview, defender: defenderPreview };
@@ -206,6 +228,7 @@ export class CombatEngine {
     defender: Unit,
     weapon: WeaponData,
     defenderWeapon: WeaponData,
+    guardDefenseBonus = 0,
   ): AttackPreview {
     const attStats = attacker.stats;
     const defStats = defender.stats;
@@ -221,7 +244,8 @@ export class CombatEngine {
     const atkStat = weapon.usesMagic ? attStats.mag : attStats.str;
     const defStat = weapon.usesMagic ? defStats.res : defStats.def;
     const effective = this.isEffective(weapon, defender.unitClass);
-    const damage = calcDamage(atkStat, weapon.mt, defStat, weapon.usesMagic, effective, triangle.mtBonus);
+    const rawDamage = calcDamage(atkStat, weapon.mt, defStat, weapon.usesMagic, effective, triangle.mtBonus);
+    const damage = Math.max(1, rawDamage - guardDefenseBonus);
 
     const classBonus = getClassCritBonus(attacker.unitClass);
     const critRate = calcCritRate(weapon.crit, attStats.skl, classBonus);
@@ -253,6 +277,7 @@ export class CombatEngine {
     weapon: WeaponData,
     defenderWeapon: WeaponData,
     rng: () => number,
+    guardDefenseBonus = 0,
   ): CombatLogEntry {
     const attStats = attacker.stats;
     const defStats = defender.stats;
@@ -275,6 +300,7 @@ export class CombatEngine {
       const defStat = weapon.usesMagic ? defStats.res : defStats.def;
       const effective = this.isEffective(weapon, defender.unitClass);
       damage = calcDamage(atkStat, weapon.mt, defStat, weapon.usesMagic, effective, triangle.mtBonus);
+      damage = Math.max(1, damage - guardDefenseBonus);
 
       const classBonus = getClassCritBonus(attacker.unitClass);
       const critRate = calcCritRate(weapon.crit, attStats.skl, classBonus);

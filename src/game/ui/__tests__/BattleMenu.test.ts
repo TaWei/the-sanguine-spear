@@ -280,4 +280,88 @@ describe('BattleMenu', () => {
     expect(menu.unit).toBeNull();
     expect(menu.adjacentAllies).toHaveLength(0);
   });
+
+  it('selecting PAIR_UP transitions to CHOOSE_PAIR_TARGET', () => {
+    const menu = new BattleMenu();
+    const ally = new Unit('a1', 'Ally', Faction.PLAYER, UnitClass.LORD, stats, 5, 4);
+    menu.show(player, [enemy], [], [], [ally]);
+    menu.selectAction(MenuAction.PAIR_UP);
+    expect(menu.state).toBe(MenuState.CHOOSE_PAIR_TARGET);
+    expect(menu.selectedAction).toBe(MenuAction.PAIR_UP);
+  });
+
+  it('selecting SEPARATE transitions to RESOLVED', () => {
+    const menu = new BattleMenu();
+    menu.show(player, [enemy]);
+    menu.selectAction(MenuAction.SEPARATE);
+    expect(menu.state).toBe(MenuState.RESOLVED);
+    expect(menu.selectedAction).toBe(MenuAction.SEPARATE);
+  });
+
+  it('selectPairTarget transitions to RESOLVED', () => {
+    const menu = new BattleMenu();
+    const ally = new Unit('a1', 'Ally', Faction.PLAYER, UnitClass.LORD, stats, 5, 4);
+    menu.show(player, [enemy], [], [], [ally]);
+    menu.selectAction(MenuAction.PAIR_UP);
+    menu.selectPairTarget(ally);
+    expect(menu.state).toBe(MenuState.RESOLVED);
+    expect(menu.selectedTarget).toBe(ally);
+  });
+
+  it('cancelPairSelection returns to CHOOSE_ACTION', () => {
+    const menu = new BattleMenu();
+    const ally = new Unit('a1', 'Ally', Faction.PLAYER, UnitClass.LORD, stats, 5, 4);
+    menu.show(player, [enemy], [], [], [ally]);
+    menu.selectAction(MenuAction.PAIR_UP);
+    expect(menu.state).toBe(MenuState.CHOOSE_PAIR_TARGET);
+    menu.cancelPairSelection();
+    expect(menu.state).toBe(MenuState.CHOOSE_ACTION);
+    expect(menu.selectedAction).toBeNull();
+  });
+
+  it('stores pairable allies when shown', () => {
+    const menu = new BattleMenu();
+    const ally = new Unit('a1', 'Ally', Faction.PLAYER, UnitClass.LORD, stats, 5, 4);
+    menu.show(player, [enemy], [], [], [ally]);
+    expect(menu.pairableAllies).toHaveLength(1);
+    expect(menu.pairableAllies[0].id).toBe('a1');
+  });
+
+  it('selecting TALK transitions to CHOOSE_TALK_TARGET', () => {
+    const menu = new BattleMenu();
+    const talkable = new Unit('t1', 'Recruit', Faction.ENEMY, UnitClass.SOLDIER, stats, 5, 4);
+    menu.show(player, [enemy], [], [], [], [talkable]);
+    menu.selectAction(MenuAction.TALK);
+    expect(menu.state).toBe(MenuState.CHOOSE_TALK_TARGET);
+    expect(menu.selectedAction).toBe(MenuAction.TALK);
+  });
+
+  it('selectTalkTarget transitions to RESOLVED', () => {
+    const menu = new BattleMenu();
+    const talkable = new Unit('t1', 'Recruit', Faction.ENEMY, UnitClass.SOLDIER, stats, 5, 4);
+    menu.show(player, [enemy], [], [], [], [talkable]);
+    menu.selectAction(MenuAction.TALK);
+    menu.selectTalkTarget(talkable);
+    expect(menu.state).toBe(MenuState.RESOLVED);
+    expect(menu.selectedTarget).toBe(talkable);
+  });
+
+  it('cancelTalkSelection returns to CHOOSE_ACTION', () => {
+    const menu = new BattleMenu();
+    const talkable = new Unit('t1', 'Recruit', Faction.ENEMY, UnitClass.SOLDIER, stats, 5, 4);
+    menu.show(player, [enemy], [], [], [], [talkable]);
+    menu.selectAction(MenuAction.TALK);
+    expect(menu.state).toBe(MenuState.CHOOSE_TALK_TARGET);
+    menu.cancelTalkSelection();
+    expect(menu.state).toBe(MenuState.CHOOSE_ACTION);
+    expect(menu.selectedAction).toBeNull();
+  });
+
+  it('stores talkable units when shown', () => {
+    const menu = new BattleMenu();
+    const talkable = new Unit('t1', 'Recruit', Faction.ENEMY, UnitClass.SOLDIER, stats, 5, 4);
+    menu.show(player, [enemy], [], [], [], [talkable]);
+    expect(menu.talkableUnits).toHaveLength(1);
+    expect(menu.talkableUnits[0].id).toBe('t1');
+  });
 });

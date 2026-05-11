@@ -9,6 +9,8 @@ export const MenuState = {
   CHOOSE_STATUS: 'choose_status',
   CHOOSE_ITEM: 'choose_item',
   CHOOSE_TRADE_TARGET: 'choose_trade_target',
+  CHOOSE_PAIR_TARGET: 'choose_pair_target',
+  CHOOSE_TALK_TARGET: 'choose_talk_target',
   CHOOSE_SHOP: 'choose_shop',
   RESOLVED: 'resolved',
 } as const;
@@ -22,6 +24,9 @@ export const MenuAction = {
   STATUS: 'status',
   TRADE: 'trade',
   SHOP: 'shop',
+  PAIR_UP: 'pair_up',
+  SEPARATE: 'separate',
+  TALK: 'talk',
 } as const;
 export type MenuAction = (typeof MenuAction)[keyof typeof MenuAction];
 
@@ -31,6 +36,8 @@ export class BattleMenu {
   private _enemies: Unit[] = [];
   private _healTargets: Unit[] = [];
   private _allies: Unit[] = [];
+  private _pairableAllies: Unit[] = [];
+  private _talkableUnits: Unit[] = [];
   private _selectedAction: MenuAction | null = null;
   private _selectedTarget: Unit | null = null;
   private _selectedWeaponIndex: number = -1;
@@ -51,6 +58,12 @@ export class BattleMenu {
   get adjacentAllies(): readonly Unit[] {
     return this._allies;
   }
+  get pairableAllies(): readonly Unit[] {
+    return this._pairableAllies;
+  }
+  get talkableUnits(): readonly Unit[] {
+    return this._talkableUnits;
+  }
   get selectedAction(): MenuAction | null {
     return this._selectedAction;
   }
@@ -68,11 +81,13 @@ export class BattleMenu {
     return this._healTargets;
   }
 
-  show(unit: Unit, enemies: Unit[], healTargets: Unit[] = [], allies: Unit[] = []): void {
+  show(unit: Unit, enemies: Unit[], healTargets: Unit[] = [], allies: Unit[] = [], pairableAllies: Unit[] = [], talkableUnits: Unit[] = []): void {
     this._unit = unit;
     this._enemies = enemies;
     this._healTargets = healTargets;
     this._allies = allies;
+    this._pairableAllies = pairableAllies;
+    this._talkableUnits = talkableUnits;
     this._selectedAction = null;
     this._selectedTarget = null;
     this._selectedWeaponIndex = -1;
@@ -85,7 +100,7 @@ export class BattleMenu {
       throw new Error(`Cannot select action in state ${this._state}`);
     }
     this._selectedAction = action;
-    if (action === MenuAction.END_TURN) {
+    if (action === MenuAction.END_TURN || action === MenuAction.SEPARATE) {
       this._state = MenuState.RESOLVED;
     } else if (action === MenuAction.STATUS) {
       this._state = MenuState.CHOOSE_STATUS;
@@ -93,6 +108,10 @@ export class BattleMenu {
       this._state = MenuState.CHOOSE_ITEM;
     } else if (action === MenuAction.TRADE) {
       this._state = MenuState.CHOOSE_TRADE_TARGET;
+    } else if (action === MenuAction.PAIR_UP) {
+      this._state = MenuState.CHOOSE_PAIR_TARGET;
+    } else if (action === MenuAction.TALK) {
+      this._state = MenuState.CHOOSE_TALK_TARGET;
     } else if (action === MenuAction.SHOP) {
       this._state = MenuState.CHOOSE_SHOP;
     } else if (action === MenuAction.FIGHT) {
@@ -196,12 +215,48 @@ export class BattleMenu {
     this._state = MenuState.CHOOSE_ACTION;
   }
 
+  selectPairTarget(target: Unit): void {
+    if (this._state !== MenuState.CHOOSE_PAIR_TARGET) {
+      throw new Error(`Cannot select pair target in state ${this._state}`);
+    }
+    this._selectedTarget = target;
+    this._state = MenuState.RESOLVED;
+  }
+
+  cancelPairSelection(): void {
+    if (this._state !== MenuState.CHOOSE_PAIR_TARGET) {
+      throw new Error(`Cannot cancel pair selection in state ${this._state}`);
+    }
+    this._selectedTarget = null;
+    this._selectedAction = null;
+    this._state = MenuState.CHOOSE_ACTION;
+  }
+
+  selectTalkTarget(target: Unit): void {
+    if (this._state !== MenuState.CHOOSE_TALK_TARGET) {
+      throw new Error(`Cannot select talk target in state ${this._state}`);
+    }
+    this._selectedTarget = target;
+    this._state = MenuState.RESOLVED;
+  }
+
+  cancelTalkSelection(): void {
+    if (this._state !== MenuState.CHOOSE_TALK_TARGET) {
+      throw new Error(`Cannot cancel talk selection in state ${this._state}`);
+    }
+    this._selectedTarget = null;
+    this._selectedAction = null;
+    this._state = MenuState.CHOOSE_ACTION;
+  }
+
   reset(): void {
     this._state = MenuState.HIDDEN;
     this._unit = null;
     this._enemies = [];
     this._healTargets = [];
     this._allies = [];
+    this._pairableAllies = [];
+    this._talkableUnits = [];
     this._selectedAction = null;
     this._selectedTarget = null;
     this._selectedWeaponIndex = -1;

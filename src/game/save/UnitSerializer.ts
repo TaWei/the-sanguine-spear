@@ -30,6 +30,7 @@ export function serializeUnit(unit: Unit): UnitSnapshot {
     },
     rescuedUnitId: unit.rescuedUnit?.id ?? null,
     rescuedById: unit.rescuedBy?.id ?? null,
+    pairUpState: { leadUnitId: unit.pairUpState.leadUnitId, guardUnitId: unit.pairUpState.guardUnitId },
   };
 }
 
@@ -69,6 +70,11 @@ export function deserializeUnit(snap: UnitSnapshot): Unit {
     unit.state.transition(UNIT_STATE.MENU);
   } else if (snap.state === UNIT_STATE.EXHAUSTED) {
     unit.hasActed = true;
+  }
+
+  if (snap.pairUpState) {
+    unit.pairUpState.leadUnitId = snap.pairUpState.leadUnitId;
+    unit.pairUpState.guardUnitId = snap.pairUpState.guardUnitId;
   }
 
   return unit;

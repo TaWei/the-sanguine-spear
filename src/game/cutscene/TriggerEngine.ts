@@ -79,6 +79,11 @@ export class CutsceneTriggerEngine {
         return !this.firstCombatOccurred;
       case 'on_boss_encounter':
         return cond.bossId === ctx.bossId;
+      case 'on_talk':
+        return (
+          (!cond.recruiterId || cond.recruiterId === ctx.recruiterId) &&
+          (!cond.recruitId || cond.recruitId === ctx.recruitId)
+        );
     }
   }
 }

@@ -6,7 +6,8 @@ export type TriggerCondition =
   | { type: 'on_turn_start'; faction?: 'player' | 'enemy' | 'ally'; turnNumber?: number }
   | { type: 'on_turn_end'; faction?: 'player' | 'enemy' | 'ally'; turnNumber?: number }
   | { type: 'on_first_combat' }
-  | { type: 'on_boss_encounter'; bossId: string };
+  | { type: 'on_boss_encounter'; bossId: string }
+  | { type: 'on_talk'; recruiterId?: string; recruitId?: string };
 
 export interface CutsceneTrigger {
   id: string;
@@ -25,4 +26,7 @@ export interface TriggerContext {
   faction?: 'player' | 'enemy' | 'ally';
   turnNumber?: number;
   bossId?: string;
+  recruiterId?: string;
+  recruitId?: string;
+  talkId?: string;
 }
