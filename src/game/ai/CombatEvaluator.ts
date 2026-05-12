@@ -47,7 +47,13 @@ export function evaluateCombat(
 
   // Counterattack (only if defender has a weapon and is in range)
   let counterDamage = 0;
-  if (defenderWeapon && defenderWeapon.usesMagic !== undefined) {
+  if (
+    defenderWeapon &&
+    typeof defenderWeapon.mt === 'number' &&
+    typeof defenderWeapon.minRange === 'number' &&
+    typeof defenderWeapon.maxRange === 'number' &&
+    typeof defenderWeapon.usesMagic === 'boolean'
+  ) {
     const dist = Math.abs(attacker.gridX - defender.gridX) + Math.abs(attacker.gridY - defender.gridY);
     if (dist >= defenderWeapon.minRange && dist <= defenderWeapon.maxRange) {
       const defAtkStat = defenderWeapon.usesMagic ? defender.stats.mag : defender.stats.str;

@@ -99,6 +99,15 @@ describe('CombatEvaluator', () => {
     expect(score.canKill).toBe(false);
   });
 
+  it('counterDamage is 0 when defender weapon is malformed (missing required fields)', () => {
+    const bandit = makeBandit();
+    const lord = makeLord();
+    const malformedWeapon = { usesMagic: false, minRange: 1, maxRange: 1 } as any;
+    const score = evaluateCombat(bandit, lord, WEAPON_DB['Iron Axe'], grid, malformedWeapon);
+    expect(score.counterDamage).toBe(0);
+    expect(isNaN(score.counterDamage)).toBe(false);
+  });
+
   it('uses magic stat when weapon usesMagic is true', () => {
     const mageStats = createStats({
       hp: 18,
