@@ -43,7 +43,7 @@ export function evaluateCombat(
   const defDefStat = attackerWeapon.usesMagic
     ? defender.stats.res + defTerrain.defenseBonus
     : defender.stats.def + defTerrain.defenseBonus;
-  const attackerDamage = calcDamage(atkStat, attackerWeapon.mt, defDefStat, attackerWeapon.usesMagic);
+  const attackerDamage = calcDamage(atkStat, attackerWeapon.mt, defDefStat);
 
   // Counterattack (only if defender has a weapon and is in range)
   let counterDamage = 0;
@@ -61,7 +61,7 @@ export function evaluateCombat(
       const attDefStat = defenderWeapon.usesMagic
         ? attacker.stats.res + attTerrain.defenseBonus
         : attacker.stats.def + attTerrain.defenseBonus;
-      counterDamage = calcDamage(defAtkStat, defenderWeapon.mt, attDefStat, defenderWeapon.usesMagic);
+      counterDamage = calcDamage(defAtkStat, defenderWeapon.mt, attDefStat);
     }
   }
 

@@ -51,6 +51,7 @@ export class Unit {
   private _unitClass: UnitClass;
   readonly inventory: Inventory;
   private _stats: UnitStats;
+  private _effectiveStats: UnitStats;
   readonly state: UnitState = new UnitState();
   readonly pairUpState: PairUpState = new PairUpState();
   private _gridX: number;
@@ -106,6 +107,7 @@ export class Unit {
     if (this._stats.con === 0) {
       this._stats = { ...this._stats, con: getBaseCon(unitClass) };
     }
+    this._effectiveStats = this._stats;
   }
 
   get unitClass(): UnitClass {
@@ -113,15 +115,19 @@ export class Unit {
   }
 
   get stats(): Readonly<UnitStats> {
+    return this._effectiveStats;
+  }
+
+  private _updateEffectiveStats(): void {
     if (this._rescuedUnit) {
-      // Carrying halves Skl and Spd (floor)
-      return {
+      this._effectiveStats = {
         ...this._stats,
         skl: Math.floor(this._stats.skl / 2),
         spd: Math.floor(this._stats.spd / 2),
       };
+    } else {
+      this._effectiveStats = this._stats;
     }
-    return this._stats;
   }
   get hasActed(): boolean {
     return this.state.isExhausted();
@@ -206,12 +212,14 @@ export class Unit {
     }
     this._rescuedUnit = unit;
     unit._rescuedBy = this;
+    this._updateEffectiveStats();
   }
 
   clearRescuedUnit(): void {
     if (this._rescuedUnit) {
       this._rescuedUnit._rescuedBy = null;
       this._rescuedUnit = null;
+      this._updateEffectiveStats();
     }
   }
 
@@ -227,6 +235,7 @@ export class Unit {
       ...this._stats,
       hp: Math.max(0, this._stats.hp - amount),
     };
+    this._updateEffectiveStats();
   }
 
   heal(amount: number): void {
@@ -234,6 +243,7 @@ export class Unit {
       ...this._stats,
       hp: Math.min(this._stats.maxHp, this._stats.hp + amount),
     };
+    this._updateEffectiveStats();
   }
 
   resetState(): void {
@@ -251,6 +261,7 @@ export class Unit {
     this._stats = newStats;
     this._exp = 0;
     this._level = Math.min(20, this._level + 1);
+    this._updateEffectiveStats();
   }
 
   applyPromotion(newClass: UnitClass, newStats: UnitStats): void {
@@ -259,6 +270,7 @@ export class Unit {
     this._level = 1;
     this._exp = 0;
     this._tier = 'promoted';
+    this._updateEffectiveStats();
   }
 
   getWeaponRank(type: WeaponType): WeaponRankData {

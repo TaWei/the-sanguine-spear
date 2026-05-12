@@ -483,9 +483,23 @@ describe('Rescue stat penalties', () => {
     const passenger = new Unit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
       createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
       4, 3);
-    
+
     carrier.setRescuedUnit(passenger);
     expect(passenger.stats.skl).toBe(8);  // unchanged
     expect(passenger.stats.spd).toBe(10); // unchanged
+  });
+
+  it('stats getter returns stable reference while carrying', () => {
+    const carrier = new Unit('u1', 'Seth', Faction.PLAYER, UnitClass.CAVALRY,
+      createStats({ hp: 25, maxHp: 25, str: 10, mag: 0, skl: 14, spd: 12, luk: 8, def: 10, res: 5, mov: 7 }),
+      3, 3);
+    const passenger = new Unit('u2', 'Eirika', Faction.PLAYER, UnitClass.LORD,
+      createStats({ hp: 18, maxHp: 18, str: 6, mag: 0, skl: 8, spd: 10, luk: 7, def: 5, res: 2, mov: 5 }),
+      4, 3);
+
+    carrier.setRescuedUnit(passenger);
+    const s1 = carrier.stats;
+    const s2 = carrier.stats;
+    expect(s1).toBe(s2); // same reference, no reconstruction on every access
   });
 });

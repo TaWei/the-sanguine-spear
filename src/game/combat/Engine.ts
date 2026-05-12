@@ -244,7 +244,7 @@ export class CombatEngine {
     const atkStat = weapon.usesMagic ? attStats.mag : attStats.str;
     const defStat = weapon.usesMagic ? defStats.res : defStats.def;
     const effective = this.isEffective(weapon, defender.unitClass);
-    const rawDamage = calcDamage(atkStat, weapon.mt, defStat, weapon.usesMagic, effective, triangle.mtBonus);
+    const rawDamage = calcDamage(atkStat, weapon.mt, defStat, effective, triangle.mtBonus);
     const damage = Math.max(1, rawDamage - guardDefenseBonus);
 
     const classBonus = getClassCritBonus(attacker.unitClass);
@@ -299,7 +299,7 @@ export class CombatEngine {
       const atkStat = weapon.usesMagic ? attStats.mag : attStats.str;
       const defStat = weapon.usesMagic ? defStats.res : defStats.def;
       const effective = this.isEffective(weapon, defender.unitClass);
-      damage = calcDamage(atkStat, weapon.mt, defStat, weapon.usesMagic, effective, triangle.mtBonus);
+      damage = calcDamage(atkStat, weapon.mt, defStat, effective, triangle.mtBonus);
       damage = Math.max(1, damage - guardDefenseBonus);
 
       const classBonus = getClassCritBonus(attacker.unitClass);

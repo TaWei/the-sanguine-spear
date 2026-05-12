@@ -60,7 +60,7 @@ import { canPair as canPairUp, pairUp as doPairUp, breakPair as doBreakPair, get
 export class GameEngine {
   grid: Grid;
   readonly turnManager: TurnManager;
-  readonly gold: ArmyGold;
+  gold: ArmyGold;
   private units: Unit[] = [];
   private actionQueue: ActionQueue;
   private commander: Commander;
@@ -143,9 +143,9 @@ export class GameEngine {
     // Register triggers
     this.triggerEngine.register(def.triggers ?? []);
     if (def.startingGold !== undefined) {
-      (this as any).gold = new ArmyGold(def.startingGold);
+      this.gold = new ArmyGold(def.startingGold);
     } else {
-      (this as any).gold = new ArmyGold();
+      this.gold = new ArmyGold();
     }
     // Parse objectives config
     this.objectivesConfig = this._parseObjectives(def.objectives ?? []);
@@ -296,7 +296,7 @@ export class GameEngine {
     this.turnManager.currentPhase = data.currentPhase;
     this.triggerEngine.setConsumed(new Set(data.consumedTriggers));
     this.triggerEngine.setFirstCombatOccurred(data.firstCombatOccurred);
-    (this as any).gold = new ArmyGold(data.gold ?? 0);
+    this.gold = new ArmyGold(data.gold ?? 0);
 
     // Re-register level-specific data if definition is provided
     if (def) {
