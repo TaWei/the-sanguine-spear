@@ -1,5 +1,5 @@
 import { Grid } from '../map/Grid';
-import { Unit } from '../units/Unit';
+import { Unit, Faction } from '../units/Unit';
 import { getTerrainMoveCost } from './TerrainCost';
 
 /**
@@ -62,14 +62,18 @@ export function computeMoveRange(unit: Unit, grid: Grid): Map<string, number> {
         continue;
       }
 
-      // Cannot move through enemy units (but can move through allies? — skip for now, block all)
-      if (grid.isOccupied(nx, ny)) {
+      const occupant = grid.getUnit(nx, ny);
+      if (occupant) {
         // Allow the starting tile
         if (nx === startX && ny === startY) {
           continue;
         }
-        // Block occupied tiles
-        continue;
+        // Block tiles occupied by hostile units; allow traversal through allies
+        const isHostile =
+          (unit.faction === Faction.ENEMY) !== (occupant.faction === Faction.ENEMY);
+        if (isHostile) {
+          continue;
+        }
       }
 
       visited.set(key, newCost);
@@ -77,5 +81,24 @@ export function computeMoveRange(unit: Unit, grid: Grid): Map<string, number> {
     }
   }
 
-  return visited;
+  // Allied tiles are passable for pathfinding but cannot be end positions
+  const result = new Map<string, number>();
+  for (const [key, cost] of visited) {
+    const [x, y] = key.split(',').map(Number);
+    if (x === startX && y === startY) {
+      result.set(key, cost);
+      continue;
+    }
+    const occupant = grid.getUnit(x, y);
+    if (occupant) {
+      const isHostile =
+        (unit.faction === Faction.ENEMY) !== (occupant.faction === Faction.ENEMY);
+      if (!isHostile) {
+        continue;
+      }
+    }
+    result.set(key, cost);
+  }
+
+  return result;
 }

@@ -90,7 +90,7 @@ describe('MoveRange', () => {
     expect(range.has('1,2')).toBe(false);
   });
 
-  it('cannot move onto tiles occupied by other units', () => {
+  it('cannot move onto tiles occupied by enemy units', () => {
     const grid = new Grid(5, 5);
     const stats = createStats({
       hp: 20,
@@ -108,6 +108,76 @@ describe('MoveRange', () => {
     const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 1, 2);
     const range = computeMoveRange(unit, grid);
     expect(range.has('2,2')).toBe(false);
+  });
+
+  it('can path through allied units of same faction but cannot end on them', () => {
+    const grid = new Grid(5, 5);
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 3,
+    });
+    const ally = new Unit('a1', 'Ally', Faction.PLAYER, UnitClass.SOLDIER, stats, 2, 2);
+    grid.placeUnit(ally, 2, 2);
+    const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 1, 2);
+    const range = computeMoveRange(unit, grid);
+    // Should be able to path through ally to reach beyond
+    expect(range.has('3,2')).toBe(true);
+    // But should not be able to end on the ally's tile
+    expect(range.has('2,2')).toBe(false);
+    // Starting tile still included
+    expect(range.has('1,2')).toBe(true);
+  });
+
+  it('can path through ally faction units but cannot end on them', () => {
+    const grid = new Grid(5, 5);
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 3,
+    });
+    const ally = new Unit('a1', 'Ally', Faction.ALLY, UnitClass.SOLDIER, stats, 2, 2);
+    grid.placeUnit(ally, 2, 2);
+    const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 1, 2);
+    const range = computeMoveRange(unit, grid);
+    expect(range.has('3,2')).toBe(true);
+    expect(range.has('2,2')).toBe(false);
+    expect(range.has('1,2')).toBe(true);
+  });
+
+  it('enemy units still block pathfinding entirely', () => {
+    const grid = new Grid(5, 5);
+    const stats = createStats({
+      hp: 20,
+      str: 5,
+      mag: 5,
+      skl: 5,
+      spd: 5,
+      luk: 5,
+      def: 5,
+      res: 5,
+      mov: 3,
+    });
+    const enemy = new Unit('e1', 'Enemy', Faction.ENEMY, UnitClass.BRIGAND, stats, 2, 2);
+    grid.placeUnit(enemy, 2, 2);
+    const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 1, 2);
+    const range = computeMoveRange(unit, grid);
+    // Cannot end on enemy tile
+    expect(range.has('2,2')).toBe(false);
+    // Cannot path through enemy to reach beyond
+    expect(range.has('3,2')).toBe(false);
   });
 
   it('starting tile is always included even if occupied (it is the unit itself)', () => {
