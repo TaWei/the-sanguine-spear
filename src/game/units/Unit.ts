@@ -47,7 +47,7 @@ export interface UnitOptions {
 export class Unit {
   readonly id: string;
   readonly name: string;
-  readonly faction: Faction;
+  faction: Faction;
   private _unitClass: UnitClass;
   readonly inventory: Inventory;
   private _stats: UnitStats;
@@ -160,7 +160,7 @@ export class Unit {
 
   /** Change faction (used for recruitment) */
   setFaction(faction: Faction): void {
-    (this as { faction: Faction }).faction = faction;
+    this.faction = faction;
   }
 
   get isFlying(): boolean {

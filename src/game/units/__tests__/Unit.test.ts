@@ -357,6 +357,27 @@ describe('Unit', () => {
     unit.heal(10);
     expect(unit.stats.hp).toBe(20);
   });
+
+  it('setFaction changes faction and updates isPlayer/isEnemy', () => {
+    const unit = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 2, 5);
+    expect(unit.faction).toBe('enemy');
+    expect(unit.isEnemy).toBe(true);
+    expect(unit.isPlayer).toBe(false);
+
+    unit.setFaction(Faction.PLAYER);
+
+    expect(unit.faction).toBe('player');
+    expect(unit.isEnemy).toBe(false);
+    expect(unit.isPlayer).toBe(true);
+  });
+
+  it('setFaction can change to ally faction', () => {
+    const unit = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, stats, 2, 5);
+    unit.setFaction(Faction.ALLY);
+    expect(unit.faction).toBe('ally');
+    expect(unit.isEnemy).toBe(false);
+    expect(unit.isPlayer).toBe(false);
+  });
 });
 
 describe('Rescue state', () => {
