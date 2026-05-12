@@ -39,7 +39,6 @@ export function calcDamage(
   attackStat: number,
   weaponMt: number,
   defenseStat: number,
-  _isMagical: boolean,
   isEffective = false,
   triangleMtBonus = 0,
 ): number {
@@ -52,9 +51,9 @@ export function rollTrueHit(displayHit: number, rng: () => number): boolean {
   const rn1 = rng();
   const rn2 = rng();
   const avg = (rn1 + rn2) / 2;
-  return avg < displayHit;
+  return avg * 100 < displayHit;
 }
 
 export function rollCrit(displayCrit: number, rng: () => number): boolean {
-  return rng() < displayCrit;
+  return rng() * 100 < displayCrit;
 }

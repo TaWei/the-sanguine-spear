@@ -125,23 +125,23 @@ describe('Combat Formulas', () => {
 
   describe('calcDamage', () => {
     it('physical: str + weapon mt - defender def', () => {
-      const dmg = calcDamage(attackerStats.str, weaponMt, defenderStats.def, false);
+      const dmg = calcDamage(attackerStats.str, weaponMt, defenderStats.def);
       expect(dmg).toBe(8); // 8 + 5 - 5
     });
 
     it('magical: mag + weapon mt - defender res', () => {
-      const dmg = calcDamage(attackerStats.mag, weaponMt, defenderStats.res, true);
+      const dmg = calcDamage(attackerStats.mag, weaponMt, defenderStats.res);
       expect(dmg).toBe(6); // 2 + 5 - 1
     });
 
     it('minimum damage is 1 (unless 0)', () => {
       // If attacker str + mt < defender def, still deal 1 damage
-      const dmg = calcDamage(1, 1, 10, false);
+      const dmg = calcDamage(1, 1, 10);
       expect(dmg).toBe(1);
     });
 
     it('0 attack vs very high defense still deals 1', () => {
-      const dmg = calcDamage(0, 1, 999, false);
+      const dmg = calcDamage(0, 1, 999);
       expect(dmg).toBe(1);
     });
   });
@@ -149,37 +149,37 @@ describe('Combat Formulas', () => {
   describe('calcDamage with effectiveness', () => {
     it('applies 3x might vs effective target', () => {
       // 10 atk + (8 mt * 3) - 12 def = 10 + 24 - 12 = 22
-      const dmg = calcDamage(10, 8, 12, false, true);
+      const dmg = calcDamage(10, 8, 12, true);
       expect(dmg).toBe(22);
     });
 
     it('does not apply multiplier when not effective', () => {
-      const dmg = calcDamage(10, 8, 12, false, false);
+      const dmg = calcDamage(10, 8, 12);
       expect(dmg).toBe(6); // 10 + 8 - 12 = 6
     });
 
     it('default parameter is false (backward compat)', () => {
-      const dmg = calcDamage(10, 8, 12, false);
+      const dmg = calcDamage(10, 8, 12);
       expect(dmg).toBe(6); // no multiplier applied
     });
   });
 
   describe('2RN True Hit', () => {
     it('hits when average of two RNs < display hit', () => {
-      // display hit = 70, RNs: 60, 70 → avg 65 < 70 → hit
-      const rng = makeRng([60, 70]);
+      // display hit = 70, RNs: 0.60, 0.70 → avg 0.65 → 65 < 70 → hit
+      const rng = makeRng([0.6, 0.7]);
       expect(rollTrueHit(70, rng)).toBe(true);
     });
 
     it('misses when average >= display hit', () => {
-      // display hit = 70, RNs: 80, 60 → avg 70 >= 70 → miss
-      const rng = makeRng([80, 60]);
+      // display hit = 70, RNs: 0.80, 0.60 → avg 0.70 → 70 >= 70 → miss
+      const rng = makeRng([0.8, 0.6]);
       expect(rollTrueHit(70, rng)).toBe(false);
     });
 
     it('guaranteed hit at display 100', () => {
-      // avg of any two 0-99 numbers is < 100 always
-      const rng = makeRng([99, 99]);
+      // avg of any two 0-1 numbers is < 1, so *100 is < 100 always
+      const rng = makeRng([0.99, 0.99]);
       expect(rollTrueHit(100, rng)).toBe(true);
     });
 
@@ -188,31 +188,31 @@ describe('Combat Formulas', () => {
       expect(rollTrueHit(0, rng)).toBe(false);
     });
 
-    it('99 display hit is very reliable (only misses on avg=99)', () => {
-      // RNs: 99, 99 → avg 99 >= 99 → miss
-      const rng = makeRng([99, 99]);
+    it('99 display hit is very reliable (only misses on avg=0.99)', () => {
+      // RNs: 0.99, 0.99 → avg 0.99 → 99 >= 99 → miss
+      const rng = makeRng([0.99, 0.99]);
       expect(rollTrueHit(99, rng)).toBe(false);
-      // RNs: 98, 99 → avg 98.5 < 99 → hit
-      const rng2 = makeRng([98, 99]);
+      // RNs: 0.98, 0.99 → avg 0.985 → 98.5 < 99 → hit
+      const rng2 = makeRng([0.98, 0.99]);
       expect(rollTrueHit(99, rng2)).toBe(true);
     });
 
     it('1 display hit is very unlikely (only hits on avg=0)', () => {
       const rng = makeRng([0, 0]);
       expect(rollTrueHit(1, rng)).toBe(true);
-      const rng2 = makeRng([0, 2]);
+      const rng2 = makeRng([0, 0.02]);
       expect(rollTrueHit(1, rng2)).toBe(false);
     });
   });
 
   describe('Crit Roll', () => {
-    it('single RN crit: RN < displayCrit → crit', () => {
-      const rng = makeRng([2]);
+    it('single RN crit: RN * 100 < displayCrit → crit', () => {
+      const rng = makeRng([0.02]);
       expect(rollCrit(5, rng)).toBe(true);
     });
 
-    it('no crit when RN >= displayCrit', () => {
-      const rng = makeRng([5]);
+    it('no crit when RN * 100 >= displayCrit', () => {
+      const rng = makeRng([0.05]);
       expect(rollCrit(5, rng)).toBe(false);
     });
   });
