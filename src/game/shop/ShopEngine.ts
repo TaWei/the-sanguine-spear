@@ -1,5 +1,5 @@
 import type { Item } from '../items/ItemTypes';
-import { getSellPrice } from '../items/ItemPrices';
+import { getSellPrice as getBaseSellPrice } from '../items/ItemPrices';
 import type { Unit } from '../units/Unit';
 import type { ArmyGold } from './ArmyGold';
 
@@ -85,12 +85,12 @@ export class ShopEngine {
       return { success: false, goldReceived: 0 };
     }
 
-    const price = getSellPrice(item.name);
+    const price = this.getSellPrice(item);
     this._gold.add(price);
     return { success: true, goldReceived: price };
   }
 
   getSellPrice(item: Item): number {
-    return getSellPrice(item.name);
+    return getBaseSellPrice(item.name);
   }
 }

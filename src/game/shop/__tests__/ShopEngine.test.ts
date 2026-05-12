@@ -145,6 +145,31 @@ describe('ShopEngine', () => {
     expect(engine.getSellPrice(sword)).toBe(230);
   });
 
+  it('getSellPrice returns correct price for Vulnerary', () => {
+    const gold = new ArmyGold(1000);
+    const engine = new ShopEngine(gold, []);
+    const vulnerary = makeVulnerary();
+    expect(engine.getSellPrice(vulnerary)).toBe(150);
+  });
+
+  it('getSellPrice returns 0 for unknown items', () => {
+    const gold = new ArmyGold(1000);
+    const engine = new ShopEngine(gold, []);
+    const unknown = createWeaponItem('Mystery Blade', 'sword', 99, 99, 99, 1, 1, false);
+    expect(engine.getSellPrice(unknown)).toBe(0);
+  });
+
+  it('sell delegates to getSellPrice method without shadowing', () => {
+    const gold = new ArmyGold(1000);
+    const engine = new ShopEngine(gold, []);
+    const unit = makeUnit();
+    unit.inventory.add(makeSword());
+    const result = engine.sell(unit, 0);
+    expect(result.success).toBe(true);
+    expect(result.goldReceived).toBe(230);
+    expect(gold.amount).toBe(1230);
+  });
+
   it('buying reduces stock when limited, out_of_stock on third try', () => {
     const gold = new ArmyGold(2000);
     const stock: ShopItem[] = [{ item: makeSword(), price: 460, stock: 2 }];
