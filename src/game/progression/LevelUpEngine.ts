@@ -18,6 +18,7 @@ export function levelUp(
 
   const tryRoll = (): void => {
     increases = [];
+    Object.assign(newStats, stats);
     for (const key of Object.keys(growths) as (keyof GrowthRates)[]) {
       const rate = growths[key];
       const current = newStats[key];

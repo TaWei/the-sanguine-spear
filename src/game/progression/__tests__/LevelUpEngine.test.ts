@@ -97,4 +97,19 @@ describe('LevelUpEngine', () => {
     expect(baseStats.hp).toBe(20);
     expect(baseStats.maxHp).toBe(20);
   });
+
+  it('does not accumulate stat increases across rerolls', () => {
+    // Force multiple rerolls (blank rolls) before a successful proc.
+    // Growth rates: str=50%, spd=50% — roll must be < 0.5 to hit.
+    const growths = createGrowthRates({ str: 50, spd: 50 });
+    // RNG sequence:
+    //  Roll 1 (pre-loop): miss str (0.99), miss spd (0.99) → 0 increases → reroll
+    //  Roll 2 (loop):    miss str (0.99), miss spd (0.99) → 0 increases → reroll
+    //  Roll 3 (loop):    hit str (0), miss spd (0.99)      → increases = ['str']
+    const rng = makeRng([0.99, 0.99, 0.99, 0.99, 0, 0.99]);
+    const result = levelUp(baseStats, growths, caps, rng);
+    expect(result.increases).toEqual(['str']);
+    expect(result.newStats.str).toBe(baseStats.str + 1);
+    expect(result.newStats.spd).toBe(baseStats.spd); // spd must NOT have increased
+  });
 });
