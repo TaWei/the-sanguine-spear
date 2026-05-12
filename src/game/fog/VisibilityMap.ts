@@ -71,19 +71,29 @@ function isBlocked(unit: Unit, tx: number, ty: number, grid: Grid, _sight: numbe
   // Flying units see over forests
   if (unit.isFlying) return false;
 
-  // Check each tile along the path for forest
-  // Use Bresenham-like line check
-  const steps = Math.max(Math.abs(dx), Math.abs(dy));
-  if (steps <= 1) return false;
+  // Thieves see through forests
+  if (unit.unitClass === 'thief') return false;
+
+  // Check each tile along a proper Manhattan grid path for forest
+  if (dist <= 1) return false;
 
   let forestCount = 0;
-  for (let i = 1; i < steps; i++) {
-    const ux = unit.gridX + Math.round((dx * i) / steps);
-    const uy = unit.gridY + Math.round((dy * i) / steps);
-    if (ux === unit.gridX && uy === unit.gridY) continue;
-    if (ux === tx && uy === ty) continue;
-    if (!grid.isInBounds(ux, uy)) continue;
-    if (grid.getTerrain(ux, uy) === TerrainType.FOREST) {
+  let x = unit.gridX;
+  let y = unit.gridY;
+
+  while (x !== tx || y !== ty) {
+    const remX = tx - x;
+    const remY = ty - y;
+
+    if (Math.abs(remX) >= Math.abs(remY)) {
+      x += Math.sign(remX);
+    } else {
+      y += Math.sign(remY);
+    }
+
+    if (x === tx && y === ty) break;
+    if (!grid.isInBounds(x, y)) continue;
+    if (grid.getTerrain(x, y) === TerrainType.FOREST) {
       forestCount++;
     }
   }

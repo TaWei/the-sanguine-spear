@@ -8,13 +8,15 @@ export class FogOfWar {
   /** Visibility per faction: PLAYER and ENEMY each have their own view */
   private playerVisibility: VisibilityGrid = new Map();
   private enemyVisibility: VisibilityGrid = new Map();
-  private enabled = true;
+  private allyVisibility: VisibilityGrid = new Map();
+  private enabled = false;
 
   setEnabled(value: boolean): void {
     this.enabled = value;
     if (!value) {
       this.playerVisibility = new Map();
       this.enemyVisibility = new Map();
+      this.allyVisibility = new Map();
     }
   }
 
@@ -36,11 +38,19 @@ export class FogOfWar {
       Faction.ENEMY,
       this.enemyVisibility,
     );
+    this.allyVisibility = computeVisibility(
+      allUnits,
+      grid,
+      Faction.ALLY,
+      this.allyVisibility,
+    );
   }
 
   /** Get visibility for a specific faction */
   getVisibility(faction: FactionType): VisibilityGrid {
-    return faction === Faction.PLAYER ? this.playerVisibility : this.enemyVisibility;
+    if (faction === Faction.PLAYER) return this.playerVisibility;
+    if (faction === Faction.ENEMY) return this.enemyVisibility;
+    return this.allyVisibility;
   }
 
   /** Check if a unit is visible to the given faction */
@@ -51,6 +61,13 @@ export class FogOfWar {
     return visibility.get(key) === FogTileState.VISIBLE;
   }
 
+  /** Check if a unit is revealed (VISIBLE or DIMMED) to the given faction */
+  isUnitRevealed(unit: Unit, viewerFaction: FactionType): boolean {
+    if (!this.enabled) return true;
+    const state = this.getUnitTileState(unit, viewerFaction);
+    return state === FogTileState.VISIBLE || state === FogTileState.DIMMED;
+  }
+
   /** Get the fog state of a tile for a faction */
   getTileState(x: number, y: number, faction: FactionType): FogTileState {
     if (!this.enabled) return FogTileState.VISIBLE;
@@ -58,8 +75,21 @@ export class FogOfWar {
     return visibility.get(`${x},${y}`) ?? FogTileState.UNSEEN;
   }
 
+  /** Get the fog state of the tile a unit is standing on */
+  getUnitTileState(unit: Unit, faction: FactionType): FogTileState {
+    return this.getTileState(unit.gridX, unit.gridY, faction);
+  }
+
+  /** Check if a unit is targetable by the given faction in fog */
+  isUnitTargetable(unit: Unit, viewerFaction: FactionType): boolean {
+    if (!this.enabled) return true;
+    const state = this.getUnitTileState(unit, viewerFaction);
+    return state === FogTileState.VISIBLE || state === FogTileState.DIMMED;
+  }
+
   reset(): void {
     this.playerVisibility = new Map();
     this.enemyVisibility = new Map();
+    this.allyVisibility = new Map();
   }
 }

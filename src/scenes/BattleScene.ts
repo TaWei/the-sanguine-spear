@@ -947,9 +947,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updatePhaseText(): void {
-    this.phaseText.setText(
-      `Phase: ${this.engine.turnManager.isPlayerPhase() ? 'Player' : 'Enemy'}`,
-    );
+    let phaseLabel = 'Enemy';
+    if (this.engine.turnManager.isPlayerPhase()) {
+      phaseLabel = 'Player';
+    } else if (this.engine.turnManager.isAllyPhase()) {
+      phaseLabel = 'Ally';
+    }
+    this.phaseText.setText(`Phase: ${phaseLabel}`);
   }
 
   private updateGoldDisplay(): void {
@@ -1197,12 +1201,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private executeAllyActions(onComplete: () => void): void {
-    this.playCutsceneIfTriggered({ eventType: 'on_turn_start', faction: 'ally' }, () => {
-      const actions = this.engine.getPendingActions();
-      if (actions.length === 0) {
-        onComplete();
-        return;
-      }
+    this.showPhaseBanner('Ally Phase', 0x2ecc71, () => {
+      this.playCutsceneIfTriggered({ eventType: 'on_turn_start', faction: 'ally' }, () => {
+        const actions = this.engine.getPendingActions();
+        if (actions.length === 0) {
+          onComplete();
+          return;
+        }
 
       const processNext = (index: number) => {
         if (index >= actions.length) {
@@ -1281,12 +1286,45 @@ export class BattleScene extends Phaser.Scene {
           } else {
             processNext(index + 1);
           }
+        } else if (
+          action.type === 'staff' &&
+          action.targetX !== undefined &&
+          action.targetY !== undefined
+        ) {
+          const target = this.engine.getUnit(action.targetX, action.targetY);
+          if (target?.isAlive) {
+            const result = this.engine.resolveStaffHeal(action.actor, target);
+            this.engine.applyStaffExp(action.actor, result);
+            const px = this.offsetX + target.gridX * TILE_SIZE + TILE_SIZE / 2;
+            const py = this.offsetY + target.gridY * TILE_SIZE + TILE_SIZE / 2;
+            const text = this.add
+              .text(px, py - 10, `+${result.healedAmount.toString()}`, {
+                fontSize: '14px',
+                color: '#00ff00',
+                stroke: '#000000',
+                strokeThickness: 3,
+              })
+              .setOrigin(0.5);
+            this.tweens.add({
+              targets: text,
+              y: py - 40,
+              alpha: 0,
+              duration: 1200,
+              ease: 'Power2',
+              onComplete: () => {
+                text.destroy();
+              },
+            });
+            this.syncUnitSprites();
+          }
+          processNext(index + 1);
         } else {
           processNext(index + 1);
         }
       };
 
       processNext(0);
+      });
     });
   }
 
@@ -3440,6 +3478,56 @@ export class BattleScene extends Phaser.Scene {
         const offsetY = (1 - timing.bannerProgress) * -40;
         bg.setY(this.cameras.main.height * 0.4 + offsetY);
         text.setY(this.cameras.main.height * 0.4 + offsetY);
+
+        if (timing.isComplete()) {
+          timer.destroy();
+          overlay.destroy();
+          onComplete();
+        }
+      },
+      loop: true,
+    });
+  }
+
+  private showPhaseBanner(text: string, color: number, onComplete: () => void): void {
+    const overlay = this.add.container(0, 0);
+    overlay.setScrollFactor(0);
+    overlay.setDepth(100);
+    const bg = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height * 0.4,
+      this.cameras.main.width,
+      80,
+      color,
+      0.85,
+    );
+    const bannerText = this.add
+      .text(
+        this.cameras.main.width / 2,
+        this.cameras.main.height * 0.4,
+        text,
+        {
+          fontSize: '36px',
+          color: '#ffffff',
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 4,
+        },
+      )
+      .setOrigin(0.5)
+      .setAlpha(0);
+    overlay.add([bg, bannerText]);
+
+    const timing = new TurnBannerTiming();
+    const timer = this.time.addEvent({
+      delay: 16,
+      callback: () => {
+        timing.update(16);
+        bannerText.setAlpha(timing.textAlpha);
+        overlay.setAlpha(timing.overlayAlpha);
+        const offsetY = (1 - timing.bannerProgress) * -40;
+        bg.setY(this.cameras.main.height * 0.4 + offsetY);
+        bannerText.setY(this.cameras.main.height * 0.4 + offsetY);
 
         if (timing.isComplete()) {
           timer.destroy();

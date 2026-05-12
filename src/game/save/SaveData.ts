@@ -11,6 +11,7 @@ import type { WeaponRankData } from '../combat/WeaponRank';
 import type { WeaponType } from '../combat/Weapons';
 import type { SupportPair } from '../support/SupportEngine';
 import type { PairUpState } from '../units/PairUpState';
+import type { FogTileState } from '../fog/FogTileState';
 
 export const SAVE_VERSION = 1;
 
@@ -64,4 +65,7 @@ export interface SaveData {
   objectiveState?: {
     seizedTiles?: { x: number; y: number }[];
   };
+  /** Fog of war state */
+  fogEnabled?: boolean;
+  fogVisibility?: { faction: Faction; key: string; state: FogTileState }[];
 }

@@ -298,6 +298,7 @@ describe('GameEngine', () => {
     });
     const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
     engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+    engine.fog.setEnabled(false);
     const enemies = engine.getAdjacentEnemies(player);
     expect(enemies).toHaveLength(1);
   });
@@ -1617,6 +1618,78 @@ describe('GameEngine', () => {
       const result = engine.checkMoveObjective(mage);
       expect(result.victory).toBe(false);
       expect(result.ongoing).toBe(true);
+    });
+  });
+
+  describe('ally phase', () => {
+    it('queues ally actions via executeAllyActions', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({
+        hp: 22, maxHp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      const enemyStats = createStats({
+        hp: 26, maxHp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5,
+      });
+      engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+      engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 3, 2);
+      engine.addUnit('a1', 'Ally', Faction.ALLY, UnitClass.MERCENARY, stats, 1, 1);
+
+      engine.endTurn(); // player -> enemy
+      engine.endTurn(); // enemy -> ally
+      expect(engine.turnManager.isAllyPhase()).toBe(true);
+
+      engine.executeAllyActions();
+      const actions = engine.getPendingActions();
+      expect(actions.length).toBeGreaterThan(0);
+      expect(actions.some((a) => a.actor.faction === 'ally')).toBe(true);
+    });
+
+    it('ally heals injured player unit with staff', () => {
+      const engine = new GameEngine(10, 10);
+      const stats = createStats({
+        hp: 22, maxHp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      });
+      const allyStats = createStats({
+        hp: 20, maxHp: 20, str: 5, mag: 6, skl: 5, spd: 5, luk: 5, def: 4, res: 6, mov: 5,
+      });
+      const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 2, 2);
+      engine.addUnit('a1', 'Cleric', Faction.ALLY, UnitClass.MAGE, allyStats, 2, 3);
+
+      player.takeDamage(10); // hp = 12
+
+      engine.endTurn(); // player -> enemy
+      engine.endTurn(); // enemy -> ally
+      engine.executeAllyActions();
+
+      const healAction = engine.getPendingActions().find((a) => a.type === 'staff');
+      expect(healAction).toBeDefined();
+      expect(healAction!.actor.faction).toBe('ally');
+      expect(healAction!.targetX).toBe(2);
+      expect(healAction!.targetY).toBe(2);
+    });
+
+    it('save/load preserves ally phase state', () => {
+      const engine = new GameEngine(8, 8);
+      engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, createStats({
+        hp: 22, maxHp: 22, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      }), 2, 5);
+      engine.addUnit('a1', 'Ally', Faction.ALLY, UnitClass.MERCENARY, createStats({
+        hp: 20, maxHp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 6, res: 2, mov: 5,
+      }), 3, 5);
+
+      engine.endTurn(); // player -> enemy
+      engine.endTurn(); // enemy -> ally
+      expect(engine.turnManager.isAllyPhase()).toBe(true);
+
+      const snapshot = engine.snapshot('test');
+      const restoredEngine = new GameEngine(1, 1);
+      restoredEngine.restore(snapshot);
+
+      expect(restoredEngine.turnManager.isAllyPhase()).toBe(true);
+      expect(restoredEngine.getUnitsByFaction(Faction.ALLY)).toHaveLength(1);
+      const restoredAlly = restoredEngine.getUnit(3, 5)!;
+      expect(restoredAlly.name).toBe('Ally');
+      expect(restoredAlly.faction).toBe('ally');
     });
   });
 });

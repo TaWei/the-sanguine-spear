@@ -114,4 +114,37 @@ describe('VisibilityMap', () => {
     const enemyVis = computeVisibility([player, enemy], grid, Faction.ENEMY);
     expect(enemyVis.get('10,10')).toBe(FogTileState.VISIBLE);
   });
+
+  it('blocks diagonal sightline when forest is on Manhattan path (x-priority)', () => {
+    // Lord base sight = 3. Target at (7,6) is distance 3 — visible without forest.
+    // Forest at (6,5) lies on the x-priority Manhattan path:
+    // (5,5) -> (6,5) -> (7,5) -> (7,6)
+    // One forest reduces effective sight to 2, so target at dist 3 should be blocked.
+    grid.setTerrain(6, 5, TerrainType.FOREST);
+    const unit = createTestUnit('p1', Faction.PLAYER, 'lord', 5, 5);
+    const visibility = computeVisibility([unit], grid, Faction.PLAYER);
+
+    // Old Chebyshev code checked (6,6) and missed (6,5), so this test fails before fix
+    expect(visibility.get('7,6')).toBeUndefined();
+  });
+
+  it('does not skip intermediate tiles on near-diagonal sightlines', () => {
+    // Lord base sight = 3. Target at (7,6) is distance 3.
+    // Forest at (7,5) lies on x-priority path; old code only checked (6,6).
+    grid.setTerrain(7, 5, TerrainType.FOREST);
+    const unit = createTestUnit('p1', Faction.PLAYER, 'lord', 5, 5);
+    const visibility = computeVisibility([unit], grid, Faction.PLAYER);
+
+    expect(visibility.get('7,6')).toBeUndefined();
+  });
+
+  it('allows sight when diagonal path has no forest', () => {
+    // Same geometry as above, but no forest on the Manhattan path.
+    // Target at (7,6), distance 3, should be visible.
+    const unit = createTestUnit('p1', Faction.PLAYER, 'lord', 5, 5);
+    const visibility = computeVisibility([unit], grid, Faction.PLAYER);
+
+    expect(visibility.get('7,6')).toBe(FogTileState.VISIBLE);
+    expect(visibility.get('7,7')).toBeUndefined(); // beyond sight range
+  });
 });

@@ -23,6 +23,7 @@ describe('FogOfWar', () => {
 
   beforeEach(() => {
     fog = new FogOfWar();
+    fog.setEnabled(true);
     grid = new Grid(12, 10);
   });
 

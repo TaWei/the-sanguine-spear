@@ -11,8 +11,7 @@ export class VillageEngine {
 
   canVisit(unit: Unit, x: number, y: number, terrain: TerrainType): boolean {
     if (terrain !== TerrainType.VILLAGE) return false;
-    if (!unit.isPlayer) return false;
-    if (!unit.isAlive) return false;
+    if (unit.isEnemy || !unit.isAlive) return false;
     const key = `${x},${y}`;
     if (this.visitedVillages.has(key)) return false;
     return true;

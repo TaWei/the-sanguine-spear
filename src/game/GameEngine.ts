@@ -49,6 +49,7 @@ import { StealRules } from './units/StealRules';
 import { DoorChestEngine } from './map/DoorChestEngine';
 import { createItemByName } from './items/ItemFactory';
 import { FogOfWar } from './fog/FogOfWar';
+import { FogTileState } from './fog/FogTileState';
 import { TalkEngine, type TalkConfig } from './recruitment/TalkEngine';
 import { ReinforcementEngine } from './reinforcements/ReinforcementEngine';
 import { VillageEngine } from './village/VillageEngine';
@@ -85,7 +86,7 @@ export class GameEngine {
     this.gold = new ArmyGold();
     this.actionQueue = new ActionQueue();
     this.commander = new Commander(this.grid, WEAPON_DB);
-    this.allyCommander = new AllyCommander(this.grid, WEAPON_DB);
+    this.allyCommander = new AllyCommander(this.grid, WEAPON_DB, STAFF_DB);
     this.progressionEngine = new ProgressionEngine();
     this.hazardEngine = new TerrainHazardEngine();
   }
@@ -248,6 +249,21 @@ export class GameEngine {
       spawnedReinforcementIds: this.reinforcementEngine.getSpawnedGroupIds(),
       supportPairs: this.supportEngine.getSupportData(),
       objectiveState: Object.keys(objectiveState).length > 0 ? objectiveState : undefined,
+      fogEnabled: this.fogOfWar.isEnabled(),
+      fogVisibility: this.fogOfWar.isEnabled()
+        ? [
+            ...Array.from(this.fogOfWar.getVisibility(Faction.PLAYER)).map(([key, state]) => ({
+              faction: Faction.PLAYER,
+              key,
+              state,
+            })),
+            ...Array.from(this.fogOfWar.getVisibility(Faction.ENEMY)).map(([key, state]) => ({
+              faction: Faction.ENEMY,
+              key,
+              state,
+            })),
+          ]
+        : undefined,
     };
   }
 
@@ -303,8 +319,14 @@ export class GameEngine {
     this.supportEngine.loadSupportData(data.supportPairs ?? []);
 
     // Initialize fog of war
-    this.fogOfWar.setEnabled(def?.fogOfWar ?? false);
+    this.fogOfWar.setEnabled(data.fogEnabled ?? def?.fogOfWar ?? false);
     this.fogOfWar.reset();
+    if (this.fogOfWar.isEnabled() && data.fogVisibility) {
+      for (const entry of data.fogVisibility) {
+        const visibility = this.fogOfWar.getVisibility(entry.faction);
+        visibility.set(entry.key, entry.state);
+      }
+    }
     if (this.fogOfWar.isEnabled()) {
       this.fogOfWar.update(this.units, this.grid);
     }
@@ -643,7 +665,9 @@ export class GameEngine {
   }
 
   getAdjacentEnemies(unit: Unit): Unit[] {
-    return getAdjacentEnemies(unit, this.grid, this.getWeaponForUnit(unit));
+    const enemies = getAdjacentEnemies(unit, this.grid, this.getWeaponForUnit(unit));
+    if (!this.fogOfWar.isEnabled()) return enemies;
+    return enemies.filter((e) => this.fogOfWar.isUnitTargetable(e, Faction.PLAYER));
   }
 
   getStaffForUnit(unit: Unit): { data: StaffData; index: number } | null {
@@ -960,6 +984,17 @@ export class GameEngine {
     return actions;
   }
 
+  executeAllyActions(): void {
+    this.actionQueue.clear();
+    const allies = this.getUnitsByFaction(Faction.ALLY);
+    const enemies = this.getUnitsByFaction(Faction.ENEMY);
+    const players = this.getUnitsByFaction(Faction.PLAYER);
+    const actions = this.allyCommander.planAllyTurn(allies, enemies, players);
+    for (const action of actions) {
+      this.actionQueue.enqueue(action);
+    }
+  }
+
   evaluateTrigger(ctx: TriggerContext): CutsceneTrigger | null {
     return this.triggerEngine.evaluate(ctx);
   }
@@ -1023,6 +1058,66 @@ export class GameEngine {
 
   isUnitVisibleToPlayer(unit: Unit): boolean {
     return this.fogOfWar.isUnitVisible(unit, Faction.PLAYER);
+  }
+
+  isUnitRevealedToPlayer(unit: Unit): boolean {
+    return this.fogOfWar.isUnitRevealed(unit, Faction.PLAYER);
+  }
+
+  getUnitFogState(unit: Unit): FogTileState {
+    return this.fogOfWar.getUnitTileState(unit, Faction.PLAYER);
+  }
+
+  isUnitTargetable(unit: Unit): boolean {
+    return this.fogOfWar.isUnitTargetable(unit, Faction.PLAYER);
+  }
+
+  getCombatPreviewWithFog(
+    attacker: Unit,
+    defender: Unit,
+    attackerWeaponIndex?: number,
+  ): { preview: import('./combat/Engine').CombatPreview; fogState: FogTileState; partial: boolean } | null {
+    const state = this.getUnitFogState(defender);
+    if (state === FogTileState.UNSEEN) {
+      return null;
+    }
+    const partial = state === FogTileState.DIMMED;
+    return { preview: this.getCombatPreview(attacker, defender, attackerWeaponIndex), fogState: state, partial };
+  }
+
+  getEnemyThreatInFog(enemy: Unit): import('./ui/EnemyPreview').ThreatStats | null {
+    const state = this.getUnitFogState(enemy);
+    if (state !== FogTileState.VISIBLE) {
+      return null;
+    }
+    const playerUnits = this.getUnitsByFaction(Faction.PLAYER).filter((u) => u.isAlive && !u.hasActed);
+    if (playerUnits.length === 0) return null;
+    const target = playerUnits[0];
+    const preview = this.getCombatPreview(enemy, target);
+    return {
+      hit: preview.attacker.hit,
+      crit: preview.attacker.crit,
+      damage: preview.attacker.damage,
+      doubleAttack: preview.attacker.doubleAttack,
+    };
+  }
+
+  getCameraSightBounds(): { minX: number; minY: number; maxX: number; maxY: number } | null {
+    if (!this.fogOfWar.isEnabled()) return null;
+    const visibility = this.fogOfWar.getVisibility(Faction.PLAYER);
+    if (visibility.size === 0) return null;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const key of visibility.keys()) {
+      const [x, y] = key.split(',').map(Number);
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+    return { minX, minY, maxX, maxY };
   }
 
   // ---- Talk / Recruitment ----
