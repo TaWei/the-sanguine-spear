@@ -8,6 +8,7 @@ import { ActionType } from '../../state/ActionQueue';
 import { AiPersonality } from '../Personality';
 import { AiBehavior } from '../Behavior';
 import { TerrainType } from '../../map/Terrain';
+import { createWeaponItem } from '../../items/ItemTypes';
 
 describe('Commander', () => {
   it('generates actions for enemies to attack nearby players', () => {
@@ -387,6 +388,39 @@ describe('Commander', () => {
 
     // Each MOVE action must have a unique destination
     expect(destinations.size).toBe(moveActions.length);
+  });
+
+  it('getWeapon uses equipped weapon when equippedWeaponIndex is set', () => {
+    const grid = new Grid(10, 10);
+    const mageStats = createStats({ hp: 18, str: 2, mag: 8, skl: 6, spd: 7, luk: 5, def: 3, res: 6, mov: 5 });
+    const mage = new Unit('e1', 'Dark Mage', Faction.ENEMY, UnitClass.MAGE, mageStats, 1, 1);
+    mage.inventory.add(createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false));
+    mage.equippedWeaponIndex = 0;
+
+    const commander = new Commander(grid, WEAPON_DB);
+    const weapon = (commander as any).getWeapon(mage);
+    expect(weapon).toBe(WEAPON_DB['Iron Sword']);
+  });
+
+  it('getWeapon uses first inventory weapon when no equipped weapon', () => {
+    const grid = new Grid(10, 10);
+    const mageStats = createStats({ hp: 18, str: 2, mag: 8, skl: 6, spd: 7, luk: 5, def: 3, res: 6, mov: 5 });
+    const mage = new Unit('e1', 'Dark Mage', Faction.ENEMY, UnitClass.MAGE, mageStats, 1, 1);
+    mage.inventory.add(createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false));
+
+    const commander = new Commander(grid, WEAPON_DB);
+    const weapon = (commander as any).getWeapon(mage);
+    expect(weapon).toBe(WEAPON_DB['Iron Sword']);
+  });
+
+  it('getWeapon falls back to class default when inventory has no weapons', () => {
+    const grid = new Grid(10, 10);
+    const mageStats = createStats({ hp: 18, str: 2, mag: 8, skl: 6, spd: 7, luk: 5, def: 3, res: 6, mov: 5 });
+    const mage = new Unit('e1', 'Dark Mage', Faction.ENEMY, UnitClass.MAGE, mageStats, 1, 1);
+
+    const commander = new Commander(grid, WEAPON_DB);
+    const weapon = (commander as any).getWeapon(mage);
+    expect(weapon).toBe(WEAPON_DB.Fire);
   });
 });
 

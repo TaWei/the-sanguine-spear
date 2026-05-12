@@ -1,4 +1,4 @@
-import { Unit } from '../units/Unit';
+import { Unit, Faction } from '../units/Unit';
 import { Grid } from '../map/Grid';
 import { WeaponData } from '../combat/Weapons';
 import { computeMoveRange } from '../movement/MoveRange';
@@ -26,9 +26,15 @@ export class Commander {
     enemies: Unit[],
     players: Unit[],
     configs?: Map<Unit, AiConfig>,
+    fog?: import('../fog/FogOfWar').FogOfWar,
   ): Action[] {
     const actions: Action[] = [];
     const claimedTiles = new Set<string>();
+
+    // Filter players to only those visible to enemy faction when fog is enabled
+    const visiblePlayers = fog?.isEnabled()
+      ? players.filter(p => fog.isUnitVisible(p, Faction.ENEMY))
+      : players;
 
     for (const enemy of enemies) {
       if (!enemy.isAlive) {
@@ -50,7 +56,7 @@ export class Commander {
         moveRange.delete(key);
       }
 
-      const reachable = this.findReachableTargets(enemy, players, moveRange, weapon);
+      const reachable = this.findReachableTargets(enemy, visiblePlayers, moveRange, weapon);
 
       if (reachable.length > 0) {
         const target = pickBestTarget(
@@ -88,8 +94,8 @@ export class Commander {
           targetY: target.gridY,
         });
       } else if (shouldPursue(behavior, enemy) && !isStationary(behavior)) {
-        // Pursue nearest player
-        const pursuit = this.pursueTarget(enemy, players, moveRange);
+        // Pursue nearest visible player
+        const pursuit = this.pursueTarget(enemy, visiblePlayers, moveRange);
         if (pursuit) {
           const [px, py, rawPath] = pursuit;
           const path: GridPoint[] | undefined = rawPath
@@ -114,6 +120,23 @@ export class Commander {
   }
 
   private getWeapon(unit: Unit): WeaponData | null {
+    // 1. Check equipped weapon index
+    if (unit.equippedWeaponIndex !== null) {
+      const item = unit.inventory.items[unit.equippedWeaponIndex];
+      if (item && item.kind === 'weapon') {
+        const dbEntry = this.weaponDb[item.name];
+        if (dbEntry) return dbEntry;
+      }
+    }
+
+    // 2. Check inventory for first weapon
+    const weaponItem = [...unit.inventory.items].find((i) => i.kind === 'weapon');
+    if (weaponItem) {
+      const dbEntry = this.weaponDb[weaponItem.name];
+      if (dbEntry) return dbEntry;
+    }
+
+    // 3. Fall back to class default
     if (unit.unitClass === 'mage') {
       return this.weaponDb.Fire;
     }
