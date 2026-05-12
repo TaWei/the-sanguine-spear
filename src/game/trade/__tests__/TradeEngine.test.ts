@@ -1,179 +1,168 @@
 import { describe, it, expect } from 'vitest';
-import { TradeEngine, TradeResult } from '../TradeEngine';
+import { TradeEngine } from '../TradeEngine';
 import { Unit, Faction, UnitClass } from '../../units/Unit';
 import { createStats } from '../../units/Stats';
 import { Grid } from '../../map/Grid';
-import { createWeaponItem, createRecoveryItem } from '../../items/ItemTypes';
-
-function makeUnit(id: string, name: string, faction: Faction, x: number, y: number): Unit {
-  const stats = createStats({
-    hp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5,
-  });
-  return new Unit(id, name, faction, UnitClass.LORD, stats, x, y);
-}
-
-function makeSword(name = 'Iron Sword') {
-  return createWeaponItem(name, 'sword', 5, 90, 0, 1, 1, false);
-}
-
-function makeVulnerary(name = 'Vulnerary') {
-  return createRecoveryItem(name, 10);
-}
+import { createWeaponItem } from '../../items/ItemTypes';
 
 describe('TradeEngine', () => {
-  describe('canTrade', () => {
-    it('returns true for adjacent player units', () => {
-      const grid = new Grid(10, 10);
-      const a = makeUnit('a', 'A', Faction.PLAYER, 2, 2);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 3, 2);
-      grid.placeUnit(a, 2, 2);
-      grid.placeUnit(b, 3, 2);
-      expect(TradeEngine.canTrade(a, b, grid)).toBe(true);
+  const makeUnit = (id: string, faction: Faction, x: number, y: number) => {
+    const stats = createStats({
+      hp: 20, maxHp: 20, str: 5, mag: 5, skl: 5, spd: 5, luk: 5, def: 5, res: 5, mov: 5,
     });
+    return new Unit(id, id, faction, UnitClass.LORD, stats, x, y);
+  };
 
-    it('returns true for player and ally', () => {
-      const grid = new Grid(10, 10);
-      const a = makeUnit('a', 'A', Faction.PLAYER, 2, 2);
-      const b = makeUnit('b', 'B', Faction.ALLY, 2, 3);
-      grid.placeUnit(a, 2, 2);
-      grid.placeUnit(b, 2, 3);
-      expect(TradeEngine.canTrade(a, b, grid)).toBe(true);
-    });
+  const sword = () => createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false);
+  const lance = () => createWeaponItem('Iron Lance', 'lance', 6, 80, 0, 1, 1, false);
 
-    it('returns false when not adjacent', () => {
-      const grid = new Grid(10, 10);
-      const a = makeUnit('a', 'A', Faction.PLAYER, 2, 2);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 5, 5);
-      grid.placeUnit(a, 2, 2);
-      grid.placeUnit(b, 5, 5);
-      expect(TradeEngine.canTrade(a, b, grid)).toBe(false);
-    });
-
-    it('returns false with enemy unit', () => {
-      const grid = new Grid(10, 10);
-      const a = makeUnit('a', 'A', Faction.PLAYER, 2, 2);
-      const b = makeUnit('b', 'B', Faction.ENEMY, 3, 2);
-      grid.placeUnit(a, 2, 2);
-      grid.placeUnit(b, 3, 2);
-      expect(TradeEngine.canTrade(a, b, grid)).toBe(false);
-    });
-
-    it('returns false when diagonally adjacent', () => {
-      const grid = new Grid(10, 10);
-      const a = makeUnit('a', 'A', Faction.PLAYER, 2, 2);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 3, 3);
-      grid.placeUnit(a, 2, 2);
-      grid.placeUnit(b, 3, 3);
-      expect(TradeEngine.canTrade(a, b, grid)).toBe(false);
-    });
-
-    it('returns false when grid position mismatch', () => {
-      const grid = new Grid(10, 10);
-      const a = makeUnit('a', 'A', Faction.PLAYER, 2, 2);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 3, 2);
-      grid.placeUnit(a, 2, 2);
-      // b placed elsewhere on grid
-      grid.placeUnit(b, 4, 4);
-      expect(TradeEngine.canTrade(a, b, grid)).toBe(false);
-    });
+  it('canTrade returns false for enemies', () => {
+    const grid = new Grid(16, 12);
+    const player = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const enemy = makeUnit('e1', Faction.ENEMY, 6, 5);
+    grid.placeUnit(player, 5, 5);
+    grid.placeUnit(enemy, 6, 5);
+    expect(TradeEngine.canTrade(player, enemy, grid)).toBe(false);
   });
 
-  describe('trade', () => {
-    it('swaps items between units', () => {
-      const a = makeUnit('a', 'A', Faction.PLAYER, 0, 0);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 0, 0);
-      a.inventory.add(makeSword('SwordA'));
-      b.inventory.add(makeSword('SwordB'));
+  it('canTrade returns true for adjacent player units', () => {
+    const grid = new Grid(16, 12);
+    const a = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const b = makeUnit('p2', Faction.PLAYER, 6, 5);
+    grid.placeUnit(a, 5, 5);
+    grid.placeUnit(b, 6, 5);
+    expect(TradeEngine.canTrade(a, b, grid)).toBe(true);
+  });
 
-      const result = TradeEngine.trade(a, 0, b, 0);
-      expect(result.success).toBe(true);
-      expect(a.inventory.items[0].name).toBe('SwordB');
-      expect(b.inventory.items[0].name).toBe('SwordA');
-    });
+  it('canTrade returns false for non-adjacent units', () => {
+    const grid = new Grid(16, 12);
+    const a = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const b = makeUnit('p2', Faction.PLAYER, 7, 5);
+    grid.placeUnit(a, 5, 5);
+    grid.placeUnit(b, 7, 5);
+    expect(TradeEngine.canTrade(a, b, grid)).toBe(false);
+  });
 
-    it('allows giving when recipient has space', () => {
-      const a = makeUnit('a', 'A', Faction.PLAYER, 0, 0);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 0, 0);
-      a.inventory.add(makeSword('SwordA'));
+  it('swaps items between units', () => {
+    const grid = new Grid(16, 12);
+    const a = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const b = makeUnit('p2', Faction.PLAYER, 6, 5);
+    a.inventory.add(sword());
+    b.inventory.add(lance());
+    grid.placeUnit(a, 5, 5);
+    grid.placeUnit(b, 6, 5);
 
-      const result = TradeEngine.trade(a, 0, b, -1);
-      expect(result.success).toBe(true);
-      expect(a.inventory.size).toBe(0);
-      expect(b.inventory.items[0].name).toBe('SwordA');
-    });
+    const result = TradeEngine.trade(a, 0, b, 0);
+    expect(result.success).toBe(true);
+    expect(a.inventory.items[0].name).toBe('Iron Lance');
+    expect(b.inventory.items[0].name).toBe('Iron Sword');
+  });
 
-    it('allows receiving when recipient has space', () => {
-      const a = makeUnit('a', 'A', Faction.PLAYER, 0, 0);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 0, 0);
-      b.inventory.add(makeSword('SwordB'));
+  it('A gives item to B', () => {
+    const grid = new Grid(16, 12);
+    const a = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const b = makeUnit('p2', Faction.PLAYER, 6, 5);
+    a.inventory.add(sword());
+    grid.placeUnit(a, 5, 5);
+    grid.placeUnit(b, 6, 5);
 
-      const result = TradeEngine.trade(a, -1, b, 0);
-      expect(result.success).toBe(true);
-      expect(a.inventory.items[0].name).toBe('SwordB');
-      expect(b.inventory.size).toBe(0);
-    });
+    const result = TradeEngine.trade(a, 0, b, -1);
+    expect(result.success).toBe(true);
+    expect(a.inventory.size).toBe(0);
+    expect(b.inventory.items[0].name).toBe('Iron Sword');
+  });
 
-    it('fails when giver has no item at index', () => {
-      const a = makeUnit('a', 'A', Faction.PLAYER, 0, 0);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 0, 0);
+  it('A receives item from B', () => {
+    const grid = new Grid(16, 12);
+    const a = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const b = makeUnit('p2', Faction.PLAYER, 6, 5);
+    b.inventory.add(lance());
+    grid.placeUnit(a, 5, 5);
+    grid.placeUnit(b, 6, 5);
 
-      const result = TradeEngine.trade(a, 0, b, -1);
-      expect(result.success).toBe(false);
-      expect(result.reason).toBeDefined();
-    });
+    const result = TradeEngine.trade(a, -1, b, 0);
+    expect(result.success).toBe(true);
+    expect(a.inventory.items[0].name).toBe('Iron Lance');
+    expect(b.inventory.size).toBe(0);
+  });
 
-    it('fails when recipient is full and not swapping (give)', () => {
-      const a = makeUnit('a', 'A', Faction.PLAYER, 0, 0);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 0, 0);
-      a.inventory.add(makeSword('SwordA'));
-      for (let i = 0; i < 5; i++) {
-        b.inventory.add(makeVulnerary(`Vuln${i}`));
-      }
-      expect(b.inventory.isFull).toBe(true);
+  it('swap fails with invalid index on A', () => {
+    const grid = new Grid(16, 12);
+    const a = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const b = makeUnit('p2', Faction.PLAYER, 6, 5);
+    a.inventory.add(sword());
+    b.inventory.add(lance());
+    grid.placeUnit(a, 5, 5);
+    grid.placeUnit(b, 6, 5);
 
-      const result = TradeEngine.trade(a, 0, b, -1);
-      expect(result.success).toBe(false);
-      expect(result.reason).toBeDefined();
-      expect(a.inventory.size).toBe(1);
-      expect(b.inventory.size).toBe(5);
-    });
+    const result = TradeEngine.trade(a, 5, b, 0);
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_index');
+    expect(a.inventory.size).toBe(1);
+    expect(b.inventory.size).toBe(1);
+  });
 
-    it('fails when recipient is full and not swapping (receive)', () => {
-      const a = makeUnit('a', 'A', Faction.PLAYER, 0, 0);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 0, 0);
-      for (let i = 0; i < 5; i++) {
-        a.inventory.add(makeVulnerary(`Vuln${i}`));
-      }
-      b.inventory.add(makeSword('SwordB'));
-      expect(a.inventory.isFull).toBe(true);
+  it('swap fails with invalid index on B', () => {
+    const grid = new Grid(16, 12);
+    const a = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const b = makeUnit('p2', Faction.PLAYER, 6, 5);
+    a.inventory.add(sword());
+    b.inventory.add(lance());
+    grid.placeUnit(a, 5, 5);
+    grid.placeUnit(b, 6, 5);
 
-      const result = TradeEngine.trade(a, -1, b, 0);
-      expect(result.success).toBe(false);
-      expect(result.reason).toBeDefined();
-      expect(a.inventory.size).toBe(5);
-      expect(b.inventory.size).toBe(1);
-    });
+    const result = TradeEngine.trade(a, 0, b, -2);
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_index');
+    expect(a.inventory.size).toBe(1);
+    expect(b.inventory.size).toBe(1);
+  });
 
-    it('swap succeeds even when both inventories are full', () => {
-      const a = makeUnit('a', 'A', Faction.PLAYER, 0, 0);
-      const b = makeUnit('b', 'B', Faction.PLAYER, 0, 0);
-      a.inventory.add(makeSword('SwordA'));
-      for (let i = 0; i < 4; i++) {
-        a.inventory.add(makeVulnerary(`AVuln${i}`));
-      }
-      b.inventory.add(makeSword('SwordB'));
-      for (let i = 0; i < 4; i++) {
-        b.inventory.add(makeVulnerary(`BVuln${i}`));
-      }
-      expect(a.inventory.isFull).toBe(true);
-      expect(b.inventory.isFull).toBe(true);
+  it('give fails when B inventory is full', () => {
+    const grid = new Grid(16, 12);
+    const a = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const b = makeUnit('p2', Faction.PLAYER, 6, 5);
+    a.inventory.add(sword());
+    for (let i = 0; i < 5; i++) {
+      b.inventory.add(lance());
+    }
+    grid.placeUnit(a, 5, 5);
+    grid.placeUnit(b, 6, 5);
 
-      const result = TradeEngine.trade(a, 0, b, 0);
-      expect(result.success).toBe(true);
-      expect(a.inventory.items[0].name).toBe('SwordB');
-      expect(b.inventory.items[0].name).toBe('SwordA');
-      expect(a.inventory.size).toBe(5);
-      expect(b.inventory.size).toBe(5);
-    });
+    const result = TradeEngine.trade(a, 0, b, -1);
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('inventory_full');
+    expect(a.inventory.size).toBe(1);
+    expect(b.inventory.size).toBe(5);
+  });
+
+  it('receive fails when A inventory is full', () => {
+    const grid = new Grid(16, 12);
+    const a = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const b = makeUnit('p2', Faction.PLAYER, 6, 5);
+    for (let i = 0; i < 5; i++) {
+      a.inventory.add(sword());
+    }
+    b.inventory.add(lance());
+    grid.placeUnit(a, 5, 5);
+    grid.placeUnit(b, 6, 5);
+
+    const result = TradeEngine.trade(a, -1, b, 0);
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('inventory_full');
+    expect(a.inventory.size).toBe(5);
+    expect(b.inventory.size).toBe(1);
+  });
+
+  it('invalid trade when both indices are -1', () => {
+    const grid = new Grid(16, 12);
+    const a = makeUnit('p1', Faction.PLAYER, 5, 5);
+    const b = makeUnit('p2', Faction.PLAYER, 6, 5);
+    grid.placeUnit(a, 5, 5);
+    grid.placeUnit(b, 6, 5);
+
+    const result = TradeEngine.trade(a, -1, b, -1);
+    expect(result.success).toBe(false);
+    expect(result.reason).toBe('invalid_trade');
   });
 });

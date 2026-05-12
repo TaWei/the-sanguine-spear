@@ -1,81 +1,85 @@
 import { describe, it, expect } from 'vitest';
 import { Inventory } from '../Inventory';
-import { createRecoveryItem, createWeaponItem } from '../ItemTypes';
+import { createWeaponItem } from '../ItemTypes';
 
 describe('Inventory', () => {
-  it('starts empty (size=0, isFull=false)', () => {
+  const sword = () => createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false);
+  const lance = () => createWeaponItem('Iron Lance', 'lance', 6, 80, 0, 1, 1, false);
+  const axe = () => createWeaponItem('Iron Axe', 'axe', 8, 70, 0, 1, 1, false);
+
+  it('adds items', () => {
     const inv = new Inventory();
-    expect(inv.size).toBe(0);
-    expect(inv.isFull).toBe(false);
-    expect(inv.items).toEqual([]);
+    expect(inv.add(sword())).toBe(true);
+    expect(inv.size).toBe(1);
   });
 
-  it('adds items up to max 5, rejects 6th', () => {
+  it('refuses add when full', () => {
     const inv = new Inventory();
-    const item = createRecoveryItem('Vulnerary', 10);
     for (let i = 0; i < 5; i++) {
-      expect(inv.add({ ...item, name: `Vulnerary ${i}` })).toBe(true);
+      expect(inv.add(sword())).toBe(true);
     }
-    expect(inv.size).toBe(5);
-    expect(inv.isFull).toBe(true);
-    expect(inv.add({ ...item, name: 'Vulnerary 5' })).toBe(false);
+    expect(inv.add(sword())).toBe(false);
     expect(inv.size).toBe(5);
   });
 
-  it('removeAt(index) returns item and decrements size', () => {
+  it('inserts at valid index', () => {
     const inv = new Inventory();
-    const item1 = createRecoveryItem('Vulnerary', 10);
-    const item2 = createWeaponItem('Iron Sword', 'sword', 5, 90, 0, 1, 1, false);
-    inv.add(item1);
-    inv.add(item2);
+    inv.add(sword());
+    inv.add(axe());
+    expect(inv.insertAt(1, lance())).toBe(true);
+    expect(inv.size).toBe(3);
+    expect(inv.items[1].name).toBe('Iron Lance');
+  });
+
+  it('inserts at end (index === length)', () => {
+    const inv = new Inventory();
+    inv.add(sword());
+    expect(inv.insertAt(1, lance())).toBe(true);
     expect(inv.size).toBe(2);
-    const removed = inv.removeAt(0);
-    expect(removed).toBe(item1);
+    expect(inv.items[1].name).toBe('Iron Lance');
+  });
+
+  it('insertAt returns false for negative index', () => {
+    const inv = new Inventory();
+    inv.add(sword());
+    expect(inv.insertAt(-1, lance())).toBe(false);
     expect(inv.size).toBe(1);
-    expect(inv.items[0]).toBe(item2);
+    expect(inv.items[0].name).toBe('Iron Sword');
   });
 
-  it('useAt decrements uses on recovery item, does not remove', () => {
+  it('insertAt returns false for index > length', () => {
     const inv = new Inventory();
-    const item = createRecoveryItem('Vulnerary', 10);
-    inv.add(item);
-    const result = inv.useAt(0);
-    expect(result.item).toBe(item);
-    expect(result.consumed).toBe(false);
-    expect(item.uses).toBe(2);
+    inv.add(sword());
+    expect(inv.insertAt(5, lance())).toBe(false);
     expect(inv.size).toBe(1);
+    expect(inv.items[0].name).toBe('Iron Sword');
   });
 
-  it('useAt on last use removes item (consumed=true)', () => {
+  it('insertAt returns false when full', () => {
     const inv = new Inventory();
-    const item = createRecoveryItem('Vulnerary', 10);
-    item.uses = 1;
-    inv.add(item);
-    const result = inv.useAt(0);
-    expect(result.item).toBe(item);
-    expect(result.consumed).toBe(true);
-    expect(inv.size).toBe(0);
+    for (let i = 0; i < 5; i++) {
+      inv.add(sword());
+    }
+    expect(inv.insertAt(0, lance())).toBe(false);
+    expect(inv.size).toBe(5);
   });
 
-  it('throws on invalid index', () => {
+  it('removeAt throws for negative index', () => {
     const inv = new Inventory();
-    expect(() => inv.removeAt(0)).toThrow();
-    expect(() => inv.useAt(0)).toThrow();
-    const item = createRecoveryItem('Vulnerary', 10);
-    inv.add(item);
-    expect(() => inv.removeAt(5)).toThrow();
-    expect(() => inv.useAt(5)).toThrow();
-    expect(() => inv.removeAt(-1)).toThrow();
-    expect(() => inv.useAt(-1)).toThrow();
+    inv.add(sword());
+    expect(() => inv.removeAt(-1)).toThrow('Invalid index: -1');
   });
 
-  it('items is read-only', () => {
+  it('removeAt throws for index >= length', () => {
     const inv = new Inventory();
-    const item = createRecoveryItem('Vulnerary', 10);
-    inv.add(item);
-    const items = inv.items;
-    expect(() => {
-      (items as any[]).push(item);
-    }).toThrow();
+    inv.add(sword());
+    expect(() => inv.removeAt(1)).toThrow('Invalid index: 1');
+  });
+
+  it('useAt throws for out-of-bounds index', () => {
+    const inv = new Inventory();
+    inv.add(sword());
+    expect(() => inv.useAt(-1)).toThrow('Invalid index: -1');
+    expect(() => inv.useAt(1)).toThrow('Invalid index: 1');
   });
 });

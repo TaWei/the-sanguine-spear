@@ -26,6 +26,9 @@ export class Inventory {
   }
 
   insertAt(index: number, item: Item): boolean {
+    if (index < 0 || index > this._items.length) {
+      return false;
+    }
     if (this._items.length >= this._max) {
       return false;
     }

@@ -42,6 +42,10 @@ export class TradeEngine {
     unitB: Unit,
     itemIndexB: number,
   ): TradeResult {
+    if (itemIndexA < -1 || itemIndexB < -1) {
+      return { success: false, reason: 'invalid_index' };
+    }
+
     const aHasItem = itemIndexA >= 0 && itemIndexA < unitA.inventory.size;
     const bHasItem = itemIndexB >= 0 && itemIndexB < unitB.inventory.size;
 
@@ -52,8 +56,16 @@ export class TradeEngine {
       }
       const itemA = unitA.inventory.removeAt(itemIndexA);
       const itemB = unitB.inventory.removeAt(itemIndexB);
-      unitA.inventory.insertAt(itemIndexA, itemB!);
-      unitB.inventory.insertAt(itemIndexB, itemA!);
+      const okA = unitA.inventory.insertAt(itemIndexA, itemB!);
+      const okB = unitB.inventory.insertAt(itemIndexB, itemA!);
+      if (!okA || !okB) {
+        // Rollback: restore items to their original owners
+        if (okA) unitA.inventory.removeAt(itemIndexA);
+        if (okB) unitB.inventory.removeAt(itemIndexB);
+        unitA.inventory.add(itemA!);
+        unitB.inventory.add(itemB!);
+        return { success: false, reason: 'invalid_index' };
+      }
       return { success: true };
     }
 
