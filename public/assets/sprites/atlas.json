@@ -1,0 +1,2408 @@
+{
+  "lord-player": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "lord-player-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-player-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-player-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-player-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-player-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-enemy": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "lord-enemy-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-enemy-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-enemy-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-enemy-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-enemy-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-ally": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "lord-ally-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-ally-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-ally-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-ally-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "lord-ally-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-player": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "mercenary-player-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-player-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-player-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-player-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-player-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-enemy": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "mercenary-enemy-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-enemy-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-enemy-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-enemy-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-enemy-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-ally": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "mercenary-ally-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-ally-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-ally-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-ally-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mercenary-ally-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-player": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "mage-player-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-player-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-player-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-player-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-player-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-enemy": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "mage-enemy-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-enemy-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-enemy-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-enemy-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-enemy-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-ally": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "mage-ally-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-ally-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-ally-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-ally-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "mage-ally-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-player": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "archer-player-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-player-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-player-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-player-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-player-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-enemy": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "archer-enemy-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-enemy-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-enemy-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-enemy-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-enemy-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-ally": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "archer-ally-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-ally-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-ally-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-ally-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "archer-ally-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-player": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "cavalry-player-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-player-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-player-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-player-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-player-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-enemy": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "cavalry-enemy-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-enemy-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-enemy-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-enemy-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-enemy-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-ally": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "cavalry-ally-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-ally-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-ally-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-ally-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "cavalry-ally-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-player": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "pegasus_knight-player-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-player-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-player-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-player-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-player-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-enemy": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "pegasus_knight-enemy-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-enemy-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-enemy-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-enemy-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-enemy-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-ally": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "pegasus_knight-ally-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-ally-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-ally-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-ally-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "pegasus_knight-ally-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-player": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "soldier-player-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-player-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-player-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-player-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-player-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-enemy": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "soldier-enemy-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-enemy-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-enemy-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-enemy-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-enemy-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-ally": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "soldier-ally-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-ally-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-ally-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-ally-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "soldier-ally-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-player": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "brigand-player-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-player-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-player-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-player-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-player-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-enemy": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "brigand-enemy-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-enemy-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-enemy-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-enemy-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-enemy-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-ally": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      }
+    ]
+  },
+  "brigand-ally-sword": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-ally-axe": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-ally-lance": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-ally-bow": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "brigand-ally-magic": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "generic-player": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "generic-enemy": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  },
+  "generic-ally": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "states": [
+      {
+        "name": "idle",
+        "frames": 2
+      },
+      {
+        "name": "move",
+        "frames": 4
+      },
+      {
+        "name": "attack",
+        "frames": 6
+      },
+      {
+        "name": "hit",
+        "frames": 2
+      },
+      {
+        "name": "death",
+        "frames": 4
+      },
+      {
+        "name": "dodge",
+        "frames": 2
+      },
+      {
+        "name": "crit",
+        "frames": 8
+      }
+    ]
+  }
+}

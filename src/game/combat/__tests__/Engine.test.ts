@@ -683,6 +683,74 @@ describe('CombatEngine', () => {
     });
   });
 
+  describe('terrain defense bonus', () => {
+    it('resolveCombat reduces damage when defender is on forest (+1 def)', () => {
+      const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, attackerStats, 2, 5);
+      const defender = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, defenderStats, 3, 5);
+      const grid = new Grid(10, 10);
+      grid.setTerrain(3, 5, 'forest');
+      const engine = new CombatEngine(grid);
+
+      const rng = makeRng([0, 0, 99]);
+      const result = engine.resolveCombat(
+        attacker, defender, WEAPON_DB['Iron Sword'], WEAPON_DB['Iron Axe'], rng,
+      );
+      expect(result.log[0].hit).toBe(true);
+      // str 8 + mt 5 + triangle 1 - def 5 - forest 1 = 8
+      expect(result.log[0].damage).toBe(8);
+      expect(defender.stats.hp).toBe(defenderStats.hp - 8);
+    });
+
+    it('previewCombat reflects terrain defense bonus', () => {
+      const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, attackerStats, 2, 5);
+      const defender = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, defenderStats, 3, 5);
+      const grid = new Grid(10, 10);
+      grid.setTerrain(3, 5, 'forest');
+      const engine = new CombatEngine(grid);
+
+      const preview = engine.previewCombat(
+        attacker, defender, WEAPON_DB['Iron Sword'], WEAPON_DB['Iron Axe'],
+      );
+      // str 8 + mt 5 + triangle 1 - def 5 - forest 1 = 8
+      expect(preview.attacker.damage).toBe(8);
+    });
+
+    it('magical weapon uses res + terrain defense bonus', () => {
+      const mageStats = createStats({
+        hp: 20, str: 2, mag: 10, skl: 8, spd: 8, luk: 5, def: 3, res: 6, mov: 5,
+      });
+      const attacker = new Unit('p1', 'Mage', Faction.PLAYER, UnitClass.MAGE, mageStats, 2, 5);
+      const defender = new Unit('e1', 'Soldier', Faction.ENEMY, UnitClass.SOLDIER, defenderStats, 3, 5);
+      const grid = new Grid(10, 10);
+      grid.setTerrain(3, 5, 'forest');
+      const engine = new CombatEngine(grid);
+
+      const rng = makeRng([0, 0, 99]);
+      const result = engine.resolveCombat(
+        attacker, defender, WEAPON_DB['Fire'], WEAPON_DB['Iron Lance'], rng,
+      );
+      expect(result.log[0].hit).toBe(true);
+      // mag 10 + mt 5 - res 1 - forest 1 = 13
+      expect(result.log[0].damage).toBe(13);
+    });
+
+    it('gate terrain (+3 def) significantly reduces damage', () => {
+      const attacker = new Unit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, attackerStats, 2, 5);
+      const defender = new Unit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, defenderStats, 3, 5);
+      const grid = new Grid(10, 10);
+      grid.setTerrain(3, 5, 'gate');
+      const engine = new CombatEngine(grid);
+
+      const rng = makeRng([0, 0, 99]);
+      const result = engine.resolveCombat(
+        attacker, defender, WEAPON_DB['Iron Sword'], WEAPON_DB['Iron Axe'], rng,
+      );
+      expect(result.log[0].hit).toBe(true);
+      // str 8 + mt 5 + triangle 1 - def 5 - gate 3 = 6
+      expect(result.log[0].damage).toBe(6);
+    });
+  });
+
   describe('Constitution and weapon weight', () => {
     it('heavy weapon can prevent doubling', () => {
       const grid = new Grid(8, 8);

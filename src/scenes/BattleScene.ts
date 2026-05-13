@@ -25,6 +25,7 @@ import { hasCutscene } from '../game/cutscene';
 import { DragDetector } from '../game/ui/DragDetector';
 import { TriggerContext } from '../game/cutscene/CutsceneTrigger';
 import { FogTileRenderer } from '../game/fog/FogTileRenderer';
+import { BattleSpriteRenderer } from './BattleSpriteRenderer';
 
 const TERRAIN_COLORS: Record<string, number> = {
   plains: 0x8fbc8f,
@@ -69,8 +70,8 @@ export class BattleScene extends Phaser.Scene {
   private menuTexts: Phaser.GameObjects.Text[] = [];
   private enemyPreviewTexts: Phaser.GameObjects.GameObject[] = [];
   private battleOverlay: Phaser.GameObjects.Container | null = null;
-  private attBattlePanel: Phaser.GameObjects.Container | null = null;
-  private defBattlePanel: Phaser.GameObjects.Container | null = null;
+  private attBattleRenderer: BattleSpriteRenderer | null = null;
+  private defBattleRenderer: BattleSpriteRenderer | null = null;
   private battleDisplayState: BattleDisplayState | null = null;
   private inBattleMode = false;
   private pendingBattleCallback: (() => void) | null = null;
@@ -471,6 +472,12 @@ export class BattleScene extends Phaser.Scene {
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       this.dragDetector.pointerUp();
 
+      // If pointerup is over a UI text button, don't process as tile click
+      const gameObjects = this.input.hitTestPointer(pointer);
+      if (gameObjects.some((obj) => obj instanceof Phaser.GameObjects.Text)) {
+        return;
+      }
+
       // If it was a click (not a drag), process the tile click
       if (!this.dragDetector.wasDrag) {
         const gx = this.screenToGridX(pointer.x);
@@ -786,21 +793,8 @@ export class BattleScene extends Phaser.Scene {
     this.clearEnemyPreviewTexts();
     this.selectedUnit = null;
 
-    // Compute threat against currently selected player unit if any
-    const playerUnits = this.engine
-      .getUnitsByFaction(Faction.PLAYER)
-      .filter((u) => u.isAlive && !u.hasActed);
-    let threat = null;
-    if (playerUnits.length > 0) {
-      const target = playerUnits[0];
-      const preview = this.engine.getCombatPreview(unit, target);
-      threat = {
-        hit: preview.attacker.hit,
-        crit: preview.attacker.crit,
-        damage: preview.attacker.damage,
-        doubleAttack: preview.attacker.doubleAttack,
-      };
-    }
+    // Compute threat against the nearest relevant player unit
+    const threat = this.engine.getEnemyThreatInFog(unit);
     this.enemyPreview.show(unit, threat ?? undefined);
 
     const range = this.engine.getMoveRange(unit);
@@ -2569,17 +2563,35 @@ export class BattleScene extends Phaser.Scene {
     );
     overlay.add(bg);
 
-    // Attacker panel (left)
+    // Attacker renderer (left)
     const attX = this.cameras.main.width * 0.25;
     const attY = this.cameras.main.height * 0.5;
-    this.attBattlePanel = this.createUnitBattlePanel(attacker, attX, attY, 0x3498db, preview.attacker, attackerInitialHp);
-    overlay.add(this.attBattlePanel);
+    this.attBattleRenderer = new BattleSpriteRenderer(
+      this,
+      attX,
+      attY,
+      attacker,
+      preview.attacker,
+      attackerInitialHp,
+      true,
+    );
+    this.attBattleRenderer.playAnimation('idle');
+    overlay.add(this.attBattleRenderer.getContainer());
 
-    // Defender panel (right)
+    // Defender renderer (right)
     const defX = this.cameras.main.width * 0.75;
     const defY = this.cameras.main.height * 0.5;
-    this.defBattlePanel = this.createUnitBattlePanel(defender, defX, defY, 0xe74c3c, preview.defender, defenderInitialHp);
-    overlay.add(this.defBattlePanel);
+    this.defBattleRenderer = new BattleSpriteRenderer(
+      this,
+      defX,
+      defY,
+      defender,
+      preview.defender,
+      defenderInitialHp,
+      false,
+    );
+    this.defBattleRenderer.playAnimation('idle');
+    overlay.add(this.defBattleRenderer.getContainer());
 
     // VS label
     const vsText = this.add
@@ -2593,116 +2605,17 @@ export class BattleScene extends Phaser.Scene {
 
     this.battleOverlay = overlay;
 
-    // Start animation sequence
-    this.time.delayedCall(800, () => {
-      this.runBattleAnimation();
-    });
-  }
-
-  private createUnitBattlePanel(
-    unit: Unit,
-    x: number,
-    y: number,
-    color: number,
-    preview: import('../game/combat/Engine').AttackPreview | null,
-    initialHp?: number,
-  ): Phaser.GameObjects.Container {
-    const panel = this.add.container(x, y);
-
-    // Background box
-    const box = this.add.rectangle(0, 0, 200, 180, 0x2c3e50, 0.9);
-    box.setStrokeStyle(2, color);
-    panel.add(box);
-
-    // Name
-    const nameText = this.add
-      .text(0, -70, unit.name, {
-        fontSize: '18px',
-        color: '#ecf0f1',
-        fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    panel.add(nameText);
-
-    // Class
-    const classText = this.add
-      .text(0, -50, unit.unitClass, {
-        fontSize: '12px',
-        color: '#bdc3c7',
-      })
-      .setOrigin(0.5);
-    panel.add(classText);
-
-    // Combat stats row
-    if (preview) {
-      const hitText = this.add
-        .text(-60, -30, `Hit ${preview.hit.toString()}%`, {
-          fontSize: '12px',
-          color: '#ecf0f1',
-        })
-        .setOrigin(0, 0.5);
-      panel.add(hitText);
-
-      const critText = this.add
-        .text(-60, -14, `Crit ${preview.crit.toString()}%`, {
-          fontSize: '12px',
-          color: preview.crit > 0 ? '#e74c3c' : '#95a5a6',
-        })
-        .setOrigin(0, 0.5);
-      panel.add(critText);
-
-      const dmgText = this.add
-        .text(20, -30, `Dmg ${preview.damage.toString()}`, {
-          fontSize: '12px',
-          color: '#ecf0f1',
-        })
-        .setOrigin(0, 0.5);
-      panel.add(dmgText);
-
-      if (preview.doubleAttack) {
-        const doubleText = this.add
-          .text(20, -14, '2x', {
-            fontSize: '12px',
-            color: '#f1c40f',
-            fontStyle: 'bold',
-          })
-          .setOrigin(0, 0.5);
-        panel.add(doubleText);
+    // Start animation sequence with intro slide-in
+    const width = this.cameras.main.width;
+    let introsComplete = 0;
+    const onIntroDone = () => {
+      introsComplete++;
+      if (introsComplete >= 2) {
+        this.runBattleAnimation();
       }
-    }
-
-    // HP label
-    const hpLabel = this.add
-      .text(-70, 10, 'HP', {
-        fontSize: '12px',
-        color: '#bdc3c7',
-      })
-      .setOrigin(0, 0.5);
-    panel.add(hpLabel);
-
-    // HP bar background
-    const hpBg = this.add.rectangle(10, 10, 120, 12, 0x000000);
-    panel.add(hpBg);
-
-    // HP bar fill (uses initialHp so the panel reflects pre-combat state)
-    const displayHp = Math.max(0, Math.min(initialHp ?? unit.stats.hp, unit.stats.maxHp));
-    const hpRatio = displayHp / unit.stats.maxHp;
-    const hpColor = hpRatio > 0.5 ? 0x2ecc71 : hpRatio > 0.25 ? 0xf1c40f : 0xe74c3c;
-    const hpFill = this.add.rectangle(-50 + (120 * hpRatio) / 2, 10, 120 * hpRatio, 12, hpColor);
-    hpFill.setName('hpFill');
-    panel.add(hpFill);
-
-    // HP text
-    const hpText = this.add
-      .text(10, 30, `${displayHp.toString()} / ${unit.stats.maxHp.toString()}`, {
-        fontSize: '14px',
-        color: '#ecf0f1',
-      })
-      .setOrigin(0.5);
-    hpText.setName('hpText');
-    panel.add(hpText);
-
-    return panel;
+    };
+    this.attBattleRenderer?.intro(-100, 500, onIntroDone);
+    this.defBattleRenderer?.intro(width + 100, 500, onIntroDone);
   }
 
   private runBattleAnimation(): void {
@@ -2723,6 +2636,11 @@ export class BattleScene extends Phaser.Scene {
       // Determine target based on who is attacking in this log entry
       const isCounter = entry?.attacker.id === state.defender.id;
       const target = isCounter ? state.attacker : state.defender;
+      const attackerRenderer = isCounter ? this.defBattleRenderer : this.attBattleRenderer;
+      const defenderRenderer = isCounter ? this.attBattleRenderer : this.defBattleRenderer;
+
+      // Play attack animation on attacker
+      attackerRenderer?.playAnimation('attack', entry?.weaponType);
 
       // Camera shake on hit
       if (entry?.hit) {
@@ -2732,6 +2650,9 @@ export class BattleScene extends Phaser.Scene {
       this.time.delayedCall(400, () => {
         if (entry?.hit) {
           this.showDamageNumber(target, entry.damage, entry.critical);
+          defenderRenderer?.flashWhite();
+          defenderRenderer?.shake();
+          defenderRenderer?.playAnimation('hit');
         } else if (entry) {
           this.showMissText(target);
         }
@@ -2739,6 +2660,10 @@ export class BattleScene extends Phaser.Scene {
           state.applyLogEntry(entry);
         }
         this.updateBattleHpBars();
+        this.time.delayedCall(200, () => {
+          attackerRenderer?.playAnimation('idle');
+          defenderRenderer?.playAnimation('idle');
+        });
         this.time.delayedCall(600, () => {
           this.runBattleAnimation();
         });
@@ -2815,40 +2740,12 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateBattleHpBars(): void {
-    if (!this.battleDisplayState || !this.battleOverlay) {
+    if (!this.battleDisplayState) {
       return;
     }
-    const { attacker, defender, attackerCurrentHp, defenderCurrentHp } = this.battleDisplayState;
-
-    // Update attacker HP bar
-    this.updatePanelHp(attacker, attackerCurrentHp, 0x3498db);
-    // Update defender HP bar
-    this.updatePanelHp(defender, defenderCurrentHp, 0xe74c3c);
-  }
-
-  private updatePanelHp(unit: Unit, currentHp: number, _color: number): void {
-    if (!this.battleDisplayState || !this.battleOverlay) {
-      return;
-    }
-    const isLeft = unit.id === this.battleDisplayState.attacker.id;
-    const panel = isLeft ? this.attBattlePanel : this.defBattlePanel;
-    if (!panel) return;
-
-    const hpRatio = Math.max(0, currentHp / unit.stats.maxHp);
-    const hpColor = hpRatio > 0.5 ? 0x2ecc71 : hpRatio > 0.25 ? 0xf1c40f : 0xe74c3c;
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const oldFill = panel.getByName('hpFill') as Phaser.GameObjects.GameObject;
-
-    oldFill.destroy();
-    const newFill = this.add.rectangle(-50 + (120 * hpRatio) / 2, 10, 120 * hpRatio, 12, hpColor);
-    newFill.setName('hpFill');
-
-    panel.add(newFill);
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const hpText = panel.getByName('hpText') as Phaser.GameObjects.Text;
-    hpText.setText(`${currentHp.toString()} / ${unit.stats.maxHp.toString()}`);
+    const { attackerCurrentHp, defenderCurrentHp } = this.battleDisplayState;
+    this.attBattleRenderer?.setHp(attackerCurrentHp);
+    this.defBattleRenderer?.setHp(defenderCurrentHp);
   }
 
   private resolveStaffHeal(healer: Unit, target: Unit): void {
@@ -2914,6 +2811,8 @@ export class BattleScene extends Phaser.Scene {
     const afterFade = () => {
       this.battleOverlay?.destroy();
       this.battleOverlay = null;
+      this.attBattleRenderer = null;
+      this.defBattleRenderer = null;
 
       // Play kill/death triggers before applying EXP / checking objectives
       this.playDeadUnitTriggers(deadBeforeRemoval, 0, () => {

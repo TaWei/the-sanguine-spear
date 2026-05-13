@@ -727,20 +727,23 @@ export class GameEngine {
     const defWeapon = this.getWeaponForUnit(defender);
 
     // Create durability trackers from inventory weapons
-    const attTracker = this._createDurabilityTracker(attacker, attackerWeaponIndex);
-    const defTracker = this._createDurabilityTracker(defender);
+    const { tracker: attTracker, index: attWeaponIdx } = this._createDurabilityTracker(attacker, attackerWeaponIndex);
+    const { tracker: defTracker, index: defWeaponIdx } = this._createDurabilityTracker(defender);
 
     // Check for combination attacker from paired guard
     let combinationAttacker: Unit | undefined;
     let comboWeapon: WeaponData | undefined;
     let comboTracker: DurabilityTracker | undefined;
+    let comboWeaponIdx: number | undefined;
     if (attacker.pairUpState.guardUnitId) {
       const guard = this.units.find((u) => u.id === attacker.pairUpState.guardUnitId);
       if (guard) {
         combinationAttacker = getCombinationAttacker(attacker, guard, defender, this.grid) ?? undefined;
         if (combinationAttacker) {
           comboWeapon = this.getWeaponForUnit(combinationAttacker);
-          comboTracker = this._createDurabilityTracker(combinationAttacker);
+          const comboResult = this._createDurabilityTracker(combinationAttacker);
+          comboTracker = comboResult.tracker;
+          comboWeaponIdx = comboResult.index;
         }
       }
     }
@@ -777,10 +780,10 @@ export class GameEngine {
     );
 
     // Sync durability back to inventory
-    this._syncWeaponDurability(attacker, attackerWeaponIndex, attTracker);
-    this._syncWeaponDurability(defender, undefined, defTracker);
+    this._syncWeaponDurability(attacker, attWeaponIdx, attTracker);
+    this._syncWeaponDurability(defender, defWeaponIdx, defTracker);
     if (combinationAttacker && comboTracker) {
-      this._syncWeaponDurability(combinationAttacker, undefined, comboTracker);
+      this._syncWeaponDurability(combinationAttacker, comboWeaponIdx, comboTracker);
     }
 
     return result;
@@ -1092,7 +1095,16 @@ export class GameEngine {
     }
     const playerUnits = this.getUnitsByFaction(Faction.PLAYER).filter((u) => u.isAlive && !u.hasActed);
     if (playerUnits.length === 0) return null;
-    const target = playerUnits[0];
+    // Pick nearest player unit as the threat target
+    let target = playerUnits[0];
+    let bestDist = Infinity;
+    for (const u of playerUnits) {
+      const dist = Math.abs(enemy.gridX - u.gridX) + Math.abs(enemy.gridY - u.gridY);
+      if (dist < bestDist) {
+        bestDist = dist;
+        target = u;
+      }
+    }
     const preview = this.getCombatPreview(enemy, target);
     return {
       hit: preview.attacker.hit,
@@ -1222,21 +1234,28 @@ export class GameEngine {
   private _createDurabilityTracker(
     unit: Unit,
     weaponIndex?: number,
-  ): DurabilityTracker | undefined {
+  ): { tracker: DurabilityTracker | undefined; index: number | undefined } {
     const items = unit.inventory.items;
     if (weaponIndex !== undefined && weaponIndex >= 0 && weaponIndex < items.length) {
       const item = items[weaponIndex];
-      if (item.kind === 'weapon') return createDurabilityTracker(item.uses);
+      if (item.kind === 'weapon') {
+        return { tracker: createDurabilityTracker(item.uses), index: weaponIndex };
+      }
     }
-    // Auto-find first weapon in inventory
+    // Auto-find first usable weapon in inventory (mirrors getWeaponForUnit)
+    const canUse = (w: WeaponItem): boolean => {
+      if (w.requiredRank === undefined) return true;
+      return canWield(unit.getWeaponRank(w.weaponType).rank, w.requiredRank);
+    };
     for (let i = 0; i < items.length; i++) {
       if (items[i].kind === 'weapon') {
-        if (weaponIndex === undefined || i === weaponIndex) {
-          return createDurabilityTracker(items[i].uses);
+        const w = items[i] as WeaponItem;
+        if (canUse(w)) {
+          return { tracker: createDurabilityTracker(items[i].uses), index: i };
         }
       }
     }
-    return undefined; // no weapon (class default used)
+    return { tracker: undefined, index: undefined }; // no weapon (class default used)
   }
 
   private _syncWeaponDurability(
@@ -1250,10 +1269,17 @@ export class GameEngine {
     let index = weaponIndex;
     if (index === undefined || index < 0) {
       const items = unit.inventory.items;
+      const canUse = (w: WeaponItem): boolean => {
+        if (w.requiredRank === undefined) return true;
+        return canWield(unit.getWeaponRank(w.weaponType).rank, w.requiredRank);
+      };
       for (let i = 0; i < items.length; i++) {
         if (items[i].kind === 'weapon') {
-          index = i;
-          break;
+          const w = items[i] as WeaponItem;
+          if (canUse(w)) {
+            index = i;
+            break;
+          }
         }
       }
     }

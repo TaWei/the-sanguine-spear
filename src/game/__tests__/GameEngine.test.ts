@@ -5,7 +5,8 @@ import { createStats } from '../units/Stats';
 import { TerrainType } from '../map/Terrain';
 import { UNIT_STATE } from '../state/UnitState';
 import { getLevel } from '../levels/LevelData';
-import { createWeaponItem, createRecoveryItem } from '../items/ItemTypes';
+import { createWeaponItem, createRecoveryItem, type WeaponItem } from '../items/ItemTypes';
+import { WeaponRankLevel } from '../combat/WeaponRank';
 import { ArmyGold } from '../shop/ArmyGold';
 import { ShopItem } from '../shop/ShopEngine';
 import { createItemByName } from '../items/ItemFactory';
@@ -505,6 +506,55 @@ describe('GameEngine', () => {
     const damageWithIndex = enemyHpBefore - enemy.stats.hp;
 
     expect(damageWithIndex).toBe(18);
+  });
+
+  it('resolvePlayerCombat skips unusable first weapon and consumes durability from usable one', () => {
+    const engine = new GameEngine(10, 10);
+    const stats = createStats({
+      hp: 22,
+      str: 8,
+      mag: 2,
+      skl: 7,
+      spd: 8,
+      luk: 6,
+      def: 6,
+      res: 2,
+      mov: 5,
+    });
+    const enemyStats = createStats({
+      hp: 50,
+      str: 9,
+      mag: 0,
+      skl: 4,
+      spd: 5,
+      luk: 3,
+      def: 5,
+      res: 1,
+      mov: 5,
+    });
+    const player = engine.addUnit('p1', 'Rowan', Faction.PLAYER, UnitClass.LORD, stats, 5, 5);
+    const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, UnitClass.BRIGAND, enemyStats, 6, 5);
+
+    // Clear default Iron Sword
+    player.inventory.removeAt(0);
+
+    // Add unusable high-rank weapon first (requires D rank; unit has E)
+    const unusableWeapon = createWeaponItem('Steel Sword', 'sword', 10, 80, 0, 1, 1, false, 30, undefined, undefined, WeaponRankLevel.D);
+    player.inventory.add(unusableWeapon);
+
+    // Add usable weapon second (no rank requirement)
+    const usableWeapon = createWeaponItem('Iron Lance', 'lance', 6, 80, 0, 1, 1, false, 40);
+    player.inventory.add(usableWeapon);
+
+    const unusableUsesBefore = (player.inventory.items[0] as WeaponItem).uses;
+    const usableUsesBefore = (player.inventory.items[1] as WeaponItem).uses;
+
+    engine.resolvePlayerCombat(player, enemy, () => 0);
+
+    // Unusable first weapon should not lose durability
+    expect((player.inventory.items[0] as WeaponItem).uses).toBe(unusableUsesBefore);
+    // Usable second weapon should lose durability
+    expect((player.inventory.items[1] as WeaponItem).uses).toBeLessThan(usableUsesBefore);
   });
 
   it('getCombatPreview reflects selected inventory weapon stats', () => {

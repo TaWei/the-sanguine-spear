@@ -1,5 +1,5 @@
 import { Grid, GridNeighbor } from '../map/Grid';
-import { Unit } from '../units/Unit';
+import { Unit, Faction } from '../units/Unit';
 import { getTerrainMoveCost } from './TerrainCost';
 
 export function findPath(
@@ -53,8 +53,18 @@ export function findPath(
         continue;
       }
 
-      if (grid.isOccupied(nx, ny) && !(nx === startX && ny === startY)) {
-        continue;
+      const occupant = grid.getUnit(nx, ny);
+      if (occupant) {
+        // Allow the starting tile (already visited, but guard anyway)
+        if (nx === startX && ny === startY) {
+          continue;
+        }
+        // Block enemy-occupied tiles; allow traversal through allies
+        const isHostile =
+          (unit.faction === Faction.ENEMY) !== (occupant.faction === Faction.ENEMY);
+        if (isHostile) {
+          continue;
+        }
       }
 
       visited.set(key, newCost);
@@ -64,6 +74,12 @@ export function findPath(
   }
 
   if (!visited.has(destKey)) {
+    return null;
+  }
+
+  // Cannot end movement on a tile occupied by another unit
+  const destOccupant = grid.getUnit(destX, destY);
+  if (destOccupant && destOccupant !== unit) {
     return null;
   }
 

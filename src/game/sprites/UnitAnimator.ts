@@ -29,15 +29,17 @@ export class UnitAnimator {
   }
 
   playAnimation(state: AnimationState, weapon?: string): void {
-    const key = this.atlas.getSpriteKey(this.unitClass, this.faction, state, weapon);
+    const textureKey = this.atlas.getTextureKey(this.unitClass, this.faction, state, weapon);
+    const animKey = this.atlas.getAnimationKey(this.unitClass, this.faction, state, weapon);
     try {
-      this.sprite.setTexture(key);
-      this.sprite.play(state);
+      this.sprite.setTexture(textureKey);
+      this.sprite.play(animKey);
     } catch {
       // Fallback to generic
-      const fallback = this.atlas.getFallbackKey(this.faction, state);
-      this.sprite.setTexture(fallback);
-      this.sprite.play(state);
+      const fallbackTexture = this.atlas.getFallbackTextureKey(this.faction);
+      const fallbackAnim = this.atlas.getFallbackAnimationKey(this.faction, state);
+      this.sprite.setTexture(fallbackTexture);
+      this.sprite.play(fallbackAnim);
     }
     this.sprite.setFlipX(this.facing === 'left');
   }

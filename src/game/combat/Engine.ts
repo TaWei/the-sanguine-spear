@@ -46,6 +46,7 @@ export interface CombatLogEntry {
   damage: number;
   displayHit: number;
   displayCrit: number;
+  weaponType?: string;
 }
 
 export interface CombatResult {
@@ -242,7 +243,9 @@ export class CombatEngine {
     const hit = calcDisplayHit(hitRate, avoid);
 
     const atkStat = weapon.usesMagic ? attStats.mag : attStats.str;
-    const defStat = weapon.usesMagic ? defStats.res : defStats.def;
+    const defStat = weapon.usesMagic
+      ? defStats.res + terrainData.defenseBonus
+      : defStats.def + terrainData.defenseBonus;
     const effective = this.isEffective(weapon, defender.unitClass);
     const rawDamage = calcDamage(atkStat, weapon.mt, defStat, effective, triangle.mtBonus);
     const damage = Math.max(1, rawDamage - guardDefenseBonus);
@@ -297,7 +300,9 @@ export class CombatEngine {
 
     if (hit) {
       const atkStat = weapon.usesMagic ? attStats.mag : attStats.str;
-      const defStat = weapon.usesMagic ? defStats.res : defStats.def;
+      const defStat = weapon.usesMagic
+        ? defStats.res + terrainData.defenseBonus
+        : defStats.def + terrainData.defenseBonus;
       const effective = this.isEffective(weapon, defender.unitClass);
       damage = calcDamage(atkStat, weapon.mt, defStat, effective, triangle.mtBonus);
       damage = Math.max(1, damage - guardDefenseBonus);
@@ -312,7 +317,7 @@ export class CombatEngine {
       }
     }
 
-    return { attacker, defender, hit, critical, damage, displayHit, displayCrit };
+    return { attacker, defender, hit, critical, damage, displayHit, displayCrit, weaponType: weapon.type };
   }
 
   private isInRange(ax: number, ay: number, bx: number, by: number, weapon: WeaponData): boolean {

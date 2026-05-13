@@ -129,6 +129,27 @@ describe('findPath', () => {
     }
   });
 
+  it('finds a path through an allied unit', () => {
+    const grid = new Grid(5, 5);
+    const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 1, 2);
+    const ally = new Unit('a1', 'Ally', Faction.ALLY, UnitClass.SOLDIER, stats, 2, 2);
+    grid.placeUnit(ally, 2, 2);
+    const path = findPath(unit, grid, 3, 2);
+    expect(path).not.toBeNull();
+    expect(path).toHaveLength(2);
+    expect(path![0]).toEqual({ x: 2, y: 2 });
+    expect(path![1]).toEqual({ x: 3, y: 2 });
+  });
+
+  it('returns null when destination is occupied by an allied unit', () => {
+    const grid = new Grid(5, 5);
+    const unit = new Unit('u1', 'Test', Faction.PLAYER, UnitClass.LORD, stats, 1, 2);
+    const ally = new Unit('a1', 'Ally', Faction.ALLY, UnitClass.SOLDIER, stats, 3, 2);
+    grid.placeUnit(ally, 3, 2);
+    const path = findPath(unit, grid, 3, 2);
+    expect(path).toBeNull();
+  });
+
   it('finds path through cliff for flying unit', () => {
     const grid = new Grid(5, 5);
     grid.setTerrain(2, 2, TerrainType.CLIFF);

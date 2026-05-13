@@ -420,6 +420,31 @@ describe('FogIntegration', () => {
       expect(threat).not.toBeNull();
       expect(threat!.damage).toBeGreaterThan(0);
     });
+
+    it('getEnemyThreatInFog picks the nearest player unit as threat target', () => {
+      const engine = new GameEngine(15, 15);
+      engine.fog.setEnabled(true);
+      // Add far unit first (so old code would pick this one)
+      engine.addUnit('p1', 'Far', Faction.PLAYER, 'lord', createStats({
+        hp: 20, maxHp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 1, res: 2, mov: 5,
+      }), 1, 1);
+      // Add near unit second
+      engine.addUnit('p2', 'Near', Faction.PLAYER, 'lord', createStats({
+        hp: 20, maxHp: 20, str: 8, mag: 2, skl: 7, spd: 8, luk: 6, def: 10, res: 2, mov: 5,
+      }), 6, 5);
+      const enemy = engine.addUnit('e1', 'Bandit', Faction.ENEMY, 'brigand', createStats({
+        hp: 26, maxHp: 26, str: 9, mag: 0, skl: 4, spd: 5, luk: 3, def: 5, res: 1, mov: 5,
+      }), 5, 5);
+      engine.updateFogOfWar();
+
+      const threat = engine.getEnemyThreatInFog(enemy);
+      expect(threat).not.toBeNull();
+      // Enemy brigand uses Iron Axe (mt 8). str 9 + mt 8 + triangle(-1 vs sword) = 16 base.
+      // Against def 10 (near unit): damage = 16 - 10 = 6
+      // Against def 1 (far unit): damage = 16 - 1 = 15
+      // Nearest unit has def 10, so damage should be 6.
+      expect(threat!.damage).toBe(6);
+    });
   });
 
   describe('Camera sight bounds', () => {

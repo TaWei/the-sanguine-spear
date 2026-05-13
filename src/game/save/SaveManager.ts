@@ -19,12 +19,22 @@ export class SaveManager {
     return PREFIX + slot;
   }
 
-  save(slot: string, data: SaveData): void {
-    localStorage.setItem(this.key(slot), JSON.stringify(data));
+  save(slot: string, data: SaveData): boolean {
+    try {
+      localStorage.setItem(this.key(slot), JSON.stringify(data));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   load(slot: string): SaveData | null {
-    const raw = localStorage.getItem(this.key(slot));
+    let raw: string | null;
+    try {
+      raw = localStorage.getItem(this.key(slot));
+    } catch {
+      return null;
+    }
     if (!raw) return null;
     try {
       const parsed = JSON.parse(raw) as SaveData;
@@ -35,14 +45,30 @@ export class SaveManager {
     }
   }
 
-  delete(slot: string): void {
-    localStorage.removeItem(this.key(slot));
+  delete(slot: string): boolean {
+    try {
+      localStorage.removeItem(this.key(slot));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   listSaves(): SaveMetadata[] {
     const results: SaveMetadata[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    let len: number;
+    try {
+      len = localStorage.length;
+    } catch {
+      return [];
+    }
+    for (let i = 0; i < len; i++) {
+      let key: string | null;
+      try {
+        key = localStorage.key(i);
+      } catch {
+        continue;
+      }
       if (!key || !key.startsWith(PREFIX)) continue;
       const slot = key.slice(PREFIX.length);
       const data = this.load(slot);
